@@ -105,53 +105,5 @@ namespace ConfigurationManager.Utilities
 
             tex.Apply(false);
         }
-
-        public static void OpenLog()
-        {
-            bool TryOpen(string path)
-            {
-                if (!File.Exists(path)) return false;
-                try
-                {
-                    Process.Start(path);
-                    return true;
-                }
-                catch
-                {
-                    return false;
-                }
-            }
-
-            // Redirected by preloader to game root
-            if (TryOpen(Path.Combine(Path.Combine(Application.dataPath, ".."), "output_log.txt"))) return;
-
-            // Generated in most versions unless disabled
-            if (TryOpen(Path.Combine(Application.dataPath, "output_log.txt"))) return;
-
-            // Available since 2018.3
-            var prop = typeof(Application).GetProperty("consoleLogPath", BindingFlags.Static | BindingFlags.Public);
-            if (prop != null)
-            {
-                var path = prop.GetValue(null, null) as string;
-                if (TryOpen(path)) return;
-            }
-
-            if (Directory.Exists(Application.persistentDataPath))
-            {
-                var file = Directory.GetFiles(Application.persistentDataPath, "output_log.txt", SearchOption.AllDirectories).FirstOrDefault();
-                if (TryOpen(file)) return;
-            }
-
-            // Fall back to more aggresive brute search
-            var rootDir = Directory.GetParent(Application.dataPath);
-            if (rootDir.Exists)
-            {
-                // BepInEx 5.x log file
-                var result = rootDir.GetFiles("LogOutput.log", SearchOption.AllDirectories).FirstOrDefault() ?? rootDir.GetFiles("output_log.txt", SearchOption.AllDirectories).FirstOrDefault();
-                if (result != null && TryOpen(result.FullName)) return;
-            }
-
-            throw new FileNotFoundException("No log files were found");
-        }
     }
 }

@@ -92,7 +92,6 @@ namespace ConfigurationManager
         public static ConfigEntry<string> _normalText;
         public static ConfigEntry<string> _shortcutsText;
         public static ConfigEntry<string> _advancedText;
-        public static ConfigEntry<string> _logText;
         public static ConfigEntry<string> _closeText;
 
         public static ConfigEntry<string> _searchText;
@@ -136,13 +135,12 @@ namespace ConfigurationManager
 
             _hideSingleSection = Config.Bind("General", "Hide single sections", false, new ConfigDescription("Show section title for plugins with only one section"));
             _loggingEnabled = Config.Bind("General", "Logging enabled", false, new ConfigDescription("Enable logging"));
-            _preventInput = Config.Bind("General", "Prevent user input", false, new ConfigDescription("Prevent clicks and key presses when window is open"));
+            _preventInput = Config.Bind("General", "Prevent user input", true, new ConfigDescription("Prevent clicks and key presses when window is open"));
 
             _windowTitle = Config.Bind("Text - Menu", "Window Title", "Configuration Manager", new ConfigDescription("Window title text"));
             _normalText = Config.Bind("Text - Menu", "Normal", "Normal", new ConfigDescription("Normal settings toggle text"));
             _shortcutsText = Config.Bind("Text - Menu", "Shortcuts", "Keybinds", new ConfigDescription("Shortcut key settings toggle text"));
             _advancedText = Config.Bind("Text - Menu", "Advanced", "Advanced", new ConfigDescription("Advanced settings toggle text"));
-            _logText = Config.Bind("Text - Menu", "Log", "Log", new ConfigDescription("Advanced settings toggle text"));
             _closeText = Config.Bind("Text - Menu", "Close", "Close", new ConfigDescription("Advanced settings toggle text"));
             _searchText = Config.Bind("Text - Menu", "Search", "Search Settings:", new ConfigDescription("Search label text"));
             _expandText = Config.Bind("Text - Menu", "List Expand", "Expand", new ConfigDescription("Expand button text"));
@@ -348,12 +346,6 @@ namespace ConfigurationManager
                 {
                     _showDebug = newVal;
                     BuildSettingList();
-                }
-
-                if (GUILayout.Button(_logText.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
-                {
-                    try { Utilities.Utils.OpenLog(); }
-                    catch (SystemException ex) { Logger.Log(LogLevel.Message | LogLevel.Error, ex.Message); }
                 }
 
                 if (GUILayout.Button(_closeText.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
