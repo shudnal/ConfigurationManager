@@ -24,7 +24,7 @@ namespace ConfigurationManager
     {
         public const string pluginID = "shudnal.ConfigurationManager";
         public const string pluginName = "Valheim Configuration Manager";
-        public const string pluginVersion = "1.0.0";
+        public const string pluginVersion = "1.0.1";
 
         public static void LogInfo(object data)
         {
