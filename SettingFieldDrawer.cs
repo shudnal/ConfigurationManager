@@ -296,7 +296,7 @@ namespace ConfigurationManager
             }
             else
             {
-                var strVal = (Utils.IsFloat(setting.SettingType) ? ((float)value).ToString(CultureInfo.InvariantCulture).AppendZero() : value.ToString());
+                var strVal = Utilities.Utils.IsFloat(setting.SettingType) ? ((float)value).ToString(CultureInfo.InvariantCulture).AppendZero() : value.ToString();
                 var strResult = GUILayout.TextField(strVal, GetTextStyle(setting), GUILayout.Width(50));
                 if (strResult != strVal)
                 {
@@ -333,7 +333,14 @@ namespace ConfigurationManager
                 {
                     var result = GUILayout.TextField(value, GetTextStyle(setting), GUILayout.MaxWidth(rightColumnWidth));
                     if (result != value)
-                        setting.Set(Convert.ChangeType(result, setting.SettingType, CultureInfo.InvariantCulture));
+                        try
+                        {
+                            setting.Set(Convert.ChangeType(result, setting.SettingType, CultureInfo.InvariantCulture));
+                        }
+                        catch
+                        {
+                            // Don't change anything if format is bad
+                        }
                 }
                 else
                 {

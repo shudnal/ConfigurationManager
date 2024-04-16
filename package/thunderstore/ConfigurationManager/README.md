@@ -14,9 +14,13 @@ That fork have additions from other similar mods
 * Color drawer extended further
 * Window is draggable, resizable and remembers its size and position
 * Open and close window by hitting one hotkey. Close window with Escape.
-* Valheim does not take input while the window is open (can be disabled)
 * Dropdown menu style refined
 * Lots of minor refinements and improvements
+
+## Valheim specific
+The game does not take input while the window is open.
+
+The game will be paused (if it can be paused) while the window is open.
 
 ## Compatibility
 The mod is incompatible with original configuration manager and will not be loaded in that case.
