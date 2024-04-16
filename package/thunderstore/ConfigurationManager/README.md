@@ -18,9 +18,9 @@ That fork have additions from other similar mods
 * Lots of minor refinements and improvements
 
 ## Valheim specific
-The game does not take input while the window is open.
+The game does not take input while the window is open (only player input by default).
 
-The game will be paused (if it can be paused) while the window is open.
+The game will be paused (if it can be paused) while the window is open (disabled by default).
 
 ## Compatibility
 The mod is incompatible with original configuration manager and will not be loaded in that case.
