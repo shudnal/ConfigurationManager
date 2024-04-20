@@ -20,7 +20,7 @@ namespace ConfigurationManager
     {
         public const string pluginID = "shudnal.ConfigurationManager";
         public const string pluginName = "Valheim Configuration Manager";
-        public const string pluginVersion = "1.0.2";
+        public const string pluginVersion = "1.0.3";
 
         internal static ConfigurationManager instance;
         private static SettingFieldDrawer _fieldDrawer;
@@ -114,6 +114,8 @@ namespace ConfigurationManager
         {
             instance = this;
 
+            CalculateDefaultWindowRect();
+
             _fieldDrawer = new SettingFieldDrawer(this);
 
             _keybind = Config.Bind("General", "Show config manager", new KeyboardShortcut(KeyCode.F1),
@@ -171,8 +173,6 @@ namespace ConfigurationManager
 
         void Start()
         {
-            CalculateDefaultWindowRect();
-
             // Use reflection to keep compatibility with unity 4.x since it doesn't have Cursor
             var tCursor = typeof(Cursor);
             _curLockState = tCursor.GetProperty("lockState", BindingFlags.Static | BindingFlags.Public);

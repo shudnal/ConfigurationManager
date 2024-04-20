@@ -40,7 +40,7 @@ namespace ConfigurationManager
 
         private static bool PreventAllInput()
         {
-            return _preventInput.Value == PreventInput.All || Game.IsPaused();
+            return _preventInput.Value == PreventInput.All || (Game.IsPaused() && !GameCamera.InFreeFly());
         }
 
         private static bool PreventPlayerInput()
