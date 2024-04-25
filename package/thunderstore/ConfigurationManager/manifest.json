@@ -1,7 +1,7 @@
 {
   "name": "ConfigurationManager",
-  "version_number": "1.0.3",
+  "version_number": "1.0.4",
   "website_url": "https://github.com/shudnal/ConfigurationManager",
-  "description": "Localized, recolored, refined. Changed values highlighted. Prevent user input or pause the game while window is open.",
+  "description": "Localized, recolored, refined. Changed and readonly values highlighted. Prevent user input or pause the game while window is open.",
   "dependencies": ["denikson-BepInExPack_Valheim-5.4.2202"]
 }

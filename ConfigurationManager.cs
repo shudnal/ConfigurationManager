@@ -20,7 +20,7 @@ namespace ConfigurationManager
     {
         public const string pluginID = "shudnal.ConfigurationManager";
         public const string pluginName = "Valheim Configuration Manager";
-        public const string pluginVersion = "1.0.3";
+        public const string pluginVersion = "1.0.4";
 
         internal static ConfigurationManager instance;
         private static SettingFieldDrawer _fieldDrawer;
@@ -64,11 +64,20 @@ namespace ConfigurationManager
 
         internal int LeftColumnWidth { get; private set; }
         internal int RightColumnWidth { get; private set; }
+        
+        public enum ReadOnlyStyle
+        {
+            Ignored,
+            Colored,
+            Disabled,
+            Hidden
+        }
 
         public static ConfigEntry<bool> _showAdvanced;
         public static ConfigEntry<bool> _showKeybinds;
         public static ConfigEntry<bool> _showSettings;
         public static ConfigEntry<bool> _loggingEnabled;
+        public static ConfigEntry<ReadOnlyStyle> _readOnlyStyle;
 
         public static ConfigEntry<KeyboardShortcut> _keybind;
         public static ConfigEntry<bool> _hideSingleSection;
@@ -94,6 +103,7 @@ namespace ConfigurationManager
         public static ConfigEntry<string> _disabledText;
         public static ConfigEntry<string> _shortcutKeyText;
         public static ConfigEntry<string> _shortcutKeysText;
+        public static ConfigEntry<string> _noOptionsPluginsText;
 
         public static ConfigEntry<int> _textSize;
         public static ConfigEntry<Color> _windowBackgroundColor;
@@ -103,6 +113,7 @@ namespace ConfigurationManager
         public static ConfigEntry<Color> _fontColorValueDefault;
         public static ConfigEntry<Color> _widgetBackgroundColor;
         public static ConfigEntry<Color> _enabledBackgroundColor;
+        public static ConfigEntry<Color> _readOnlyColor;
 
         internal static void LogInfo(object data)
         {
@@ -125,10 +136,12 @@ namespace ConfigurationManager
             _showAdvanced = Config.Bind("Filtering", "Show advanced", false);
             _showKeybinds = Config.Bind("Filtering", "Show keybinds", true);
             _showSettings = Config.Bind("Filtering", "Show settings", true);
+            _readOnlyStyle = Config.Bind("Filtering", "Style readonly entries", ReadOnlyStyle.Colored, new ConfigDescription("Entries marked as readonly are not available for change."));
+
+            _readOnlyStyle.SettingChanged += (sender, args) => BuildSettingList();
 
             _hideSingleSection = Config.Bind("General", "Hide single sections", false, new ConfigDescription("Show section title for plugins with only one section"));
             _loggingEnabled = Config.Bind("General", "Logging enabled", false, new ConfigDescription("Enable logging"));
-            
             _windowTitle = Config.Bind("Text - Menu", "Window Title", "Configuration Manager", new ConfigDescription("Window title text"));
             _normalText = Config.Bind("Text - Menu", "Normal", "Normal", new ConfigDescription("Normal settings toggle text"));
             _shortcutsText = Config.Bind("Text - Menu", "Shortcuts", "Keybinds", new ConfigDescription("Shortcut key settings toggle text"));
@@ -137,6 +150,7 @@ namespace ConfigurationManager
             _searchText = Config.Bind("Text - Menu", "Search", "Search Settings:", new ConfigDescription("Search label text"));
             _expandText = Config.Bind("Text - Menu", "List Expand", "Expand", new ConfigDescription("Expand button text"));
             _collapseText = Config.Bind("Text - Menu", "List Collapse", "Collapse", new ConfigDescription("Collapse button text"));
+            _noOptionsPluginsText = Config.Bind("Text - Menu", "Plugins without options", "Plugins with no options available", new ConfigDescription("Text in footer"));
 
             _reloadText = Config.Bind("Text - Plugin", "Reload", "Reload From File", new ConfigDescription("Reload mod config from file text"));
             _resetText = Config.Bind("Text - Plugin", "Reset", "Reset To Default", new ConfigDescription("Reset mod config to default text"));
@@ -158,6 +172,7 @@ namespace ConfigurationManager
             _entryBackgroundColor = Config.Bind("Colors", "Entry background color", new Color(0.55f, 0.5f, 0.5f, 0.87f), "Entry background color");
             _widgetBackgroundColor = Config.Bind("Colors", "Widget color", new Color(0.88f, 0.46f, 0, 0.8f), "Widget color");
             _enabledBackgroundColor = Config.Bind("Colors", "Enabled toggle color", new Color(0.88f, 0.46f, 0f, 1f), "Color of enabled toggle");
+            _readOnlyColor = Config.Bind("Colors", "Readonly color", Color.gray, "Color of readonly setting");
 
             _fontColor = Config.Bind("Colors - Font", "Main font", new Color(1f, 0.71f, 0.36f, 1f), "Font color");
             _fontColorValueDefault = Config.Bind("Colors - Font", "Default value", new Color(1f, 0.71f, 0.36f, 1f), "Font color");

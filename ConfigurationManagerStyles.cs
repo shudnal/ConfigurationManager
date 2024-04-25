@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using static ConfigurationManager.ConfigurationManager;
 
 namespace ConfigurationManager
@@ -29,6 +30,13 @@ namespace ConfigurationManager
 
         public static void CreateStyles()
         {
+            _textSize.Value = Mathf.Clamp(_textSize.Value, 10, 30);
+            if (fontSize != _textSize.Value)
+            {
+                fontSize = _textSize.Value;
+                SettingFieldDrawer.ClearCache();
+            }
+
             windowStyle = new GUIStyle(GUI.skin.window);
             windowStyle.normal.textColor = _fontColor.Value;
             windowStyle.fontSize = fontSize;
@@ -86,16 +94,14 @@ namespace ConfigurationManager
             toggleStyle.onNormal.textColor = _fontColor.Value;
             toggleStyle.fontSize = fontSize;
 
-            toggleStyleValueDefault = new GUIStyle(GUI.skin.toggle);
+            toggleStyleValueDefault = new GUIStyle(toggleStyle);
             toggleStyleValueDefault.normal.textColor = _fontColorValueDefault.Value;
             toggleStyleValueDefault.onNormal.textColor = _fontColorValueDefault.Value;
-            toggleStyleValueDefault.fontSize = fontSize;
 
-            toggleStyleValueChanged = new GUIStyle(GUI.skin.toggle);
+            toggleStyleValueChanged = new GUIStyle(toggleStyle);
             toggleStyleValueChanged.name += "changed";
             toggleStyleValueChanged.normal.textColor = _fontColorValueChanged.Value;
             toggleStyleValueChanged.onNormal.textColor = _fontColorValueChanged.Value;
-            toggleStyleValueChanged.fontSize = fontSize;
 
             boxStyle = new GUIStyle(GUI.skin.box);
             boxStyle.normal.textColor = _fontColor.Value;

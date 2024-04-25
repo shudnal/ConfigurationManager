@@ -36,7 +36,7 @@ namespace ConfigurationManager
 
             DefaultValue = entry.DefaultValue;
 
-            SetFromAttributes(entry.Description?.Tags, owner);
+            SetFromAttributes(Entry.Description?.Tags, owner);
         }
 
         private void GetAcceptableValues(AcceptableValueBase values)
@@ -71,5 +71,11 @@ namespace ConfigurationManager
         {
             Entry.BoxedValue = newVal;
         }
+
+        internal bool ShouldBeHidden()
+        {
+            return ConfigurationManager.hiddenSettings.Value.Contains($"{PluginInfo.GUID}={Entry.Definition.Section}={Entry.Definition.Key}");
+        }
+
     }
 }

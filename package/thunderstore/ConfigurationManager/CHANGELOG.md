@@ -1,3 +1,10 @@
+# 1.0.4
+* resize window by dragging its bottom right corner
+* readonly configs could now be colored, disabled or hidden
+* settings in the client list could be hidden from the server settings set in JSON file
+* interface refinements
+* less GUI Clips errors in console
+
 # 1.0.3
 * fixed default window size
 * input doesn't blocked in freefly mode with type Player

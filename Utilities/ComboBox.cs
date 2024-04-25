@@ -14,6 +14,8 @@ namespace ConfigurationManager.Utilities
     {
         private static bool forceToUnShow;
         private static int useControlID = -1;
+        private static bool isShown;
+
         private readonly GUIStyle boxStyle;
         private readonly GUIStyle buttonStyleDefault;
         private readonly GUIStyle buttonStyleChanged;
@@ -21,6 +23,11 @@ namespace ConfigurationManager.Utilities
         private readonly GUIContent[] listContent;
         private readonly GUIStyle listStyle;
         private readonly int _windowYmax;
+
+        internal static bool IsShown()
+        {
+            return isShown;
+        }
 
         public ComboBox(Rect rect, GUIContent buttonContent, GUIContent[] listContent, GUIContent defaultValue, GUIStyle buttonStyleDefault, GUIStyle buttonStyleChanged, GUIStyle boxStyle, GUIStyle listStyle, float windowYmax)
         {
@@ -43,6 +50,7 @@ namespace ConfigurationManager.Utilities
 
         public void Show(Action<int> onItemSelected)
         {
+            isShown = false;
             if (forceToUnShow)
             {
                 forceToUnShow = false;
@@ -80,6 +88,7 @@ namespace ConfigurationManager.Utilities
 
             if (isClickedComboButton)
             {
+                isShown = true;
                 GUI.enabled = false;
                 GUI.color = Color.white;
 

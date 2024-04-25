@@ -15,9 +15,6 @@ namespace ConfigurationManager
         {
             if (DisplayingWindow)
             {
-                if (_textSize.Value > 9 && _textSize.Value < 100)
-                    fontSize = Mathf.Clamp(_textSize.Value, 10, 30);
-
                 CreateBackgrounds();
                 CreateStyles();
                 SetUnlockCursor(0, true);
@@ -25,21 +22,24 @@ namespace ConfigurationManager
                 GUI.Box(currentWindowRect, GUIContent.none, new GUIStyle());
                 GUI.backgroundColor = _windowBackgroundColor.Value;
 
-                if (_windowSize.Value.x > 200 && _windowSize.Value.x < Screen.width && _windowSize.Value.y > 200 && _windowSize.Value.y < Screen.height)
-                    currentWindowRect.size = _windowSize.Value;
+                currentWindowRect.size = new Vector2(Math.Clamp(_windowSize.Value.x, 400, Screen.width), Math.Clamp(_windowSize.Value.y, 400, Screen.height));
 
-                RightColumnWidth = Mathf.RoundToInt(currentWindowRect.width / 2.5f * fontSize / 12f);
-                LeftColumnWidth = Mathf.RoundToInt(currentWindowRect.width - RightColumnWidth - 115);
+                RightColumnWidth = Mathf.RoundToInt(Mathf.Clamp(currentWindowRect.width / 2.5f * fontSize / 12f, currentWindowRect.width * 0.5f, currentWindowRect.width * 0.8f));
+                LeftColumnWidth = Mathf.RoundToInt(Mathf.Clamp(currentWindowRect.width - RightColumnWidth - 100, currentWindowRect.width * 0.2f, currentWindowRect.width * 0.5f)) - 15;
 
                 currentWindowRect = GUILayout.Window(WindowId, currentWindowRect, SettingsWindow, _windowTitle.Value, GetWindowStyle());
-
+                
                 if (!UnityInput.Current.GetKey(KeyCode.Mouse0) && (currentWindowRect.x != _windowPosition.Value.x || currentWindowRect.y != _windowPosition.Value.y))
-                {
-                    _windowPosition.Value = currentWindowRect.position;
-                    Config.Save();
-                    SettingFieldDrawer.ClearComboboxCache();
-                }
+                    SaveCurrentSizeAndPosition();
             }
+        }
+
+        internal void SaveCurrentSizeAndPosition()
+        {
+            _windowPosition.Value = currentWindowRect.position;
+            _windowSize.Value = currentWindowRect.size;
+            Config.Save();
+            SettingFieldDrawer.ClearComboboxCache();
         }
 
         private void SettingsWindow(int id)
@@ -78,7 +78,8 @@ namespace ConfigurationManager
                     {
                         try
                         {
-                            GUILayout.Space(plugin.Height);
+                            if (plugin.Height > 0)
+                                GUILayout.Space(plugin.Height);
                         }
                         catch (ArgumentException)
                         {
@@ -89,22 +90,20 @@ namespace ConfigurationManager
                     currentHeight += plugin.Height;
                 }
 
-                if (_showDebug)
-                {
-                    GUILayout.Space(10);
-                    GUILayout.Label("Plugins with no options available: " + _modsWithoutSettings, GetLabelStyle());
-                }
-                else
-                {
-                    // Always leave some space in case there's a dropdown box at the very bottom of the list
-                    GUILayout.Space(70);
-                }
+                GUILayout.Space(20);
+                GUILayout.Label(_noOptionsPluginsText.Value + ": " + _modsWithoutSettings, GetLabelStyle());
+                GUILayout.Space(10);
             }
             GUILayout.EndVertical();
             GUILayout.EndScrollView();
 
             if (!SettingFieldDrawer.DrawCurrentDropdown())
                 DrawTooltip(currentWindowRect);
+
+            currentWindowRect = Utilities.Utils.ResizeWindow(id, currentWindowRect, out bool sizeChanged);
+            
+            if (sizeChanged)
+                SaveCurrentSizeAndPosition();
         }
 
         private void DrawWindowHeader()
@@ -153,7 +152,7 @@ namespace ConfigurationManager
                 GUILayout.Label(_searchText.Value, GetLabelStyle(), GUILayout.ExpandWidth(false));
 
                 GUI.SetNextControlName(SearchBoxName);
-                SearchString = GUILayout.TextField(SearchString, GUILayout.ExpandWidth(true));
+                SearchString = GUILayout.TextField(SearchString, GetTextStyle(), GUILayout.ExpandWidth(true));
 
                 if (_focusSearchBox)
                 {
@@ -247,6 +246,18 @@ namespace ConfigurationManager
 
         private void DrawSingleSetting(SettingEntryBase setting)
         {
+            Color contentColor = GUI.contentColor;
+            bool enabled = GUI.enabled;
+
+            if (setting.ReadOnly == true && _readOnlyStyle.Value != ReadOnlyStyle.Ignored)
+            {
+                if (enabled)
+                    GUI.enabled = _readOnlyStyle.Value != ReadOnlyStyle.Disabled;
+
+                if (_readOnlyStyle.Value == ReadOnlyStyle.Colored)
+                    GUI.contentColor = _readOnlyColor.Value;
+            }
+
             GUILayout.BeginHorizontal();
             {
                 try
@@ -260,8 +271,14 @@ namespace ConfigurationManager
                     Logger.Log(LogLevel.Error, $"Failed to draw setting {setting.DispName} - {ex}");
                     GUILayout.Label("Failed to draw this field, check log for details.", GetLabelStyle());
                 }
+
             }
             GUILayout.EndHorizontal();
+
+            if (enabled && !Utilities.ComboBox.IsShown())
+                GUI.enabled = enabled;
+
+            GUI.contentColor = contentColor;
         }
 
         private void DrawSettingName(SettingEntryBase setting)
@@ -324,12 +341,15 @@ namespace ConfigurationManager
                     results = results.Where(x => !IsKeyboardShortcut(x));
                 if (!_showSettings.Value)
                     results = results.Where(x => x.IsAdvanced == true || IsKeyboardShortcut(x));
+                if (_readOnlyStyle.Value == ReadOnlyStyle.Hidden)
+                    results = results.Where(x => x.ReadOnly != true);
+                if (hiddenSettings.Value.Count > 0)
+                    results = results.Where(x => !(x as ConfigSettingEntry).ShouldBeHidden());
             }
 
             const string shortcutsCatName = "Keyboard shortcuts";
             string GetCategory(SettingEntryBase eb)
             {
-
                 return eb.Category;
             }
 
@@ -380,7 +400,7 @@ namespace ConfigurationManager
         private void CalculateDefaultWindowRect()
         {
             var width = Mathf.Min(Screen.width, 650);
-            var height = Screen.height < 800 ? Screen.height : 800;
+            var height = Mathf.Min(Screen.height, 800);
             var offsetX = Mathf.RoundToInt((Screen.width - width) / 2f);
             var offsetY = Mathf.RoundToInt((Screen.height - height) / 2f);
             DefaultWindowRect = new Rect(offsetX, offsetY, width, height);

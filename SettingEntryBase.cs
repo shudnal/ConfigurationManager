@@ -4,7 +4,6 @@
 using BepInEx;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
 
@@ -144,6 +143,8 @@ namespace ConfigurationManager
         public Func<string, object> StrToObj { get; internal set; }
 
         private static readonly PropertyInfo[] _myProperties = typeof(SettingEntryBase).GetProperties(BindingFlags.Instance | BindingFlags.Public);
+        
+        private static readonly FieldInfo[] _myFields = typeof(SettingEntryBase).GetFields(BindingFlags.Instance | BindingFlags.Public);
 
         internal void SetFromAttributes(object[] attribs, BaseUnityPlugin pluginInstance)
         {
@@ -154,48 +155,72 @@ namespace ConfigurationManager
 
             foreach (var attrib in attribs)
             {
-                switch (attrib)
+                if (attrib == null)
+                    continue;
+
+                var attrType = attrib.GetType();
+                if (attrType.Name == "ConfigurationManagerAttributes")
                 {
-                    case null: break;
-
-                    // Obsolete attributes from early bepin5 -----------------------
-                    case Action<SettingEntryBase> newCustomDraw:
-                        CustomDrawer = _ => newCustomDraw(this);
-                        break;
-                    case string str:
-                        switch (str)
+                    var otherProperties = attrType.GetProperties(BindingFlags.Instance | BindingFlags.Public);
+                    foreach (var propertyPair in _myProperties.Join(otherProperties, my => my.Name, other => other.Name, (my, other) => new { my, other }))
+                    {
+                        try
                         {
-                            case "ReadOnly": ReadOnly = true; break;
-                            case "Browsable": Browsable = true; break;
-                            case "Unbrowsable": case "Hidden": Browsable = false; break;
-                            case "Advanced": IsAdvanced = true; break;
+                            var val = propertyPair.other.GetValue(attrib);
+                            if (val != null)
+                                propertyPair.my.SetValue(this, val);
                         }
-                        break;
-
-                    // Copy attributes from a specially formatted object, currently recommended
-                    default:
-                        var attrType = attrib.GetType();
-                        if (attrType.Name == "ConfigurationManagerAttributes")
+                        catch (Exception ex)
                         {
-                            var otherFields = attrType.GetFields(BindingFlags.Instance | BindingFlags.Public);
-                            foreach (var propertyPair in _myProperties.Join(otherFields, my => my.Name, other => other.Name, (my, other) => new { my, other }))
-                            {
-                                try
-                                {
-                                    var val = propertyPair.other.GetValue(attrib);
-                                    if (val != null)
-                                        propertyPair.my.SetValue(this, val, null);
-                                }
-                                catch (Exception ex)
-                                {
-                                    ConfigurationManager.LogInfo($"Failed to copy value {propertyPair.my.Name} from provided tag object {attrType.FullName} - " + ex.Message);
-                                }
-                            }
-                            break;
+                            ConfigurationManager.LogInfo($"Failed to copy value {propertyPair.my.Name} from provided tag object {attrType.FullName} - " + ex.Message);
                         }
-                        return;
+                    }
+
+                    foreach (var propertyPair in _myFields.Join(otherProperties, my => my.Name, other => other.Name, (my, other) => new { my, other }))
+                    {
+                        try
+                        {
+                            var val = propertyPair.other.GetValue(attrib);
+                            if (val != null)
+                                propertyPair.my.SetValue(this, val);
+                        }
+                        catch (Exception ex)
+                        {
+                            ConfigurationManager.LogInfo($"Failed to copy value {propertyPair.my.Name} from provided tag object {attrType.FullName} - " + ex.Message);
+                        }
+                    }
+
+                    var otherFields = attrType.GetFields(BindingFlags.Instance | BindingFlags.Public);
+                    foreach (var fieldPair in _myFields.Join(otherFields, my => my.Name, other => other.Name, (my, other) => new { my, other }))
+                    {
+                        try
+                        {
+                            var val = fieldPair.other.GetValue(attrib);
+                            if (val != null)
+                                fieldPair.my.SetValue(this, val);
+                        }
+                        catch (Exception ex)
+                        {
+                            ConfigurationManager.LogInfo($"Failed to copy value {fieldPair.my.Name} from provided tag object {attrType.FullName} - " + ex.Message);
+                        }
+                    }
+
+                    foreach (var fieldPair in _myProperties.Join(otherFields, my => my.Name, other => other.Name, (my, other) => new { my, other }))
+                    {
+                        try
+                        {
+                            var val = fieldPair.other.GetValue(attrib);
+                            if (val != null)
+                                fieldPair.my.SetValue(this, val);
+                        }
+                        catch (Exception ex)
+                        {
+                            ConfigurationManager.LogInfo($"Failed to copy value {fieldPair.my.Name} from provided tag object {attrType.FullName} - " + ex.Message);
+                        }
+                    }
                 }
             }
+
         }
     }
 }

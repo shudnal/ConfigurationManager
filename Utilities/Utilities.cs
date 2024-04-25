@@ -5,12 +5,9 @@ using BepInEx;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Reflection;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace ConfigurationManager.Utilities
 {
@@ -105,5 +102,66 @@ namespace ConfigurationManager.Utilities
 
             tex.Apply(false);
         }
+
+        #region Resizing
+
+        private static bool _handleClicked;
+        private static Vector3 _clickedPosition;
+        private static Rect _originalWindow;
+        private static int _currentWindowId;
+
+        public static Rect ResizeWindow(int id, Rect rect, out bool sizeChanged)
+        {
+            sizeChanged = false;
+
+            float visibleAreaSize = 10f;
+            GUI.Box(new Rect(rect.width - visibleAreaSize - 2, rect.height - visibleAreaSize - 2, visibleAreaSize, visibleAreaSize), GUIContent.none, ConfigurationManagerStyles.GetButtonStyle());
+
+            if (_currentWindowId != 0 && _currentWindowId != id)
+                return rect;
+
+            var mousePos = UnityInput.Current.mousePosition;
+            mousePos.x = Mathf.Clamp(mousePos.x, 0, Screen.width);
+            mousePos.y = Mathf.Clamp(mousePos.y, 0, Screen.height);
+
+            mousePos.y = Screen.height - mousePos.y; // Convert to GUI coords
+
+            var winRect = rect;
+            const int functionalAreaSize = 25;
+            var windowHandle = new Rect(
+                winRect.x + winRect.width - functionalAreaSize,
+                winRect.y + winRect.height - functionalAreaSize,
+                functionalAreaSize,
+                functionalAreaSize);
+
+            if (UnityInput.Current.GetMouseButtonDown(0) && windowHandle.Contains(mousePos))
+            {
+                _handleClicked = true;
+                _clickedPosition = mousePos;
+                _originalWindow = winRect;
+                _currentWindowId = id;
+            }
+
+            if (_handleClicked)
+            {
+                // Resize window by dragging
+                var listWinRect = winRect;
+                listWinRect.width = Mathf.Clamp(_originalWindow.width + (mousePos.x - _clickedPosition.x), 400, Screen.width);
+                listWinRect.height =
+                    Mathf.Clamp(_originalWindow.height + (mousePos.y - _clickedPosition.y), 400, Screen.height);
+                rect = listWinRect;
+
+                if (UnityInput.Current.GetMouseButtonUp(0))
+                {
+                    _handleClicked = false;
+                    _currentWindowId = 0;
+                }
+
+                sizeChanged = true;
+            }
+            return rect;
+        }
+
+        #endregion
     }
 }

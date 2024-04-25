@@ -68,7 +68,12 @@ namespace ConfigurationManager
                 var isBeingSet = _currentKeyboardShortcutToSet == setting;
                 var isBeingSetOriginal = isBeingSet;
 
+                var color = GUI.contentColor;
+                GUI.contentColor = setting.Get().ToString().Equals(setting.DefaultValue.ToString(), StringComparison.OrdinalIgnoreCase) ? _fontColorValueDefault.Value : _fontColorValueChanged.Value;
+                
                 setting.CustomHotkeyDrawer(setting is ConfigSettingEntry newSetting ? newSetting.Entry : null, ref isBeingSet);
+                
+                GUI.contentColor = color;
 
                 if (isBeingSet != isBeingSetOriginal)
                     _currentKeyboardShortcutToSet = isBeingSet ? setting : null;
@@ -320,6 +325,9 @@ namespace ConfigurationManager
             if (setting.ObjToStr != null && setting.StrToObj != null)
             {
                 var text = setting.ObjToStr(setting.Get()).AppendZeroIfFloat(setting.SettingType);
+                if (text.IsNullOrWhiteSpace() && setting.DefaultValue.ToString() != "")
+                    GUI.backgroundColor = _fontColorValueChanged.Value;
+
                 var result = GUILayout.TextField(text, GetTextStyle(setting), GUILayout.MaxWidth(rightColumnWidth));
                 if (result != text)
                     setting.Set(setting.StrToObj(result));
@@ -329,6 +337,10 @@ namespace ConfigurationManager
                 // Fall back to slow/less reliable method
                 var rawValue = setting.Get();
                 var value = rawValue == null ? "NULL" : rawValue.ToString().AppendZeroIfFloat(setting.SettingType);
+
+                if (value.IsNullOrWhiteSpace() && setting.DefaultValue.ToString() != "")
+                    GUI.backgroundColor = _fontColorValueChanged.Value;
+
                 if (CanCovert(value, setting.SettingType))
                 {
                     var result = GUILayout.TextField(value, GetTextStyle(setting), GUILayout.MaxWidth(rightColumnWidth));
@@ -546,7 +558,7 @@ namespace ConfigurationManager
         private static bool DrawHexField(ref Color value, Color defaultValue)
         {
             string currentText = $"#{ColorUtility.ToHtmlStringRGBA(value)}";
-            string textValue = GUILayout.TextField(currentText, GetTextStyle(value, defaultValue), GUILayout.Width(95f), GUILayout.ExpandWidth(false));
+            string textValue = GUILayout.TextField(currentText, GetTextStyle(value, defaultValue), GUILayout.MaxWidth(Mathf.Clamp(95f * fontSize / 14, 80f, 180f)), GUILayout.ExpandWidth(false));
             if (textValue != currentText && ColorUtility.TryParseHtmlString(textValue, out Color color))
                 value = color;
 

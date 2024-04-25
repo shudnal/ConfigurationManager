@@ -3,6 +3,10 @@ using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
 using BepInEx.Configuration;
+using BepInEx;
+using ServerSync;
+using System;
+using System.IO;
 
 namespace ConfigurationManager
 {
@@ -15,10 +19,19 @@ namespace ConfigurationManager
             All
         }
 
+        internal static string hiddenSettingsFileName = $"{pluginID}.hiddensettings.json";
+
         public static ConfigEntry<bool> _pauseGame;
         public static ConfigEntry<PreventInput> _preventInput;
 
         private static readonly Harmony harmony = new Harmony(pluginID);
+
+        internal static readonly ConfigSync configSync = new ConfigSync(pluginID) { DisplayName = pluginName, CurrentVersion = pluginVersion, MinimumRequiredVersion = pluginVersion };
+
+        internal static readonly CustomSyncedValue<List<string>> hiddenSettings = new CustomSyncedValue<List<string>>(configSync, "Hidden settings", new List<string>());
+        
+        private static DirectoryInfo pluginDirectory;
+        private static DirectoryInfo configDirectory;
 
         void OnEnable()
         {
@@ -31,11 +44,71 @@ namespace ConfigurationManager
             harmony.PatchAll();
 
             DisplayingWindowChanged += ConfigurationManager_DisplayingWindowChanged;
+
+            pluginDirectory = new DirectoryInfo(Assembly.GetExecutingAssembly().Location).Parent;
+            configDirectory = new DirectoryInfo(Paths.ConfigPath);
+
+            SetupHiddenSettingsWatcher();
         }
 
         void OnDisable()
         {
             harmony?.UnpatchSelf();
+            DisplayingWindowChanged -= ConfigurationManager_DisplayingWindowChanged;
+        }
+
+        public static void SetupHiddenSettingsWatcher()
+        {
+            FileSystemWatcher fileSystemWatcherPlugin = new FileSystemWatcher(pluginDirectory.FullName, hiddenSettingsFileName);
+            fileSystemWatcherPlugin.Changed += new FileSystemEventHandler(ReadConfigs);
+            fileSystemWatcherPlugin.Created += new FileSystemEventHandler(ReadConfigs);
+            fileSystemWatcherPlugin.Renamed += new RenamedEventHandler(ReadConfigs);
+            fileSystemWatcherPlugin.Deleted += new FileSystemEventHandler(ReadConfigs);
+            fileSystemWatcherPlugin.IncludeSubdirectories = true;
+            fileSystemWatcherPlugin.SynchronizingObject = ThreadingHelper.SynchronizingObject;
+            fileSystemWatcherPlugin.EnableRaisingEvents = true;
+
+            FileSystemWatcher fileSystemWatcherConfig = new FileSystemWatcher(configDirectory.FullName, hiddenSettingsFileName);
+            fileSystemWatcherConfig.Changed += new FileSystemEventHandler(ReadConfigs);
+            fileSystemWatcherConfig.Created += new FileSystemEventHandler(ReadConfigs);
+            fileSystemWatcherConfig.Renamed += new RenamedEventHandler(ReadConfigs);
+            fileSystemWatcherConfig.Deleted += new FileSystemEventHandler(ReadConfigs);
+            fileSystemWatcherConfig.IncludeSubdirectories = true;
+            fileSystemWatcherConfig.SynchronizingObject = ThreadingHelper.SynchronizingObject;
+            fileSystemWatcherConfig.EnableRaisingEvents = true;
+
+            ReadConfigs();
+        }
+
+        private static void ReadConfigs(object sender = null, FileSystemEventArgs eargs = null)
+        {
+            List<string> hiddenSettingsList = new List<string>();
+
+            foreach (FileInfo file in pluginDirectory.GetFiles(hiddenSettingsFileName, SearchOption.AllDirectories).AddRangeToArray(configDirectory.GetFiles(hiddenSettingsFileName, SearchOption.AllDirectories)))
+            {
+                LogInfo($"Loading {file.FullName}");
+
+                try
+                {
+                    using (FileStream fs = new FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    using (StreamReader reader = new StreamReader(fs))
+                    {
+                        string text = reader.ReadToEnd();
+                        if (text.IsNullOrWhiteSpace())
+                            continue;
+
+                        hiddenSettingsList.AddRange(LitJson.JsonMapper.ToObject<List<string>>(text));
+                        reader.Close();
+                        fs.Dispose();
+                    }
+                }
+                catch (Exception e)
+                {
+                    LogInfo($"Error reading file ({file.FullName})! Error: {e.Message}");
+                }
+            }
+
+            hiddenSettings.AssignLocalValue(hiddenSettingsList);
         }
 
         private static bool PreventAllInput()
@@ -100,7 +173,7 @@ namespace ConfigurationManager
             }
 
             [HarmonyPriority(Priority.First)]
-            private static bool Prefix(ref bool __result) => (PreventAllInput() && instance.DisplayingWindow) ? __result = false : true;
+            private static bool Prefix(ref bool __result) => !PreventAllInput() || !instance.DisplayingWindow || (__result = false);
         }
 
         [HarmonyPatch]
