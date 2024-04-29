@@ -343,15 +343,11 @@ namespace ConfigurationManager
                     results = results.Where(x => x.IsAdvanced == true || IsKeyboardShortcut(x));
                 if (_readOnlyStyle.Value == ReadOnlyStyle.Hidden)
                     results = results.Where(x => x.ReadOnly != true);
-                if (hiddenSettings.Value.Count > 0)
+                if (HideSettings())
                     results = results.Where(x => !(x as ConfigSettingEntry).ShouldBeHidden());
             }
 
             const string shortcutsCatName = "Keyboard shortcuts";
-            string GetCategory(SettingEntryBase eb)
-            {
-                return eb.Category;
-            }
 
             var settingsAreCollapsed = _pluginConfigCollapsedDefault.Value;
 
@@ -369,13 +365,18 @@ namespace ConfigurationManager
                 .Select(pluginSettings =>
                 {
                     var categories = pluginSettings
-                        .GroupBy(GetCategory)
+                        .GroupBy(eb => eb.Category)
                         .OrderBy(x => string.Equals(x.Key, shortcutsCatName, StringComparison.Ordinal))
                         .ThenBy(x => x.Key)
                         .Select(x => new PluginSettingsData.PluginSettingsGroupData { Name = x.Key, Settings = x.OrderByDescending(set => set.Order).ThenBy(set => set.DispName).ToList() });
-                    return new PluginSettingsData { Info = pluginSettings.Key, Categories = categories.ToList(), Collapsed = nonDefaultCollpasingStateByPluginName.Contains(pluginSettings.Key.Name) ? !settingsAreCollapsed : settingsAreCollapsed };
+                    return new PluginSettingsData 
+                    { 
+                        Info = pluginSettings.Key, 
+                        Categories = categories.ToList(), 
+                        Collapsed = nonDefaultCollpasingStateByPluginName.Contains(pluginSettings.Key.Name) ? !settingsAreCollapsed : settingsAreCollapsed 
+                    };
                 })
-                .OrderBy(x => x.Info.Name)
+                .OrderBy(x => _orderPluginByGuid.Value ? x.Info.GUID : x.Info.Name)
                 .ToList();
         }
 

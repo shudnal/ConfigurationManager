@@ -20,7 +20,7 @@ namespace ConfigurationManager
     {
         public const string pluginID = "shudnal.ConfigurationManager";
         public const string pluginName = "Valheim Configuration Manager";
-        public const string pluginVersion = "1.0.4";
+        public const string pluginVersion = "1.0.5";
 
         internal static ConfigurationManager instance;
         private static SettingFieldDrawer _fieldDrawer;
@@ -84,6 +84,8 @@ namespace ConfigurationManager
         public static ConfigEntry<bool> _pluginConfigCollapsedDefault;
         public static ConfigEntry<Vector2> _windowPosition;
         public static ConfigEntry<Vector2> _windowSize;
+        public static ConfigEntry<int> _textSize;
+        public static ConfigEntry<bool> _orderPluginByGuid;
 
         public static ConfigEntry<string> _windowTitle;
         public static ConfigEntry<string> _normalText;
@@ -105,7 +107,6 @@ namespace ConfigurationManager
         public static ConfigEntry<string> _shortcutKeysText;
         public static ConfigEntry<string> _noOptionsPluginsText;
 
-        public static ConfigEntry<int> _textSize;
         public static ConfigEntry<Color> _windowBackgroundColor;
         public static ConfigEntry<Color> _entryBackgroundColor;
         public static ConfigEntry<Color> _fontColor;
@@ -142,6 +143,14 @@ namespace ConfigurationManager
 
             _hideSingleSection = Config.Bind("General", "Hide single sections", false, new ConfigDescription("Show section title for plugins with only one section"));
             _loggingEnabled = Config.Bind("General", "Logging enabled", false, new ConfigDescription("Enable logging"));
+            _pluginConfigCollapsedDefault = Config.Bind("General", "Plugin collapsed default", true, new ConfigDescription("If set to true plugins will be collapsed when opening the configuration manager window"));
+            _windowPosition = Config.Bind("General", "Window position", new Vector2(55, 35), "Window position");
+            _windowSize = Config.Bind("General", "Window size", DefaultWindowRect.size, "Window size");
+            _textSize = Config.Bind("General", "Font size", 14, "Font size");
+            _orderPluginByGuid = Config.Bind("General", "Order plugins by GUID", false, "Default order is by plugin name");
+
+            _orderPluginByGuid.SettingChanged += (sender, args) => BuildSettingList();
+
             _windowTitle = Config.Bind("Text - Menu", "Window Title", "Configuration Manager", new ConfigDescription("Window title text"));
             _normalText = Config.Bind("Text - Menu", "Normal", "Normal", new ConfigDescription("Normal settings toggle text"));
             _shortcutsText = Config.Bind("Text - Menu", "Shortcuts", "Keybinds", new ConfigDescription("Shortcut key settings toggle text"));
@@ -162,11 +171,6 @@ namespace ConfigurationManager
             _disabledText = Config.Bind("Text - Config", "Toggle False", "Disabled", new ConfigDescription("Text on disabled toggle"));
             _shortcutKeyText = Config.Bind("Text - Config", "Shortcut key single", "Set", new ConfigDescription("Text when waiting for key press"));
             _shortcutKeysText = Config.Bind("Text - Config", "Shortcut keys combination", "Press any key", new ConfigDescription("Text when waiting for key combination"));
-
-            _pluginConfigCollapsedDefault = Config.Bind("General", "Plugin collapsed default", true, new ConfigDescription("If set to true plugins will be collapsed when opening the configuration manager window"));
-            _windowPosition = Config.Bind("General", "Window position", new Vector2(55, 35), "Window position");
-            _windowSize = Config.Bind("General", "Window size", DefaultWindowRect.size, "Window size");
-            _textSize = Config.Bind("General", "Font size", 14, "Font size");
 
             _windowBackgroundColor = Config.Bind("Colors", "Window background color", new Color(0, 0, 0, 1), "Window background color");
             _entryBackgroundColor = Config.Bind("Colors", "Entry background color", new Color(0.55f, 0.5f, 0.5f, 0.87f), "Entry background color");

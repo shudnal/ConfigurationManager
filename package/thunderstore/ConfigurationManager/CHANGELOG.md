@@ -1,3 +1,7 @@
+# 1.0.5
+* hidden settings should not be hidden for admin
+* mod list could be ordered by GUID
+
 # 1.0.4
 * resize window by dragging its bottom right corner
 * readonly configs could now be colored, disabled or hidden

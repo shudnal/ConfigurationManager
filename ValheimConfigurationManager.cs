@@ -132,6 +132,11 @@ namespace ConfigurationManager
                 Game.Unpause();
         }
 
+        private bool HideSettings()
+        {
+            return hiddenSettings.Value.Count > 0 && ZNet.instance != null && !ZNet.instance.LocalPlayerIsAdminOrHost();
+        }
+
         [HarmonyPatch(typeof(PlayerController), nameof(PlayerController.TakeInput))]
         [HarmonyPriority(Priority.Last)]
         public static class PlayerController_TakeInput_PreventInput
