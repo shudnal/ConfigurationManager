@@ -1,3 +1,6 @@
+# 1.0.6
+* tooltip background color configuration
+
 # 1.0.5
 * hidden settings should not be hidden for admin
 * mod list could be ordered by GUID

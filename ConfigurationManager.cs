@@ -20,7 +20,7 @@ namespace ConfigurationManager
     {
         public const string pluginID = "shudnal.ConfigurationManager";
         public const string pluginName = "Valheim Configuration Manager";
-        public const string pluginVersion = "1.0.5";
+        public const string pluginVersion = "1.0.6";
 
         internal static ConfigurationManager instance;
         private static SettingFieldDrawer _fieldDrawer;
@@ -61,7 +61,8 @@ namespace ConfigurationManager
 
         internal static Texture2D WindowBackground { get; private set; }
         internal static Texture2D EntryBackground { get; private set; }
-
+        internal static Texture2D TooltipBackground { get; private set; }
+        
         internal int LeftColumnWidth { get; private set; }
         internal int RightColumnWidth { get; private set; }
         
@@ -108,6 +109,7 @@ namespace ConfigurationManager
         public static ConfigEntry<string> _noOptionsPluginsText;
 
         public static ConfigEntry<Color> _windowBackgroundColor;
+        public static ConfigEntry<Color> _tooltipBackgroundColor;
         public static ConfigEntry<Color> _entryBackgroundColor;
         public static ConfigEntry<Color> _fontColor;
         public static ConfigEntry<Color> _fontColorValueChanged;
@@ -174,6 +176,7 @@ namespace ConfigurationManager
 
             _windowBackgroundColor = Config.Bind("Colors", "Window background color", new Color(0, 0, 0, 1), "Window background color");
             _entryBackgroundColor = Config.Bind("Colors", "Entry background color", new Color(0.55f, 0.5f, 0.5f, 0.87f), "Entry background color");
+            _tooltipBackgroundColor = Config.Bind("Colors", "Tooltip background color", new Color(0.55f, 0.5f, 0.45f, 0.95f), "Tooltip background color");
             _widgetBackgroundColor = Config.Bind("Colors", "Widget color", new Color(0.88f, 0.46f, 0, 0.8f), "Widget color");
             _enabledBackgroundColor = Config.Bind("Colors", "Enabled toggle color", new Color(0.88f, 0.46f, 0f, 1f), "Color of enabled toggle");
             _readOnlyColor = Config.Bind("Colors", "Readonly color", Color.gray, "Color of readonly setting");

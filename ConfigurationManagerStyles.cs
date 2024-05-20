@@ -131,6 +131,7 @@ namespace ConfigurationManager
             tooltipStyle.fontSize = fontSize;
             tooltipStyle.wordWrap = true;
             tooltipStyle.alignment = TextAnchor.MiddleCenter;
+            tooltipStyle.normal.background = TooltipBackground;
 
             sliderStyle = new GUIStyle(GUI.skin.horizontalSlider);
 

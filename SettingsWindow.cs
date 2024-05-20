@@ -417,7 +417,7 @@ namespace ConfigurationManager
                 var currentEvent = Event.current;
 
                 var color = GUI.backgroundColor;
-                GUI.backgroundColor = _entryBackgroundColor.Value;
+                GUI.backgroundColor = _tooltipBackgroundColor.Value;
                 const int width = 400;
                 var height = GetTooltipStyle().CalcHeight(new GUIContent(GUI.tooltip), 400) + 10;
 
@@ -445,6 +445,11 @@ namespace ConfigurationManager
             entryBackground.SetPixel(0, 0, _entryBackgroundColor.Value);
             entryBackground.Apply();
             EntryBackground = entryBackground;
+
+            var tooltipBackground = new Texture2D(1, 1, TextureFormat.ARGB32, false);
+            tooltipBackground.SetPixel(0, 0, _tooltipBackgroundColor.Value);
+            tooltipBackground.Apply();
+            TooltipBackground = tooltipBackground;
         }
 
         private void SetUnlockCursor(int lockState, bool cursorVisible)
