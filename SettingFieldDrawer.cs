@@ -31,6 +31,8 @@ namespace ConfigurationManager
         
         public static bool SettingKeyboardShortcut => _currentKeyboardShortcutToSet != null;
 
+        public static readonly HashSet<SettingEntryBase> customFieldDrawerFailed = new HashSet<SettingEntryBase>();
+
         static SettingFieldDrawer()
         {
             SettingDrawHandlers = new Dictionary<Type, Action<SettingEntryBase>>
@@ -55,30 +57,10 @@ namespace ConfigurationManager
         {
             GUI.backgroundColor = _widgetBackgroundColor.Value;
 
-            if (setting.CustomDrawer != null)
-            {
-                var color = GUI.contentColor;
-                GUI.contentColor = setting.Get().ToString().Equals(setting.DefaultValue.ToString(), StringComparison.OrdinalIgnoreCase) ? _fontColorValueDefault.Value : _fontColorValueChanged.Value;
+            if (DrawCustomField(setting))
+                return;
 
-                setting.CustomDrawer(setting is ConfigSettingEntry newSetting ? newSetting.Entry : null);
-                GUI.contentColor = color;
-            }
-            else if (setting.CustomHotkeyDrawer != null)
-            {
-                var isBeingSet = _currentKeyboardShortcutToSet == setting;
-                var isBeingSetOriginal = isBeingSet;
-
-                var color = GUI.contentColor;
-                GUI.contentColor = setting.Get().ToString().Equals(setting.DefaultValue.ToString(), StringComparison.OrdinalIgnoreCase) ? _fontColorValueDefault.Value : _fontColorValueChanged.Value;
-                
-                setting.CustomHotkeyDrawer(setting is ConfigSettingEntry newSetting ? newSetting.Entry : null, ref isBeingSet);
-                
-                GUI.contentColor = color;
-
-                if (isBeingSet != isBeingSetOriginal)
-                    _currentKeyboardShortcutToSet = isBeingSet ? setting : null;
-            }
-            else if (setting.ShowRangeAsPercent != null && setting.AcceptableValueRange.Key != null)
+            if (setting.ShowRangeAsPercent != null && setting.AcceptableValueRange.Key != null)
                 DrawRangeField(setting);
             else if (setting.AcceptableValues != null)
                 DrawListField(setting);
@@ -88,6 +70,43 @@ namespace ConfigurationManager
                 DrawEnumField(setting);
             else
                 DrawUnknownField(setting, _instance.RightColumnWidth);
+        }
+
+        public bool DrawCustomField(SettingEntryBase setting)
+        {
+            if (customFieldDrawerFailed.Contains(setting))
+                return false;
+
+            var color = GUI.contentColor;
+            GUI.contentColor = setting.Get().ToString().Equals(setting.DefaultValue.ToString(), StringComparison.OrdinalIgnoreCase) ? _fontColorValueDefault.Value : _fontColorValueChanged.Value;
+
+            bool result = true;
+
+            try
+            {
+                if (setting.CustomDrawer != null)
+                    setting.CustomDrawer(setting is ConfigSettingEntry newSetting ? newSetting.Entry : null);
+                else if (setting.CustomHotkeyDrawer != null)
+                {
+                    var isBeingSet = _currentKeyboardShortcutToSet == setting;
+                    var isBeingSetOriginal = isBeingSet;
+                    setting.CustomHotkeyDrawer(setting is ConfigSettingEntry newSetting ? newSetting.Entry : null, ref isBeingSet);
+
+                    if (isBeingSet != isBeingSetOriginal)
+                        _currentKeyboardShortcutToSet = isBeingSet ? setting : null;
+                }
+                else 
+                    result = false;
+            }
+            catch (Exception e)
+            {
+                LogWarning(e);
+                customFieldDrawerFailed.Add(setting);
+                result = false;
+            }
+
+            GUI.contentColor = color;
+            return result;
         }
 
         public static void ClearCache()

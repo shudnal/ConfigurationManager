@@ -20,7 +20,7 @@ namespace ConfigurationManager
     {
         public const string pluginID = "shudnal.ConfigurationManager";
         public const string pluginName = "Valheim Configuration Manager";
-        public const string pluginVersion = "1.0.6";
+        public const string pluginVersion = "1.0.7";
 
         internal static ConfigurationManager instance;
         private static SettingFieldDrawer _fieldDrawer;
@@ -50,9 +50,18 @@ namespace ConfigurationManager
         private List<PluginSettingsData> _filteredSetings = new List<PluginSettingsData>();
 
         internal Rect DefaultWindowRect { get; private set; }
-        internal Rect currentWindowRect;
+        internal Rect currentWindowRect; 
         private Vector2 _settingWindowScrollPos;
         private bool _showDebug;
+
+        internal Rect SettingWindowRect
+        {
+            get => currentWindowRect;
+            private set
+            {
+                currentWindowRect = value;
+            }
+        }
 
         private PropertyInfo _curLockState;
         private PropertyInfo _curVisible;
@@ -122,6 +131,11 @@ namespace ConfigurationManager
         {
             if (_loggingEnabled.Value)
                 instance.Logger.LogInfo(data);
+        }
+
+        internal static void LogWarning(object data)
+        {
+            instance.Logger.LogWarning(data);
         }
 
         void Awake()

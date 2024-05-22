@@ -7,6 +7,7 @@
 
 using System;
 using UnityEngine;
+using static ConfigurationManager.ConfigurationManagerStyles;
 
 namespace ConfigurationManager.Utilities
 {
@@ -27,6 +28,20 @@ namespace ConfigurationManager.Utilities
         internal static bool IsShown()
         {
             return isShown;
+        }
+
+        public ComboBox(Rect rect, GUIContent buttonContent, GUIContent[] listContent, GUIStyle listStyle, float windowYmax)
+        {
+            Rect = rect;
+            ButtonContent = buttonContent;
+            this.listContent = listContent;
+            _windowYmax = (int)windowYmax;
+
+            DefaultValue = listContent.Length == 0 ? null : listContent[0];
+            buttonStyleDefault = GetButtonStyle();
+            buttonStyleChanged = GetButtonStyle(isDefaulValue: false);
+            boxStyle = GetBoxStyle();
+            this.listStyle = GetComboBoxStyle();
         }
 
         public ComboBox(Rect rect, GUIContent buttonContent, GUIContent[] listContent, GUIContent defaultValue, GUIStyle buttonStyleDefault, GUIStyle buttonStyleChanged, GUIStyle boxStyle, GUIStyle listStyle, float windowYmax)
