@@ -1,3 +1,8 @@
+# 1.0.7
+* Compatibility extended
+* Custom settings field drawer fail doesn't break manager
+* plugin ID changed to make it loading in first
+
 # 1.0.6
 * tooltip background color configuration
 

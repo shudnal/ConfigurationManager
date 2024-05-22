@@ -18,7 +18,7 @@ namespace ConfigurationManager
     [BepInIncompatibility("com.bepis.bepinex.configurationmanager")]
     public partial class ConfigurationManager : BaseUnityPlugin
     {
-        public const string pluginID = "shudnal.ConfigurationManager";
+        public const string pluginID = "_shudnal.ConfigurationManager";
         public const string pluginName = "Valheim Configuration Manager";
         public const string pluginVersion = "1.0.7";
 
@@ -54,6 +54,7 @@ namespace ConfigurationManager
         private Vector2 _settingWindowScrollPos;
         private bool _showDebug;
 
+        // Compat
         internal Rect SettingWindowRect
         {
             get => currentWindowRect;
