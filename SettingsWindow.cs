@@ -313,7 +313,7 @@ namespace ConfigurationManager
             }
         }
 
-        private void BuildSettingList()
+        public void BuildSettingList()
         {
             SettingSearcher.CollectSettings(out var results, out var modsWithoutSettings, _showDebug);
 

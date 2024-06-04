@@ -1,3 +1,6 @@
+# 1.0.8
+* Compatibility
+
 # 1.0.7
 * Compatibility extended
 * Custom settings field drawer fail doesn't break manager

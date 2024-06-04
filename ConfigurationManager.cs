@@ -20,7 +20,7 @@ namespace ConfigurationManager
     {
         public const string pluginID = "_shudnal.ConfigurationManager";
         public const string pluginName = "Valheim Configuration Manager";
-        public const string pluginVersion = "1.0.7";
+        public const string pluginVersion = "1.0.8";
 
         internal static ConfigurationManager instance;
         private static SettingFieldDrawer _fieldDrawer;
@@ -49,13 +49,13 @@ namespace ConfigurationManager
         private List<SettingEntryBase> _allSettings;
         private List<PluginSettingsData> _filteredSetings = new List<PluginSettingsData>();
 
-        internal Rect DefaultWindowRect { get; private set; }
-        internal Rect currentWindowRect; 
+        public Rect DefaultWindowRect { get; private set; }
+        public Rect currentWindowRect; 
         private Vector2 _settingWindowScrollPos;
         private bool _showDebug;
 
         // Compat
-        internal Rect SettingWindowRect
+        public Rect SettingWindowRect
         {
             get => currentWindowRect;
             private set
@@ -72,9 +72,9 @@ namespace ConfigurationManager
         internal static Texture2D WindowBackground { get; private set; }
         internal static Texture2D EntryBackground { get; private set; }
         internal static Texture2D TooltipBackground { get; private set; }
-        
-        internal int LeftColumnWidth { get; private set; }
-        internal int RightColumnWidth { get; private set; }
+
+        public int LeftColumnWidth { get; private set; }
+        public int RightColumnWidth { get; private set; }
         
         public enum ReadOnlyStyle
         {
