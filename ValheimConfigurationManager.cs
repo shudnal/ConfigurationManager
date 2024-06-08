@@ -2,11 +2,13 @@
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
+using UnityEngine.UI;
 using BepInEx.Configuration;
 using BepInEx;
 using ServerSync;
 using System;
 using System.IO;
+using TMPro;
 
 namespace ConfigurationManager
 {
@@ -19,10 +21,14 @@ namespace ConfigurationManager
             All
         }
 
+        internal const string menuButtonName = "Configuration Manager";
+
         internal static string hiddenSettingsFileName = $"{pluginID}.hiddensettings.json";
 
         public static ConfigEntry<bool> _pauseGame;
         public static ConfigEntry<PreventInput> _preventInput;
+        public static ConfigEntry<bool> _showMainMenuButton;
+        public static ConfigEntry<string> _mainMenuButtonCaption;
 
         private static readonly Harmony harmony = new Harmony(pluginID);
 
@@ -33,6 +39,8 @@ namespace ConfigurationManager
         private static DirectoryInfo pluginDirectory;
         private static DirectoryInfo configDirectory;
 
+        private static GameObject menuButton;
+
         void OnEnable()
         {
             _pauseGame = Config.Bind("Valheim", "Pause game", false, new ConfigDescription("Pause the game (if game can be paused) when window is open"));
@@ -40,6 +48,11 @@ namespace ConfigurationManager
                                                                                                                         "\n Off - everything goes through" +
                                                                                                                         "\n Player - prevent player controller (hotkeys like inventory, console and such will still operate)" +
                                                                                                                         "\n All - prevent all input events"));
+            _showMainMenuButton = Config.Bind("Valheim", "Main menu button", true, new ConfigDescription("Add button in main menu to open/close configuration manager window"));
+            _mainMenuButtonCaption = Config.Bind("Valheim", "Main menu button caption", "Mods settings", new ConfigDescription("Main menu button caption"));
+
+            _showMainMenuButton.SettingChanged += (sender, args) => SetupMenuButton();
+            _mainMenuButtonCaption.SettingChanged += (sender, args) => SetupMenuButton();
 
             harmony.PatchAll();
 
@@ -57,7 +70,15 @@ namespace ConfigurationManager
             DisplayingWindowChanged -= ConfigurationManager_DisplayingWindowChanged;
         }
 
-        public static void SetupHiddenSettingsWatcher()
+        /// <summary>
+        /// Toggle configuration manager window visibility
+        /// </summary>
+        public void ToggleWindow()
+        {
+            DisplayingWindow = !DisplayingWindow;
+        }
+
+        private static void SetupHiddenSettingsWatcher()
         {
             FileSystemWatcher fileSystemWatcherPlugin = new FileSystemWatcher(pluginDirectory.FullName, hiddenSettingsFileName);
             fileSystemWatcherPlugin.Changed += new FileSystemEventHandler(ReadConfigs);
@@ -123,6 +144,18 @@ namespace ConfigurationManager
 
         private void ConfigurationManager_DisplayingWindowChanged(object sender, ValueChangedEventArgs<bool> e)
         {
+            if (FejdStartup.instance && FejdStartup.instance.m_mainMenu.activeSelf)
+            {
+                FejdStartup.instance?.m_mainMenu.SetActive(value: false);
+                FejdStartup.instance?.m_mainMenu.SetActive(value: true);
+            }
+
+            if (Menu.instance)
+            {
+                Menu.instance.m_closeMenuState = DisplayingWindow ? Menu.CloseMenuState.SettingsOpen : Menu.CloseMenuState.CanBeClosed;
+                Menu.instance.m_rebuildLayout = true;
+            }
+
             if (!_pauseGame.Value || !Game.instance)
                 return;
 
@@ -135,6 +168,42 @@ namespace ConfigurationManager
         private bool HideSettings()
         {
             return hiddenSettings.Value.Count > 0 && ZNet.instance != null && !ZNet.instance.LocalPlayerIsAdminOrHost();
+        }
+
+        private void SetupMenuButton()
+        {
+            if (FejdStartup.instance)
+            {
+                SetupMainMenuButton(FejdStartup.instance.m_menuList.transform.Find("MenuEntries"));
+                FejdStartup.instance.m_menuButtons = FejdStartup.instance.m_menuList.GetComponentsInChildren<Button>();
+            }
+
+
+            if (Menu.instance)
+                SetupMainMenuButton(Menu.instance.m_menuDialog.Find("MenuEntries"));
+        }
+
+        private void SetupMainMenuButton(Transform menuEntries)
+        {
+            menuButton = menuEntries.Find(menuButtonName)?.gameObject;
+            if (menuButton == null)
+            {
+                Transform settings = menuEntries.Find("Settings");
+
+                menuButton = Instantiate(settings.gameObject, menuEntries);
+                menuButton.transform.SetSiblingIndex(settings.GetSiblingIndex() + 1);
+                menuButton.name = menuButtonName;
+                
+                Button button = menuButton.GetComponent<Button>();
+                button.onClick.SetPersistentListenerState(0, UnityEngine.Events.UnityEventCallState.Off);
+                button.onClick.AddListener(delegate
+                {
+                    ToggleWindow();
+                });
+            }
+
+            menuButton.GetComponentInChildren<TMP_Text>().text = _mainMenuButtonCaption.Value;
+            menuButton.SetActive(_showMainMenuButton.Value);
         }
 
         [HarmonyPatch(typeof(PlayerController), nameof(PlayerController.TakeInput))]
@@ -206,6 +275,24 @@ namespace ConfigurationManager
             {
                 if (PreventPlayerInput() && instance.DisplayingWindow)
                     __result = Vector2.zero;
+            }
+        }
+
+        [HarmonyPatch(typeof(FejdStartup), nameof(FejdStartup.Start))]
+        public static class FejdStartup_Start_MenuButton
+        {
+            public static void Postfix()
+            {
+                instance.SetupMenuButton();
+            }
+        }
+
+        [HarmonyPatch(typeof(Menu), nameof(Menu.Start))]
+        public static class Menu_Start_MenuButton
+        {
+            public static void Postfix()
+            {
+                instance.SetupMenuButton();
             }
         }
     }

@@ -1,3 +1,6 @@
+# 1.0.9
+* disableable valheim main menu button to open/close menu
+
 # 1.0.8
 * Compatibility
 
