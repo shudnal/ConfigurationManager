@@ -14,13 +14,13 @@ using UnityEngine;
 
 namespace ConfigurationManager
 {
-    [BepInPlugin(pluginID, pluginName, pluginVersion)]
+    [BepInPlugin(GUID, pluginName, Version)]
     [BepInIncompatibility("com.bepis.bepinex.configurationmanager")]
     public partial class ConfigurationManager : BaseUnityPlugin
     {
-        public const string pluginID = "_shudnal.ConfigurationManager";
+        public const string GUID = "_shudnal.ConfigurationManager";
         public const string pluginName = "Valheim Configuration Manager";
-        public const string pluginVersion = "1.0.11";
+        public const string Version = "1.0.11";
 
         internal static ConfigurationManager instance;
         private static SettingFieldDrawer _fieldDrawer;
@@ -54,8 +54,8 @@ namespace ConfigurationManager
         private Vector2 _settingWindowScrollPos;
         private bool _showDebug;
 
-        // Compat
-        public Rect SettingWindowRect
+        #region Compat
+        internal Rect SettingWindowRect
         {
             get => currentWindowRect;
             private set
@@ -63,6 +63,13 @@ namespace ConfigurationManager
                 currentWindowRect = value;
             }
         }
+        private bool _windowWasMoved;
+
+        /// <summary>
+        /// Window is visible and is blocking the whole screen. This is true until the user moves the window, which lets it run while user interacts with the game.
+        /// </summary>
+        public bool IsWindowFullscreen => DisplayingWindow;
+        #endregion
 
         private PropertyInfo _curLockState;
         private PropertyInfo _curVisible;
@@ -73,8 +80,8 @@ namespace ConfigurationManager
         internal static Texture2D EntryBackground { get; private set; }
         internal static Texture2D TooltipBackground { get; private set; }
 
-        public int LeftColumnWidth { get; private set; }
-        public int RightColumnWidth { get; private set; }
+        internal int LeftColumnWidth { get; private set; }
+        internal int RightColumnWidth { get; private set; }
         
         public enum ReadOnlyStyle
         {

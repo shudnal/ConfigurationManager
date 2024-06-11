@@ -323,7 +323,7 @@ namespace ConfigurationManager
             BuildFilteredSettingList();
         }
 
-        private void BuildFilteredSettingList()
+        public void BuildFilteredSettingList()
         {
             IEnumerable<SettingEntryBase> results = _allSettings;
 

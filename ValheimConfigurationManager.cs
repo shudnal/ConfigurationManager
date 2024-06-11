@@ -23,16 +23,16 @@ namespace ConfigurationManager
 
         internal const string menuButtonName = "Configuration Manager";
 
-        internal static string hiddenSettingsFileName = $"{pluginID}.hiddensettings.json";
+        internal static string hiddenSettingsFileName = $"{GUID}.hiddensettings.json";
 
         public static ConfigEntry<bool> _pauseGame;
         public static ConfigEntry<PreventInput> _preventInput;
         public static ConfigEntry<bool> _showMainMenuButton;
         public static ConfigEntry<string> _mainMenuButtonCaption;
 
-        private static readonly Harmony harmony = new Harmony(pluginID);
+        private static readonly Harmony harmony = new Harmony(GUID);
 
-        internal static readonly ConfigSync configSync = new ConfigSync(pluginID) { DisplayName = pluginName, CurrentVersion = pluginVersion, MinimumRequiredVersion = pluginVersion };
+        internal static readonly ConfigSync configSync = new ConfigSync(GUID) { DisplayName = pluginName, CurrentVersion = Version, MinimumRequiredVersion = Version };
 
         internal static readonly CustomSyncedValue<List<string>> hiddenSettings = new CustomSyncedValue<List<string>>(configSync, "Hidden settings", new List<string>());
         

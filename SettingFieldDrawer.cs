@@ -425,7 +425,7 @@ namespace ConfigurationManager
 
         private static void DrawKeyCode(SettingEntryBase setting)
         {
-            if (_currentKeyboardShortcutToSet == setting)
+            if (ReferenceEquals(_currentKeyboardShortcutToSet, setting))
             {
                 GUILayout.Label(_shortcutKeysText.Value, GetLabelStyle(), GUILayout.ExpandWidth(true));
                 GUIUtility.keyboardControl = -1;
@@ -462,7 +462,7 @@ namespace ConfigurationManager
                 value = new KeyboardShortcut((KeyCode)value);
             }
 
-            if (_currentKeyboardShortcutToSet == setting)
+            if (ReferenceEquals(_currentKeyboardShortcutToSet, setting))
             {
                 GUILayout.Label(_shortcutKeysText.Value, GetButtonStyle(), GUILayout.ExpandWidth(true));
                 GUIUtility.keyboardControl = -1;
