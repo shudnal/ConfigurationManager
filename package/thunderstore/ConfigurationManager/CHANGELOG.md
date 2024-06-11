@@ -1,3 +1,6 @@
+# 1.0.10
+* supressed warnings spam on custom field drawer fail
+
 # 1.0.9
 * disableable valheim main menu button to open/close menu
 

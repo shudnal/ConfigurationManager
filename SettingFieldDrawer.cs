@@ -13,6 +13,7 @@ using System.Linq;
 using UnityEngine;
 using static ConfigurationManager.ConfigurationManager;
 using static ConfigurationManager.ConfigurationManagerStyles;
+using static TerrainOp;
 
 namespace ConfigurationManager
 {
@@ -31,7 +32,7 @@ namespace ConfigurationManager
         
         public static bool SettingKeyboardShortcut => _currentKeyboardShortcutToSet != null;
 
-        public static readonly HashSet<SettingEntryBase> customFieldDrawerFailed = new HashSet<SettingEntryBase>();
+        public static readonly HashSet<string> customFieldDrawerFailed = new HashSet<string>();
 
         static SettingFieldDrawer()
         {
@@ -74,7 +75,7 @@ namespace ConfigurationManager
 
         public bool DrawCustomField(SettingEntryBase setting)
         {
-            if (customFieldDrawerFailed.Contains(setting))
+            if (IsSettingFailedToCustomDraw(setting))
                 return false;
 
             var color = GUI.contentColor;
@@ -101,12 +102,27 @@ namespace ConfigurationManager
             catch (Exception e)
             {
                 LogWarning(e);
-                customFieldDrawerFailed.Add(setting);
+                SetSettingFailedToCustomDraw(setting);
                 result = false;
             }
 
             GUI.contentColor = color;
             return result;
+        }
+
+        public static bool IsSettingFailedToCustomDraw(SettingEntryBase setting)
+        {
+            return customFieldDrawerFailed.Contains(GetSettingID(setting));
+        }
+
+        public static void SetSettingFailedToCustomDraw(SettingEntryBase setting)
+        {
+            customFieldDrawerFailed.Add(GetSettingID(setting));
+        }
+
+        public static string GetSettingID(SettingEntryBase setting)
+        {
+            return $"{setting.PluginInfo.GUID}-{setting.Category}-{setting.DispName}";
         }
 
         public static void ClearCache()
