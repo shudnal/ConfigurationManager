@@ -20,7 +20,7 @@ namespace ConfigurationManager
     {
         public const string GUID = "_shudnal.ConfigurationManager";
         public const string pluginName = "Valheim Configuration Manager";
-        public const string Version = "1.0.11";
+        public const string Version = "1.0.12";
 
         internal static ConfigurationManager instance;
         private static SettingFieldDrawer _fieldDrawer;
