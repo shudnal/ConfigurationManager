@@ -4,6 +4,7 @@
 using BepInEx;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
 
@@ -30,7 +31,8 @@ namespace ConfigurationManager
         public bool? ShowRangeAsPercent { get; protected set; }
 
         /// <summary>
-        /// Custom setting draw action
+        /// Custom setting draw action.
+        /// Use either CustomDrawer or CustomHotkeyDrawer, using both at the same time leads to undefined behaviour.
         /// </summary>
         public Action<BepInEx.Configuration.ConfigEntryBase> CustomDrawer { get; private set; }
 
@@ -155,69 +157,108 @@ namespace ConfigurationManager
 
             foreach (var attrib in attribs)
             {
-                if (attrib == null)
-                    continue;
-
-                var attrType = attrib.GetType();
-                if (attrType.Name == "ConfigurationManagerAttributes")
+                switch (attrib)
                 {
-                    var otherProperties = attrType.GetProperties(BindingFlags.Instance | BindingFlags.Public);
-                    foreach (var propertyPair in _myProperties.Join(otherProperties, my => my.Name, other => other.Name, (my, other) => new { my, other }))
-                    {
-                        try
-                        {
-                            var val = propertyPair.other.GetValue(attrib);
-                            if (val != null)
-                                propertyPair.my.SetValue(this, val);
-                        }
-                        catch (Exception ex)
-                        {
-                            ConfigurationManager.LogInfo($"Failed to copy value {propertyPair.my.Name} from provided tag object {attrType.FullName} - " + ex.Message);
-                        }
-                    }
+                    case null: break;
 
-                    foreach (var propertyPair in _myFields.Join(otherProperties, my => my.Name, other => other.Name, (my, other) => new { my, other }))
-                    {
-                        try
-                        {
-                            var val = propertyPair.other.GetValue(attrib);
-                            if (val != null)
-                                propertyPair.my.SetValue(this, val);
-                        }
-                        catch (Exception ex)
-                        {
-                            ConfigurationManager.LogInfo($"Failed to copy value {propertyPair.my.Name} from provided tag object {attrType.FullName} - " + ex.Message);
-                        }
-                    }
+                    case DisplayNameAttribute da:
+                        DispName = da.DisplayName;
+                        break;
+                    case CategoryAttribute ca:
+                        Category = ca.Category;
+                        break;
+                    case DescriptionAttribute de:
+                        Description = de.Description;
+                        break;
+                    case DefaultValueAttribute def:
+                        DefaultValue = def.Value;
+                        break;
+                    case ReadOnlyAttribute ro:
+                        ReadOnly = ro.IsReadOnly;
+                        break;
+                    case BrowsableAttribute bro:
+                        Browsable = bro.Browsable;
+                        break;
 
-                    var otherFields = attrType.GetFields(BindingFlags.Instance | BindingFlags.Public);
-                    foreach (var fieldPair in _myFields.Join(otherFields, my => my.Name, other => other.Name, (my, other) => new { my, other }))
-                    {
-                        try
+                    case Action<SettingEntryBase> newCustomDraw:
+                        CustomDrawer = _ => newCustomDraw(this);
+                        break;
+                    case string str:
+                        switch (str)
                         {
-                            var val = fieldPair.other.GetValue(attrib);
-                            if (val != null)
-                                fieldPair.my.SetValue(this, val);
+                            case "ReadOnly": ReadOnly = true; break;
+                            case "Browsable": Browsable = true; break;
+                            case "Unbrowsable": case "Hidden": Browsable = false; break;
+                            case "Advanced": IsAdvanced = true; break;
                         }
-                        catch (Exception ex)
-                        {
-                            ConfigurationManager.LogInfo($"Failed to copy value {fieldPair.my.Name} from provided tag object {attrType.FullName} - " + ex.Message);
-                        }
-                    }
+                        break;
 
-                    foreach (var fieldPair in _myProperties.Join(otherFields, my => my.Name, other => other.Name, (my, other) => new { my, other }))
-                    {
-                        try
+                    // Copy attributes from a specially formatted object, currently recommended
+                    default:
+
+                        var attrType = attrib.GetType();
+                        if (attrType.Name == "ConfigurationManagerAttributes")
                         {
-                            var val = fieldPair.other.GetValue(attrib);
-                            if (val != null)
-                                fieldPair.my.SetValue(this, val);
+                            var otherProperties = attrType.GetProperties(BindingFlags.Instance | BindingFlags.Public);
+                            foreach (var propertyPair in _myProperties.Join(otherProperties, my => my.Name, other => other.Name, (my, other) => new { my, other }))
+                            {
+                                try
+                                {
+                                    var val = propertyPair.other.GetValue(attrib);
+                                    if (val != null)
+                                        propertyPair.my.SetValue(this, val);
+                                }
+                                catch (Exception ex)
+                                {
+                                    ConfigurationManager.LogInfo($"Failed to copy value {propertyPair.my.Name} from provided tag object {attrType.FullName} - " + ex.Message);
+                                }
+                            }
+
+                            foreach (var propertyPair in _myFields.Join(otherProperties, my => my.Name, other => other.Name, (my, other) => new { my, other }))
+                            {
+                                try
+                                {
+                                    var val = propertyPair.other.GetValue(attrib);
+                                    if (val != null)
+                                        propertyPair.my.SetValue(this, val);
+                                }
+                                catch (Exception ex)
+                                {
+                                    ConfigurationManager.LogInfo($"Failed to copy value {propertyPair.my.Name} from provided tag object {attrType.FullName} - " + ex.Message);
+                                }
+                            }
+
+                            var otherFields = attrType.GetFields(BindingFlags.Instance | BindingFlags.Public);
+                            foreach (var fieldPair in _myFields.Join(otherFields, my => my.Name, other => other.Name, (my, other) => new { my, other }))
+                            {
+                                try
+                                {
+                                    var val = fieldPair.other.GetValue(attrib);
+                                    if (val != null)
+                                        fieldPair.my.SetValue(this, val);
+                                }
+                                catch (Exception ex)
+                                {
+                                    ConfigurationManager.LogInfo($"Failed to copy value {fieldPair.my.Name} from provided tag object {attrType.FullName} - " + ex.Message);
+                                }
+                            }
+
+                            foreach (var fieldPair in _myProperties.Join(otherFields, my => my.Name, other => other.Name, (my, other) => new { my, other }))
+                            {
+                                try
+                                {
+                                    var val = fieldPair.other.GetValue(attrib);
+                                    if (val != null)
+                                        fieldPair.my.SetValue(this, val);
+                                }
+                                catch (Exception ex)
+                                {
+                                    ConfigurationManager.LogInfo($"Failed to copy value {fieldPair.my.Name} from provided tag object {attrType.FullName} - " + ex.Message);
+                                }
+                            }
+                            break;
                         }
-                        catch (Exception ex)
-                        {
-                            ConfigurationManager.LogInfo($"Failed to copy value {fieldPair.my.Name} from provided tag object {attrType.FullName} - " + ex.Message);
-                        }
-                    }
+                        return;
                 }
             }
 

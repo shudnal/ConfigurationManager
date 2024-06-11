@@ -3,8 +3,10 @@
 
 using BepInEx;
 using System;
+using System.IO;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using UnityEngine;
@@ -58,13 +60,7 @@ namespace ConfigurationManager.Utilities
         // Search for objects instead of using chainloader API to find dynamically loaded plugins
         public static BaseUnityPlugin[] FindPlugins()
         {
-            List<BaseUnityPlugin> plugins = new List<BaseUnityPlugin>();
-            foreach(var plugin in BepInEx.Bootstrap.Chainloader.PluginInfos)
-            {
-                plugins.Add(plugin.Value.Instance);
-            }
-
-            return plugins.ToArray();
+            return SettingSearcher.FindPlugins();
         }
 
         public static bool IsNumber(this object value) => value is sbyte
@@ -96,11 +92,68 @@ namespace ConfigurationManager.Utilities
 
         public static void FillTexture(this Texture2D tex, Color color)
         {
-            for (var x = 0; x < tex.width; x++)
-                for (var y = 0; y < tex.height; y++)
-                    tex.SetPixel(x, y, color);
+            if (color.a < 1f)
+            {
+                // SetPixel ignores alpha, so we need to lerp manually
+                for (var x = 0; x < tex.width; x++)
+                {
+                    for (var y = 0; y < tex.height; y++)
+                    {
+                        var origColor = tex.GetPixel(x, y);
+                        var lerpedColor = Color.Lerp(origColor, color, color.a);
+                        // Not accurate, but good enough for our purposes
+                        lerpedColor.a = Mathf.Max(origColor.a, color.a);
+                        tex.SetPixel(x, y, lerpedColor);
+                    }
+                }
+            }
+            else
+            {
+                for (var x = 0; x < tex.width; x++)
+                    for (var y = 0; y < tex.height; y++)
+                        tex.SetPixel(x, y, color);
+            }
 
             tex.Apply(false);
+        }
+
+        public static void OpenLog()
+        {
+
+        }
+
+        public static void OpenWebsite(string url)
+        {
+
+        }
+
+        public static string GetWebsite(BaseUnityPlugin bepInPlugin)
+        {
+            if (bepInPlugin == null) return null;
+            try
+            {
+                var fileName = bepInPlugin.Info.Location; //.GetType().Assembly.Location;
+                if (!File.Exists(fileName)) return null;
+                var fi = FileVersionInfo.GetVersionInfo(fileName);
+                return new[]
+                {
+                    fi.CompanyName,
+                    fi.FileDescription,
+                    fi.Comments,
+                    fi.LegalCopyright,
+                    fi.LegalTrademarks
+                }.FirstOrDefault(x => Uri.IsWellFormedUriString(x, UriKind.Absolute));
+            }
+            catch (Exception e)
+            {
+                ConfigurationManager.LogWarning($"Failed to get URI for {bepInPlugin.Info?.Metadata?.Name} - {e.Message}");
+                return null;
+            }
+        }
+
+        public static GUIStyle CreateCopy(this GUIStyle original)
+        {
+            return new GUIStyle(original);
         }
 
         #region Resizing

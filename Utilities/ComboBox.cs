@@ -25,7 +25,7 @@ namespace ConfigurationManager.Utilities
         private readonly GUIStyle listStyle;
         private readonly int _windowYmax;
 
-        internal static bool IsShown()
+        public static bool IsShown()
         {
             return isShown;
         }

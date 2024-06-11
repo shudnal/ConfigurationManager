@@ -1,3 +1,6 @@
+# 1.0.11
+* mod setting failed to draw custom field will be logged as well
+
 # 1.0.10
 * supressed warnings spam on custom field drawer fail
 

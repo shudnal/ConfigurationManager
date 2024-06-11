@@ -13,7 +13,6 @@ using System.Linq;
 using UnityEngine;
 using static ConfigurationManager.ConfigurationManager;
 using static ConfigurationManager.ConfigurationManagerStyles;
-using static TerrainOp;
 
 namespace ConfigurationManager
 {
@@ -79,12 +78,12 @@ namespace ConfigurationManager
                 return false;
 
             var color = GUI.contentColor;
-            GUI.contentColor = setting.Get().ToString().Equals(setting.DefaultValue.ToString(), StringComparison.OrdinalIgnoreCase) ? _fontColorValueDefault.Value : _fontColorValueChanged.Value;
 
             bool result = true;
-
             try
             {
+                GUI.contentColor = setting.Get().ToString().Equals(setting.DefaultValue.ToString(), StringComparison.OrdinalIgnoreCase) ? _fontColorValueDefault.Value : _fontColorValueChanged.Value;
+
                 if (setting.CustomDrawer != null)
                     setting.CustomDrawer(setting is ConfigSettingEntry newSetting ? newSetting.Entry : null);
                 else if (setting.CustomHotkeyDrawer != null)
@@ -101,8 +100,7 @@ namespace ConfigurationManager
             }
             catch (Exception e)
             {
-                LogWarning(e);
-                SetSettingFailedToCustomDraw(setting);
+                SetSettingFailedToCustomDraw(setting, e);
                 result = false;
             }
 
@@ -112,12 +110,19 @@ namespace ConfigurationManager
 
         public static bool IsSettingFailedToCustomDraw(SettingEntryBase setting)
         {
+            if (setting == null)
+                return false;
+
             return customFieldDrawerFailed.Contains(GetSettingID(setting));
         }
 
-        public static void SetSettingFailedToCustomDraw(SettingEntryBase setting)
+        public static void SetSettingFailedToCustomDraw(SettingEntryBase setting, Exception e = null)
         {
-            customFieldDrawerFailed.Add(GetSettingID(setting));
+            string settingID = GetSettingID(setting);
+            customFieldDrawerFailed.Add(settingID);
+
+            if (e != null)
+                LogWarning(settingID + "\n" + e);
         }
 
         public static string GetSettingID(SettingEntryBase setting)

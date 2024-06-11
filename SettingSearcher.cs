@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
+using BepInEx.Bootstrap;
 
 namespace ConfigurationManager
 {
@@ -21,6 +22,20 @@ namespace ConfigurationManager
             "OnGUI"
         };
 
+        /// <summary>
+        /// Search for all instances of BaseUnityPlugin loaded by chainloader or other means.
+        /// </summary>
+        public static BaseUnityPlugin[] FindPlugins()
+        {
+            // Search for instances of BaseUnityPlugin to also find dynamically loaded plugins.
+            // Have to use FindObjectsOfType(Type) instead of FindObjectsOfType<T> because the latter is not available in some older unity versions.
+            // Still look inside Chainloader.PluginInfos in case the BepInEx_Manager GameObject uses HideFlags.HideAndDontSave, which hides it from Object.Find methods.
+            return Chainloader.PluginInfos.Values.Select(x => x.Instance)
+                              .Where(plugin => plugin != null)
+                              .Union(UnityEngine.Object.FindObjectsOfType(typeof(BaseUnityPlugin)).Cast<BaseUnityPlugin>())
+                              .ToArray();
+        }
+
         public static void CollectSettings(out IEnumerable<SettingEntryBase> results, out List<string> modsWithoutSettings, bool showDebug)
         {
             modsWithoutSettings = new List<string>();
@@ -32,16 +47,11 @@ namespace ConfigurationManager
             catch (Exception ex)
             {
                 results = Enumerable.Empty<SettingEntryBase>();
-                ConfigurationManager.LogInfo(ex);
+                ConfigurationManager.LogError(ex);
             }
 
-            var allPlugins = Utilities.Utils.FindPlugins();
-
-            foreach (var plugin in allPlugins)
+            foreach (var plugin in FindPlugins())
             {
-                if (plugin == null)
-                    continue;
-
                 var type = plugin.GetType();
 
                 var pluginInfo = plugin.Info.Metadata;
@@ -57,38 +67,28 @@ namespace ConfigurationManager
 
                 detected.AddRange(GetPluginConfig(plugin).Cast<SettingEntryBase>());
 
-                int count = detected.FindAll(x => x.Browsable == false).Count;
-                if(count > 0)
-                {
-                    detected.RemoveAll(x => x.Browsable == false);
-                }
+                detected.RemoveAll(x => x.Browsable == false);
 
-                if (!detected.Any())
-                {
+                if (detected.Count == 0)
                     modsWithoutSettings.Add(pluginInfo.Name);
-                }
 
                 // Allow to enable/disable plugin if it uses any update methods ------
                 if (showDebug && type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Any(x => _updateMethodNames.Contains(x.Name)))
                 {
-                    // todo make a different class for it and fix access modifiers?
-                    var enabledSetting = LegacySettingEntry.FromNormalProperty(plugin, type.GetProperty("enabled"), pluginInfo, plugin);
+                    var enabledSetting = new PropertySettingEntry(plugin, type.GetProperty("enabled"), plugin);
                     enabledSetting.DispName = "!Allow plugin to run on every frame";
                     enabledSetting.Description = "Disabling this will disable some or all of the plugin's functionality.\nHooks and event-based functionality will not be disabled.\nThis setting will be lost after game restart.";
                     enabledSetting.IsAdvanced = true;
                     detected.Add(enabledSetting);
                 }
 
-                if (detected.Any())
-                {
-                    //BepInExPlugin.Dbgl($"Adding {pluginInfo.Name} to config manager.");
+                if (detected.Count > 0)
                     results = results.Concat(detected);
-                }
             }
         }
 
         /// <summary>
-        /// Bepinex 5 config
+        /// Get entries for all core BepInEx settings
         /// </summary>
         private static IEnumerable<SettingEntryBase> GetBepInExCoreConfig()
         {
@@ -98,17 +98,15 @@ namespace ConfigurationManager
             var coreConfig = (ConfigFile)coreConfigProp.GetValue(null, null);
             var bepinMeta = new BepInPlugin("BepInEx", "BepInEx", typeof(BepInEx.Bootstrap.Chainloader).Assembly.GetName().Version.ToString());
 
-            return coreConfig
-                .Select(x => new ConfigSettingEntry(x.Value, null) { IsAdvanced = true, PluginInfo = bepinMeta })
-                .Cast<SettingEntryBase>();
+            return coreConfig.Select(kvp => (SettingEntryBase)new ConfigSettingEntry(kvp.Value, null) { IsAdvanced = true, PluginInfo = bepinMeta });
         }
 
         /// <summary>
-        /// Used by bepinex 5 plugins
+        /// Get entries for all settings of a plugin
         /// </summary>
         private static IEnumerable<ConfigSettingEntry> GetPluginConfig(BaseUnityPlugin plugin)
         {
-            return plugin.Config.Select(x => new ConfigSettingEntry(x.Value, plugin));
+            return plugin.Config.Select(kvp => new ConfigSettingEntry(kvp.Value, plugin));
         }
     }
 }

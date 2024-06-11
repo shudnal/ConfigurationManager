@@ -36,7 +36,7 @@ namespace ConfigurationManager
 
             DefaultValue = entry.DefaultValue;
 
-            SetFromAttributes(Entry.Description?.Tags, owner);
+            SetFromAttributes(entry.Description?.Tags, owner);
         }
 
         private void GetAcceptableValues(AcceptableValueBase values)
