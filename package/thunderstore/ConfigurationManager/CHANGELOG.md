@@ -1,5 +1,8 @@
+# 1.0.13
+* fix for DrawRangeField invalid cast
+
 # 1.0.12
-* Compatibility
+* Better compatibility with mods using custom drawers
 
 # 1.0.11
 * mod setting failed to draw custom field will be logged as well

@@ -341,7 +341,7 @@ namespace ConfigurationManager
             }
             else
             {
-                var strVal = Utilities.Utils.IsFloat(setting.SettingType) ? ((float)value).ToString(CultureInfo.InvariantCulture).AppendZero() : value.ToString();
+                var strVal = value.ToString().AppendZeroIfFloat(setting.SettingType);
                 var strResult = GUILayout.TextField(strVal, GetTextStyle(setting), GUILayout.Width(50));
                 if (strResult != strVal)
                 {
