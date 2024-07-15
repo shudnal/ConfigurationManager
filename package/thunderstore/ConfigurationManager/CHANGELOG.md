@@ -1,3 +1,6 @@
+# 1.0.14
+* logging errors and warnings spam could be disabled using config
+
 # 1.0.13
 * fix for DrawRangeField invalid cast
 
