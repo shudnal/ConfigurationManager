@@ -20,7 +20,7 @@ namespace ConfigurationManager
     {
         public const string GUID = "_shudnal.ConfigurationManager";
         public const string pluginName = "Valheim Configuration Manager";
-        public const string Version = "1.0.15";
+        public const string Version = "1.0.16";
 
         internal static ConfigurationManager instance;
         private static SettingFieldDrawer _fieldDrawer;
@@ -106,6 +106,7 @@ namespace ConfigurationManager
         public static ConfigEntry<bool> _orderPluginByGuid;
         public static ConfigEntry<int> _rangePrecision;
         public static ConfigEntry<int> _vectorPrecision;
+        public static ConfigEntry<bool> _vectorDynamicPrecision;
 
         public static ConfigEntry<string> _windowTitle;
         public static ConfigEntry<string> _normalText;
@@ -183,6 +184,7 @@ namespace ConfigurationManager
             _orderPluginByGuid = Config.Bind("General", "Order plugins by GUID", false, "Default order is by plugin name");
             _rangePrecision = Config.Bind("General", "Range field precision", 3, "Number of symbols after comma in floating-point numbers");
             _vectorPrecision = Config.Bind("General", "Vector field precision", 2, "Number of symbols after comma in vectors");
+            _vectorDynamicPrecision = Config.Bind("General", "Vector field dynamic precision", true, "If every value in vector is integer .0 part will be omitted. Type \",\" or \".\" in vector field to enable precision back.");
 
             _orderPluginByGuid.SettingChanged += (sender, args) => BuildSettingList();
 

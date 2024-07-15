@@ -1,3 +1,6 @@
+# 1.0.16
+* dynamic precision in vectors and quaternions
+
 # 1.0.15
 * configurable precision of range variable
 * configurable precision of vector variables

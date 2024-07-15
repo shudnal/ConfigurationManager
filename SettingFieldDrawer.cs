@@ -513,8 +513,9 @@ namespace ConfigurationManager
         {
             var setting = (Vector2)obj.Get();
             var copy = setting;
-            setting.x = DrawSingleVectorSlider(setting.x, "X", ((Vector2)obj.DefaultValue).x);
-            setting.y = DrawSingleVectorSlider(setting.y, "Y", ((Vector2)obj.DefaultValue).y);
+            bool integerValuesOnly = (setting.x % 1 == 0) && (setting.y % 1 == 0);
+            setting.x = DrawSingleVectorSlider(setting.x, "X", ((Vector2)obj.DefaultValue).x, integerValuesOnly);
+            setting.y = DrawSingleVectorSlider(setting.y, "Y", ((Vector2)obj.DefaultValue).y, integerValuesOnly);
             if (setting != copy) obj.Set(setting);
         }
 
@@ -522,9 +523,10 @@ namespace ConfigurationManager
         {
             var setting = (Vector3)obj.Get();
             var copy = setting;
-            setting.x = DrawSingleVectorSlider(setting.x, "X", ((Vector3)obj.DefaultValue).x);
-            setting.y = DrawSingleVectorSlider(setting.y, "Y", ((Vector3)obj.DefaultValue).y);
-            setting.z = DrawSingleVectorSlider(setting.z, "Z", ((Vector3)obj.DefaultValue).z);
+            bool integerValuesOnly = (setting.x % 1 == 0) && (setting.y % 1 == 0) && (setting.z % 1 == 0);
+            setting.x = DrawSingleVectorSlider(setting.x, "X", ((Vector3)obj.DefaultValue).x, integerValuesOnly);
+            setting.y = DrawSingleVectorSlider(setting.y, "Y", ((Vector3)obj.DefaultValue).y, integerValuesOnly);
+            setting.z = DrawSingleVectorSlider(setting.z, "Z", ((Vector3)obj.DefaultValue).z, integerValuesOnly);
             if (setting != copy) obj.Set(setting);
         }
 
@@ -532,10 +534,11 @@ namespace ConfigurationManager
         {
             var setting = (Vector4)obj.Get();
             var copy = setting;
-            setting.x = DrawSingleVectorSlider(setting.x, "X", ((Vector4)obj.DefaultValue).x);
-            setting.y = DrawSingleVectorSlider(setting.y, "Y", ((Vector4)obj.DefaultValue).y);
-            setting.z = DrawSingleVectorSlider(setting.z, "Z", ((Vector4)obj.DefaultValue).z);
-            setting.w = DrawSingleVectorSlider(setting.w, "W", ((Vector4)obj.DefaultValue).w);
+            bool integerValuesOnly = (setting.x % 1 == 0) && (setting.y % 1 == 0) && (setting.z % 1 == 0) && (setting.w % 1 == 0);
+            setting.x = DrawSingleVectorSlider(setting.x, "X", ((Vector4)obj.DefaultValue).x, integerValuesOnly);
+            setting.y = DrawSingleVectorSlider(setting.y, "Y", ((Vector4)obj.DefaultValue).y, integerValuesOnly);
+            setting.z = DrawSingleVectorSlider(setting.z, "Z", ((Vector4)obj.DefaultValue).z, integerValuesOnly);
+            setting.w = DrawSingleVectorSlider(setting.w, "W", ((Vector4)obj.DefaultValue).w, integerValuesOnly);
             if (setting != copy) obj.Set(setting);
         }
 
@@ -543,17 +546,23 @@ namespace ConfigurationManager
         {
             var setting = (Quaternion)obj.Get();
             var copy = setting;
-            setting.x = DrawSingleVectorSlider(setting.x, "X", ((Quaternion)obj.DefaultValue).x);
-            setting.y = DrawSingleVectorSlider(setting.y, "Y", ((Quaternion)obj.DefaultValue).y);
-            setting.z = DrawSingleVectorSlider(setting.z, "Z", ((Quaternion)obj.DefaultValue).z);
-            setting.w = DrawSingleVectorSlider(setting.w, "W", ((Quaternion)obj.DefaultValue).w);
+            bool integerValuesOnly = (setting.x % 1 == 0) && (setting.y % 1 == 0) && (setting.z % 1 == 0) && (setting.w % 1 == 0);
+            setting.x = DrawSingleVectorSlider(setting.x, "X", ((Quaternion)obj.DefaultValue).x, integerValuesOnly);
+            setting.y = DrawSingleVectorSlider(setting.y, "Y", ((Quaternion)obj.DefaultValue).y, integerValuesOnly);
+            setting.z = DrawSingleVectorSlider(setting.z, "Z", ((Quaternion)obj.DefaultValue).z, integerValuesOnly);
+            setting.w = DrawSingleVectorSlider(setting.w, "W", ((Quaternion)obj.DefaultValue).w, integerValuesOnly);
             if (setting != copy) obj.Set(setting);
         }
 
-        private static float DrawSingleVectorSlider(float setting, string label, float defaultValue)
+        private static float DrawSingleVectorSlider(float setting, string label, float defaultValue, bool integerValuesOnly)
         {
             GUILayout.Label(label, GetLabelStyle(), GUILayout.ExpandWidth(false));
-            float.TryParse(GUILayout.TextField(setting.ToString("F" + Math.Abs(_vectorPrecision.Value), CultureInfo.InvariantCulture), GetTextStyle(setting, defaultValue), GUILayout.ExpandWidth(true)), NumberStyles.Any, CultureInfo.InvariantCulture, out var x);
+            int precision = _vectorDynamicPrecision.Value && integerValuesOnly ? 0 : Math.Abs(_vectorPrecision.Value);
+            string value = GUILayout.TextField(setting.ToString("F" + precision, CultureInfo.InvariantCulture), GetTextStyle(setting, defaultValue), GUILayout.ExpandWidth(true)).Replace(',', '.');
+            if (precision == 0 && value.EndsWith('.'))
+                value = string.Concat(value, string.Empty.PadRight(Math.Abs(_vectorPrecision.Value - 1), '0'), 1);
+
+            float.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var x);
             return x;
         }
 
