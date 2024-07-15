@@ -90,6 +90,12 @@ namespace ConfigurationManager.Utilities
             return IsFloat(type) ? s.AppendZero() : s;
         }
 
+        public static float RoundWithPrecision(float value, int precision)
+        {
+            int multiplier = Convert.ToInt32(Math.Pow(10, precision));
+            return Mathf.Round(value * multiplier) / multiplier;
+        }
+
         public static void FillTexture(this Texture2D tex, Color color)
         {
             if (color.a < 1f)

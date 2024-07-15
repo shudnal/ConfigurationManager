@@ -325,10 +325,11 @@ namespace ConfigurationManager
             var leftValue = (float)Convert.ToDouble(setting.AcceptableValueRange.Key, CultureInfo.InvariantCulture);
             var rightValue = (float)Convert.ToDouble(setting.AcceptableValueRange.Value, CultureInfo.InvariantCulture);
 
-            var result = GUILayout.HorizontalSlider(converted, leftValue, rightValue, GetSliderStyle(), GetThumbStyle(), GUILayout.ExpandWidth(true));
-            if (Math.Abs(result - converted) > Mathf.Abs(rightValue - leftValue) / 1000)
+            float result = DrawCenteredHorizontalSlider(converted, leftValue, rightValue);
+
+            if (Math.Abs(result - converted) >= Mathf.Abs(rightValue - leftValue) / Math.Pow(10, _rangePrecision.Value + 2))
             {
-                var newValue = Convert.ChangeType(Mathf.Round(result * 1000) / 1000, setting.SettingType, CultureInfo.InvariantCulture);
+                var newValue = Convert.ChangeType(Utilities.Utils.RoundWithPrecision(result, _rangePrecision.Value), setting.SettingType, CultureInfo.InvariantCulture);
                 setting.Set(newValue);
             }
 
@@ -349,7 +350,7 @@ namespace ConfigurationManager
                     {
                         var resultVal = (float)Convert.ToDouble(strResult, CultureInfo.InvariantCulture);
                         var clampedResultVal = Mathf.Clamp(resultVal, leftValue, rightValue);
-                        setting.Set(Convert.ChangeType(Mathf.Round(clampedResultVal * 1000) / 1000, setting.SettingType, CultureInfo.InvariantCulture));
+                        setting.Set(Convert.ChangeType(Utilities.Utils.RoundWithPrecision(clampedResultVal, _rangePrecision.Value), setting.SettingType, CultureInfo.InvariantCulture));
                     }
                     catch (FormatException)
                     {
@@ -357,6 +358,19 @@ namespace ConfigurationManager
                     }
                 }
             }
+        }
+
+        private static float DrawCenteredHorizontalSlider(float converted, float leftValue, float rightValue)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.BeginVertical();
+            GUILayout.FlexibleSpace();
+            GUILayout.Space(4);
+            var result = GUILayout.HorizontalSlider(converted, leftValue, rightValue, GetSliderStyle(), GetThumbStyle(), GUILayout.ExpandWidth(true));
+            GUILayout.FlexibleSpace();
+            GUILayout.EndVertical();
+            GUILayout.EndHorizontal();
+            return result;
         }
 
         private void DrawUnknownField(SettingEntryBase setting, int rightColumnWidth)
@@ -539,7 +553,7 @@ namespace ConfigurationManager
         private static float DrawSingleVectorSlider(float setting, string label, float defaultValue)
         {
             GUILayout.Label(label, GetLabelStyle(), GUILayout.ExpandWidth(false));
-            float.TryParse(GUILayout.TextField(setting.ToString("F", CultureInfo.InvariantCulture), GetTextStyle(setting, defaultValue), GUILayout.ExpandWidth(true)), NumberStyles.Any, CultureInfo.InvariantCulture, out var x);
+            float.TryParse(GUILayout.TextField(setting.ToString("F" + Math.Abs(_vectorPrecision.Value), CultureInfo.InvariantCulture), GetTextStyle(setting, defaultValue), GUILayout.ExpandWidth(true)), NumberStyles.Any, CultureInfo.InvariantCulture, out var x);
             return x;
         }
 
@@ -641,7 +655,7 @@ namespace ConfigurationManager
 
                 float RoundTo000()
                 {
-                    return Mathf.Round(value * 1000) / 1000;
+                    return Utilities.Utils.RoundWithPrecision(value, 3);
                 }
             }
         }

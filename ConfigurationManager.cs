@@ -20,7 +20,7 @@ namespace ConfigurationManager
     {
         public const string GUID = "_shudnal.ConfigurationManager";
         public const string pluginName = "Valheim Configuration Manager";
-        public const string Version = "1.0.14";
+        public const string Version = "1.0.15";
 
         internal static ConfigurationManager instance;
         private static SettingFieldDrawer _fieldDrawer;
@@ -104,6 +104,8 @@ namespace ConfigurationManager
         public static ConfigEntry<Vector2> _windowSize;
         public static ConfigEntry<int> _textSize;
         public static ConfigEntry<bool> _orderPluginByGuid;
+        public static ConfigEntry<int> _rangePrecision;
+        public static ConfigEntry<int> _vectorPrecision;
 
         public static ConfigEntry<string> _windowTitle;
         public static ConfigEntry<string> _normalText;
@@ -179,6 +181,8 @@ namespace ConfigurationManager
             _windowSize = Config.Bind("General", "Window size", DefaultWindowRect.size, "Window size");
             _textSize = Config.Bind("General", "Font size", 14, "Font size");
             _orderPluginByGuid = Config.Bind("General", "Order plugins by GUID", false, "Default order is by plugin name");
+            _rangePrecision = Config.Bind("General", "Range field precision", 3, "Number of symbols after comma in floating-point numbers");
+            _vectorPrecision = Config.Bind("General", "Vector field precision", 2, "Number of symbols after comma in vectors");
 
             _orderPluginByGuid.SettingChanged += (sender, args) => BuildSettingList();
 

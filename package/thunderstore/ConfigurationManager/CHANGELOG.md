@@ -1,3 +1,7 @@
+# 1.0.15
+* configurable precision of range variable
+* configurable precision of vector variables
+
 # 1.0.14
 * logging errors and warnings spam could be disabled using config
 
