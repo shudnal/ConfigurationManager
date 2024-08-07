@@ -1,5 +1,4 @@
-﻿using System;
-using UnityEngine;
+﻿using UnityEngine;
 using static ConfigurationManager.ConfigurationManager;
 
 namespace ConfigurationManager
@@ -194,7 +193,7 @@ namespace ConfigurationManager
 
         public static GUIStyle GetToggleStyle(SettingEntryBase setting)
         {
-            return GetToggleStyle((bool)setting.Get() == (bool)setting.DefaultValue);
+            return GetToggleStyle(IsDefaultValue(setting));
         }
 
         public static GUIStyle GetLabelStyle()
@@ -209,7 +208,7 @@ namespace ConfigurationManager
         
         public static GUIStyle GetLabelStyle(SettingEntryBase setting)
         {
-            return GetLabelStyle(setting.Get().ToString() == setting.DefaultValue.ToString());
+            return GetLabelStyle(IsDefaultValue(setting));
         }
 
         public static GUIStyle GetButtonStyle()
@@ -224,7 +223,7 @@ namespace ConfigurationManager
         
         public static GUIStyle GetButtonStyle(SettingEntryBase setting)
         {
-            return GetButtonStyle(setting.Get().ToString() == setting.DefaultValue.ToString());
+            return GetButtonStyle(IsDefaultValue(setting));
         }
 
         public static GUIStyle GetTextStyle(bool isDefaulValue = true)
@@ -234,7 +233,7 @@ namespace ConfigurationManager
 
         public static GUIStyle GetTextStyle(SettingEntryBase setting)
         {
-            return GetTextStyle(setting.Get().ToString() == setting.DefaultValue.ToString());
+            return GetTextStyle(IsDefaultValue(setting));
         }
 
         public static GUIStyle GetTextStyle(float setting, float defaultValue)
@@ -250,6 +249,11 @@ namespace ConfigurationManager
         public static bool IsEqualColorConfig(Color setting, Color defaultValue)
         {
             return ColorUtility.ToHtmlStringRGBA(setting) == ColorUtility.ToHtmlStringRGBA(defaultValue);
+        }
+
+        private static bool IsDefaultValue(SettingEntryBase setting)
+        {
+            return setting.Get().ToString() == setting.DefaultValue.ToString();
         }
     }
 }

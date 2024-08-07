@@ -11,6 +11,8 @@ namespace ConfigurationManager
 {
     public partial class ConfigurationManager
     {
+        internal const int _headerSize = 20;
+
         void OnGUI()
         {
             if (DisplayingWindow)
@@ -19,32 +21,33 @@ namespace ConfigurationManager
                 CreateStyles();
                 SetUnlockCursor(0, true);
 
+                currentWindowRect.size = _windowSize.Value;
+                currentWindowRect.position = _windowPosition.Value;
+
                 GUI.Box(currentWindowRect, GUIContent.none, new GUIStyle());
                 GUI.backgroundColor = _windowBackgroundColor.Value;
-
-                currentWindowRect.size = new Vector2(Math.Clamp(_windowSize.Value.x, 400, Screen.width), Math.Clamp(_windowSize.Value.y, 400, Screen.height));
 
                 RightColumnWidth = Mathf.RoundToInt(Mathf.Clamp(currentWindowRect.width / 2.5f * fontSize / 12f, currentWindowRect.width * 0.5f, currentWindowRect.width * 0.8f));
                 LeftColumnWidth = Mathf.RoundToInt(Mathf.Clamp(currentWindowRect.width - RightColumnWidth - 100, currentWindowRect.width * 0.2f, currentWindowRect.width * 0.5f)) - 15;
 
                 currentWindowRect = GUILayout.Window(WindowId, currentWindowRect, SettingsWindow, _windowTitle.Value, GetWindowStyle());
-                
-                if (!UnityInput.Current.GetKey(KeyCode.Mouse0) && (currentWindowRect.x != _windowPosition.Value.x || currentWindowRect.y != _windowPosition.Value.y))
+
+                if (!UnityInput.Current.GetKeyDown(KeyCode.Mouse0) && (currentWindowRect.x != _windowPosition.Value.x || currentWindowRect.y != _windowPosition.Value.y))
                     SaveCurrentSizeAndPosition();
             }
         }
 
         internal void SaveCurrentSizeAndPosition()
         {
-            _windowPosition.Value = currentWindowRect.position;
-            _windowSize.Value = currentWindowRect.size;
+            _windowSize.Value = new Vector2(Mathf.Clamp(currentWindowRect.size.x, 500f, Screen.width), Mathf.Clamp(currentWindowRect.size.y, 200f, Screen.height));
+            _windowPosition.Value = new Vector2(Mathf.Clamp(currentWindowRect.position.x, 0f, Screen.width - _windowSize.Value.x / 4f), Mathf.Clamp(currentWindowRect.position.y, 0f, Screen.height - _headerSize));
             Config.Save();
             SettingFieldDrawer.ClearComboboxCache();
         }
 
         private void SettingsWindow(int id)
         {
-            GUI.DragWindow(new Rect(0, 0, currentWindowRect.width, 20));
+            GUI.DragWindow(new Rect(0, 0, currentWindowRect.width, _headerSize));
             DrawWindowHeader();
 
             _settingWindowScrollPos = GUILayout.BeginScrollView(_settingWindowScrollPos, false, true);

@@ -1,3 +1,9 @@
+# 1.0.17
+* window position and size operations refined
+* window header can not be dragged out of available screen zone
+* you can resize window vertically and horizontally dragging right and bottom side
+* Reset button now works for both position and size config value
+
 # 1.0.16
 * dynamic precision in vectors and quaternions
 
