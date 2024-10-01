@@ -1,3 +1,6 @@
+# 1.0.18
+* flags field value will not exceed 80% of right column size and will not mess up with Reset buttons positions
+
 # 1.0.17
 * window position and size operations refined
 * window header can not be dragged out of available screen zone

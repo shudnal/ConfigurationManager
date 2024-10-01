@@ -219,7 +219,7 @@ namespace ConfigurationManager
         private static void DrawEnumField(SettingEntryBase setting)
         {
             if (setting.SettingType.GetCustomAttributes(typeof(FlagsAttribute), false).Any())
-                DrawFlagsField(setting, Enum.GetValues(setting.SettingType), _instance.RightColumnWidth);
+                DrawFlagsField(setting, Enum.GetValues(setting.SettingType), (int)(_instance.RightColumnWidth * 0.8f));
             else
                 DrawComboboxField(setting, Enum.GetValues(setting.SettingType), _instance.currentWindowRect.yMax);
         }
