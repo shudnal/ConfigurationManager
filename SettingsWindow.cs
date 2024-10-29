@@ -331,8 +331,13 @@ namespace ConfigurationManager
             IEnumerable<SettingEntryBase> results = _allSettings;
 
             var searchStrings = SearchString.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            
+            if (_readOnlyStyle.Value == ReadOnlyStyle.Hidden)
+                results = results.Where(x => x.ReadOnly != true);
+            if (HideSettings())
+                results = results.Where(x => !(x as ConfigSettingEntry).ShouldBeHidden());
 
-            if (searchStrings.Length > 0)
+            if (SearchString.Length > 1 && searchStrings.Length > 0)
             {
                 results = results.Where(x => ContainsSearchString(x, searchStrings));
             }
@@ -344,10 +349,6 @@ namespace ConfigurationManager
                     results = results.Where(x => !IsKeyboardShortcut(x));
                 if (!_showSettings.Value)
                     results = results.Where(x => x.IsAdvanced == true || IsKeyboardShortcut(x));
-                if (_readOnlyStyle.Value == ReadOnlyStyle.Hidden)
-                    results = results.Where(x => x.ReadOnly != true);
-                if (HideSettings())
-                    results = results.Where(x => !(x as ConfigSettingEntry).ShouldBeHidden());
             }
 
             const string shortcutsCatName = "Keyboard shortcuts";

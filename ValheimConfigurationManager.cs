@@ -46,7 +46,7 @@ namespace ConfigurationManager
             _pauseGame = Config.Bind("Valheim", "Pause game", false, new ConfigDescription("Pause the game (if game can be paused) when window is open"));
             _preventInput = Config.Bind("Valheim", "Prevent input", PreventInput.Player, new ConfigDescription("Prevent input when window is open" +
                                                                                                                         "\n Off - everything goes through" +
-                                                                                                                        "\n Player - prevent player controller (hotkeys like inventory, console and such will still operate)" +
+                                                                                                                        "\n Player - prevent player controls and HUD buttons (console will still operate)" +
                                                                                                                         "\n All - prevent all input events"));
             _showMainMenuButton = Config.Bind("Valheim", "Main menu button", true, new ConfigDescription("Add button in main menu to open/close configuration manager window"));
             _mainMenuButtonCaption = Config.Bind("Valheim", "Main menu button caption", "Mods settings", new ConfigDescription("Main menu button caption"));
@@ -229,21 +229,49 @@ namespace ConfigurationManager
         }
 
         [HarmonyPatch]
+        public static class Inventory_PreventAllInput
+        {
+            private static IEnumerable<MethodBase> TargetMethods()
+            {
+                yield return AccessTools.Method(typeof(InventoryGrid), nameof(InventoryGrid.OnLeftClick));
+                yield return AccessTools.Method(typeof(InventoryGrid), nameof(InventoryGrid.OnRightClick));
+                yield return AccessTools.Method(typeof(InventoryGui), nameof(InventoryGui.OnSelectedItem));
+                yield return AccessTools.Method(typeof(InventoryGui), nameof(InventoryGui.OnRightClickItem));
+                yield return AccessTools.Method(typeof(Toggle), nameof(Toggle.OnSubmit));
+                yield return AccessTools.Method(typeof(Toggle), nameof(Toggle.OnPointerClick));
+                yield return AccessTools.Method(typeof(Player), nameof(Player.UseHotbarItem));
+            }
+
+            [HarmonyPriority(Priority.First)]
+            private static bool Prefix() => !PreventPlayerInput() || !instance.DisplayingWindow;
+        }
+
+        [HarmonyPatch]
+        public static class Button_PreventAllInput
+        {
+            private static IEnumerable<MethodBase> TargetMethods()
+            {
+                yield return AccessTools.Method(typeof(Button), nameof(Button.OnPointerClick));
+                yield return AccessTools.Method(typeof(Button), nameof(Button.OnSubmit));
+                yield return AccessTools.Method(typeof(Button), "Press");
+            }
+
+            [HarmonyPriority(Priority.First)]
+            private static bool Prefix(Button __instance) => !PreventPlayerInput() || !instance.DisplayingWindow || __instance.name == menuButtonName;
+        }
+
+        [HarmonyPatch]
         public static class ZInput_PreventAllInput
         {
             private static IEnumerable<MethodBase> TargetMethods()
             {
-                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.AcceptInputFromSource));
+                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.ShouldAcceptInputFromSource));
                 yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetKey));
+                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetKeyUp));
                 yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetKeyDown));
-                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetKeyNew));
-                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetMouseButton));
-                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetMouseButtonDown));
-                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetMouseButtonUp));
-                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetMouseButtonNew));
                 yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetButton));
                 yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetButtonDown));
-                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetButtonUp)); 
+                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetButtonUp));
             }
 
             [HarmonyPriority(Priority.First)]
@@ -251,11 +279,32 @@ namespace ConfigurationManager
         }
 
         [HarmonyPatch]
+        public static class ZInput_PreventPlayerInput
+        {
+            private static IEnumerable<MethodBase> TargetMethods()
+            {
+                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetMouseButton));
+                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetMouseButtonDown));
+                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetMouseButtonUp));
+                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetRadialTap));
+                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetRadialMultiTap));
+            }
+
+            [HarmonyPriority(Priority.First)]
+            private static bool Prefix(ref bool __result) => !PreventPlayerInput() || !instance.DisplayingWindow || (__result = false);
+        }
+
+        [HarmonyPatch]
         public static class ZInput_Float_PreventMouseInput
         {
             private static IEnumerable<MethodBase> TargetMethods()
             {
-                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetAxis));
+                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetJoyLeftStickX));
+                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetJoyLeftStickY));
+                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetJoyRTrigger));
+                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetJoyLTrigger));
+                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetJoyRightStickX));
+                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetJoyRightStickY));
                 yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetMouseScrollWheel));
             }
 

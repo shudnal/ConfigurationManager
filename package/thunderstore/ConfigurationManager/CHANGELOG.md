@@ -1,3 +1,8 @@
+# 1.0.19
+* bog witch
+* better clickthrough prevention
+* string search starts with 2 symbols
+
 # 1.0.18
 * flags field value will not exceed 80% of right column size and will not mess up with Reset buttons positions
 
