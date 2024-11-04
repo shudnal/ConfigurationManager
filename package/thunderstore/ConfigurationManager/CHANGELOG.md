@@ -1,3 +1,6 @@
+# 1.0.20
+* console is now available if game is paused by configuration manager
+
 # 1.0.19
 * bog witch
 * better clickthrough prevention

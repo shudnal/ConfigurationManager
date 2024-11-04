@@ -39,8 +39,6 @@ namespace ConfigurationManager
         private static DirectoryInfo pluginDirectory;
         private static DirectoryInfo configDirectory;
 
-        private static GameObject menuButton;
-
         void OnEnable()
         {
             _pauseGame = Config.Bind("Valheim", "Pause game", false, new ConfigDescription("Pause the game (if game can be paused) when window is open"));
@@ -134,7 +132,7 @@ namespace ConfigurationManager
 
         private static bool PreventAllInput()
         {
-            return _preventInput.Value == PreventInput.All || (Game.IsPaused() && !GameCamera.InFreeFly());
+            return _preventInput.Value == PreventInput.All;
         }
 
         private static bool PreventPlayerInput()
@@ -185,7 +183,7 @@ namespace ConfigurationManager
 
         private void SetupMainMenuButton(Transform menuEntries)
         {
-            menuButton = menuEntries.Find(menuButtonName)?.gameObject;
+            GameObject menuButton = menuEntries.Find(menuButtonName)?.gameObject;
             if (menuButton == null)
             {
                 Transform settings = menuEntries.Find("Settings");
