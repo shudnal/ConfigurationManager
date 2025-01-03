@@ -159,7 +159,7 @@ namespace ConfigurationManager
 
             if (DisplayingWindow && !Game.IsPaused() && Game.CanPause())
                 Game.Pause();
-            else if (!DisplayingWindow && !Menu.IsVisible() && Game.IsPaused())
+            else if (!DisplayingWindow && !Menu.IsActive() && Game.IsPaused())
                 Game.Unpause();
         }
 

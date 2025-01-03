@@ -54,3 +54,6 @@ extract ConfigurationManager.dll folder to your BepInEx\Plugins\ folder.
 
 ## Mirrors
 [Nexus](https://www.nexusmods.com/valheim/mods/2746)
+
+## Donation
+[Buy Me a Coffee](https://buymeacoffee.com/shudnal)

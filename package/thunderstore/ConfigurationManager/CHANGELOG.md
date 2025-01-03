@@ -1,3 +1,6 @@
+# 1.0.21
+* fixed rare issue when manager window didn't unpause the game on close
+
 # 1.0.20
 * console is now available if game is paused by configuration manager
 
