@@ -5,7 +5,7 @@ It is distributed under the [GPLv3](https://www.gnu.org/licenses/gpl-3.0.html) a
 That fork have additions from other similar mods
 * Coloring and localization are based on aedenthorn's https://github.com/aedenthorn/BepInEx.ConfigurationManager
 * Color drawer is based on Azumatt's https://github.com/AzumattDev/BepInEx.ConfigurationManager (dev branch)
-* Everything taken was improved and refined
+* Everything taken was improved and refined in various places
 
 ## How to use
 Press hotkey button in game (default `F1`) to open mod window and change configuration of mods.
