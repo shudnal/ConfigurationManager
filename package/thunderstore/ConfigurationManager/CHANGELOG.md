@@ -1,3 +1,9 @@
+# 1.0.22
+* categories will be sorted in the order in which they were declared by the mod author (with config option to keep order by name)
+* fixed memory leak when window was open
+* mods categories made collapsable
+* mods with more than 20 categories will have them collapsed by default to prevent lagging (excluding categories with changed values)
+
 # 1.0.21
 * fixed rare issue when manager window didn't unpause the game on close
 

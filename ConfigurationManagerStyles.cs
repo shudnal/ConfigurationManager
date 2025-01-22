@@ -21,12 +21,13 @@ namespace ConfigurationManager
         private static GUIStyle boxStyle;
         private static GUIStyle sliderStyle;
         private static GUIStyle thumbStyle;
-        private static GUIStyle categoryHeaderStyle;
+        private static GUIStyle categoryHeaderStyleDefault;
+        private static GUIStyle categoryHeaderStyleChanged;
         private static GUIStyle pluginHeaderStyle;
         private static GUIStyle backgroundStyle;
         private static GUIStyle tooltipStyle;
         public static int fontSize = 14;
-
+        
         public static void CreateStyles()
         {
             _textSize.Value = Mathf.Clamp(_textSize.Value, 10, 30);
@@ -79,14 +80,18 @@ namespace ConfigurationManager
             buttonStyleValueChanged.onNormal.textColor = _fontColorValueChanged.Value;
             buttonStyleValueChanged.fontSize = fontSize;
 
-            categoryHeaderStyle = new GUIStyle(labelStyle)
+            categoryHeaderStyleDefault = new GUIStyle(labelStyle)
             {
                 alignment = TextAnchor.UpperCenter,
                 wordWrap = true,
                 stretchWidth = true
             };
 
-            pluginHeaderStyle = new GUIStyle(categoryHeaderStyle);
+            categoryHeaderStyleChanged = new GUIStyle(categoryHeaderStyleDefault);
+            categoryHeaderStyleChanged.normal.textColor = _fontColorValueChanged.Value;
+            categoryHeaderStyleChanged.onNormal.textColor = _fontColorValueChanged.Value;
+
+            pluginHeaderStyle = new GUIStyle(categoryHeaderStyleDefault);
 
             toggleStyle = new GUIStyle(GUI.skin.toggle);
             toggleStyle.normal.textColor = _fontColor.Value;
@@ -142,9 +147,9 @@ namespace ConfigurationManager
             return windowStyle;
         }
 
-        public static GUIStyle GetCategoryStyle()
+        public static GUIStyle GetCategoryStyle(bool isDefaultStyle = true)
         {
-            return categoryHeaderStyle;
+            return isDefaultStyle ? categoryHeaderStyleDefault : categoryHeaderStyleChanged;
         }
 
         public static GUIStyle GetHeaderStyle()
@@ -251,9 +256,9 @@ namespace ConfigurationManager
             return ColorUtility.ToHtmlStringRGBA(setting) == ColorUtility.ToHtmlStringRGBA(defaultValue);
         }
 
-        private static bool IsDefaultValue(SettingEntryBase setting)
+        internal static bool IsDefaultValue(SettingEntryBase setting)
         {
-            return setting.Get().ToString() == setting.DefaultValue.ToString();
+            return setting.SettingType == typeof(Color) ? IsEqualColorConfig((Color)setting.Get(), (Color)setting.DefaultValue) : setting.Get().ToString() == setting.DefaultValue.ToString();
         }
     }
 }

@@ -153,15 +153,37 @@ namespace ConfigurationManager
             GUILayout.EndHorizontal();
         }
 
-        public static void DrawCategoryHeader(string text)
+        public static bool DrawCategoryHeader(string text)
         {
-            GUILayout.Label(text, GetCategoryStyle());
+            if (_categoriesCollapseable.Value)
+                return GUILayout.Button(text, GetCategoryStyle(), GUILayout.ExpandWidth(true));
+
+            GUILayout.Label(text, GetCategoryStyle(), GUILayout.ExpandWidth(true));
+            return false;
         }
 
-        public static bool DrawPluginHeader(GUIContent content)
+        public static bool DrawCollapsedCategoryHeader(string text, bool isDefaultStyle)
         {
-            return GUILayout.Button(content, GetHeaderStyle(), GUILayout.ExpandWidth(true));
+            return GUILayout.Button($"> {text} <", GetCategoryStyle(isDefaultStyle), GUILayout.ExpandWidth(true));
         }
+
+        public static bool DrawPluginHeader(GUIContent content, bool isCollapsed, bool hasCollapsedCategories, out bool toggleCollapseAll)
+        {
+            toggleCollapseAll = false;
+            if (!_categoriesCollapseable.Value)
+                return DrawPluginHeaderLabel(content);
+
+            GUILayout.BeginHorizontal();
+            GUILayout.FlexibleSpace();
+            bool state = DrawPluginHeaderLabel(content);
+            GUILayout.FlexibleSpace();
+            toggleCollapseAll = !isCollapsed && GUILayout.Button(hasCollapsedCategories ? "v" : "<", GetButtonStyle(), GUILayout.ExpandWidth(false));
+            GUILayout.EndHorizontal();
+
+            return state;
+        }
+
+        private static bool DrawPluginHeaderLabel(GUIContent content) => GUILayout.Button(content, GetHeaderStyle(), GUILayout.ExpandWidth(true));
 
         public static bool DrawCurrentDropdown()
         {
@@ -336,9 +358,9 @@ namespace ConfigurationManager
             if (setting.ShowRangeAsPercent == true)
             {
                 DrawCenteredLabel(
-                    Mathf.Round(100 * Mathf.Abs(result - leftValue) / Mathf.Abs(rightValue - leftValue)) + "%",
+                    $"{Mathf.Abs(result - leftValue) / Mathf.Abs(rightValue - leftValue):P0}",
                     GetLabelStyle(setting),
-                    GUILayout.Width(50));
+                    GUILayout.Width(60));
             }
             else
             {
@@ -346,15 +368,11 @@ namespace ConfigurationManager
                 var strResult = GUILayout.TextField(strVal, GetTextStyle(setting), GUILayout.Width(50));
                 if (strResult != strVal)
                 {
-                    try
+                    LogInfo(strResult);
+                    if (float.TryParse(strResult.Replace(".", ","), out float resultVal))
                     {
-                        var resultVal = (float)Convert.ToDouble(strResult, CultureInfo.InvariantCulture);
                         var clampedResultVal = Mathf.Clamp(resultVal, leftValue, rightValue);
-                        setting.Set(Convert.ChangeType(Utilities.Utils.RoundWithPrecision(clampedResultVal, _rangePrecision.Value), setting.SettingType, CultureInfo.InvariantCulture));
-                    }
-                    catch (FormatException)
-                    {
-                        // Ignore user typing in bad data
+                        setting.Set(Convert.ChangeType(Utilities.Utils.RoundWithPrecision(clampedResultVal, _rangePrecision.Value), setting.SettingType));
                     }
                 }
             }

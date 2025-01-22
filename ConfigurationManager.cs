@@ -20,7 +20,7 @@ namespace ConfigurationManager
     {
         public const string GUID = "_shudnal.ConfigurationManager";
         public const string pluginName = "Valheim Configuration Manager";
-        public const string Version = "1.0.21";
+        public const string Version = "1.0.22";
 
         internal static ConfigurationManager instance;
         private static SettingFieldDrawer _fieldDrawer;
@@ -108,6 +108,10 @@ namespace ConfigurationManager
         public static ConfigEntry<int> _vectorPrecision;
         public static ConfigEntry<bool> _vectorDynamicPrecision;
 
+        public static ConfigEntry<bool> _sortCategoriesByName;
+        public static ConfigEntry<bool> _categoriesCollapseable;
+        public static ConfigEntry<bool> _categoriesCollapsedDefault;
+
         public static ConfigEntry<string> _windowTitle;
         public static ConfigEntry<string> _normalText;
         public static ConfigEntry<string> _shortcutsText;
@@ -168,13 +172,6 @@ namespace ConfigurationManager
                 new ConfigDescription("The shortcut used to toggle the config manager window on and off.\n" +
                                       "The key can be overridden by a game-specific plugin if necessary, in that case this setting is ignored."));
 
-            _showAdvanced = Config.Bind("Filtering", "Show advanced", false);
-            _showKeybinds = Config.Bind("Filtering", "Show keybinds", true);
-            _showSettings = Config.Bind("Filtering", "Show settings", true);
-            _readOnlyStyle = Config.Bind("Filtering", "Style readonly entries", ReadOnlyStyle.Colored, new ConfigDescription("Entries marked as readonly are not available for change."));
-
-            _readOnlyStyle.SettingChanged += (sender, args) => BuildSettingList();
-
             _hideSingleSection = Config.Bind("General", "Hide single sections", false, new ConfigDescription("Show section title for plugins with only one section"));
             _loggingEnabled = Config.Bind("General", "Logging enabled", false, new ConfigDescription("Enable logging"));
             _pluginConfigCollapsedDefault = Config.Bind("General", "Plugin collapsed default", true, new ConfigDescription("If set to true plugins will be collapsed when opening the configuration manager window"));
@@ -187,6 +184,22 @@ namespace ConfigurationManager
             _vectorDynamicPrecision = Config.Bind("General", "Vector field dynamic precision", true, "If every value in vector is integer .0 part will be omitted. Type \",\" or \".\" in vector field to enable precision back.");
 
             _orderPluginByGuid.SettingChanged += (sender, args) => BuildSettingList();
+
+            _sortCategoriesByName = Config.Bind("General - Categories", "Sort by name", false, "If disabled, categories will be sorted in the order in which they were declared by the mod author.");
+            _categoriesCollapseable = Config.Bind("General - Categories", "Collapsable categories", true, "Categories can be collapsed to reduce lagging and to ease scrolling.");
+            _categoriesCollapsedDefault = Config.Bind("General - Categories", "Collapsed by default", true, "If set to true plugin categories will be collapsed by default if plugin has more than 20 categories." +
+                                                                                                            "\nCategories with non default values will not be collapsed.");
+
+            _sortCategoriesByName.SettingChanged += (sender, args) => BuildSettingList();
+            _categoriesCollapseable.SettingChanged += (sender, args) => BuildSettingList();
+            _categoriesCollapsedDefault.SettingChanged += (sender, args) => BuildSettingList();
+
+            _showAdvanced = Config.Bind("Filtering", "Show advanced", false);
+            _showKeybinds = Config.Bind("Filtering", "Show keybinds", true);
+            _showSettings = Config.Bind("Filtering", "Show settings", true);
+            _readOnlyStyle = Config.Bind("Filtering", "Style readonly entries", ReadOnlyStyle.Colored, new ConfigDescription("Entries marked as readonly are not available for change."));
+
+            _readOnlyStyle.SettingChanged += (sender, args) => BuildSettingList();
 
             _windowTitle = Config.Bind("Text - Menu", "Window Title", "Configuration Manager", new ConfigDescription("Window title text"));
             _normalText = Config.Bind("Text - Menu", "Normal", "Normal", new ConfigDescription("Normal settings toggle text"));
@@ -215,6 +228,10 @@ namespace ConfigurationManager
             _widgetBackgroundColor = Config.Bind("Colors", "Widget color", new Color(0.88f, 0.46f, 0, 0.8f), "Widget color");
             _enabledBackgroundColor = Config.Bind("Colors", "Enabled toggle color", new Color(0.88f, 0.46f, 0f, 1f), "Color of enabled toggle");
             _readOnlyColor = Config.Bind("Colors", "Readonly color", Color.gray, "Color of readonly setting");
+
+            _windowBackgroundColor.SettingChanged += (s, e) => UpdateBackgrounds();
+            _entryBackgroundColor.SettingChanged += (s, e) => UpdateBackgrounds();
+            _tooltipBackgroundColor.SettingChanged += (s, e) => UpdateBackgrounds();
 
             _fontColor = Config.Bind("Colors - Font", "Main font", new Color(1f, 0.71f, 0.36f, 1f), "Font color");
             _fontColorValueDefault = Config.Bind("Colors - Font", "Default value", new Color(1f, 0.71f, 0.36f, 1f), "Font color");
@@ -251,9 +268,11 @@ namespace ConfigurationManager
 
         void Update()
         {
-            if (DisplayingWindow) SetUnlockCursor(0, true);
+            if (DisplayingWindow)
+                SetUnlockCursor(0, true);
 
-            if (OverrideHotkey) return;
+            if (OverrideHotkey)
+                return;
 
             if (!DisplayingWindow && _keybind.Value.IsDown())
                 DisplayingWindow = true;
@@ -263,7 +282,8 @@ namespace ConfigurationManager
 
         void LateUpdate()
         {
-            if (DisplayingWindow) SetUnlockCursor(0, true);
+            if (DisplayingWindow)
+                SetUnlockCursor(0, true);
         }
 
         /// <summary>
@@ -274,10 +294,14 @@ namespace ConfigurationManager
             get => _displayingWindow;
             set
             {
-                if (_displayingWindow == value) return;
+                if (_displayingWindow == value)
+                    return;
+
                 _displayingWindow = value;
 
                 SettingFieldDrawer.ClearCache();
+
+                CreateBackgrounds();
 
                 if (_displayingWindow)
                 {
@@ -357,6 +381,7 @@ namespace ConfigurationManager
             {
                 public string Name;
                 public List<SettingEntryBase> Settings;
+                public bool Collapsed;
             }
 
             public int Height { get; set; }
