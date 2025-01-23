@@ -258,7 +258,17 @@ namespace ConfigurationManager
 
         internal static bool IsDefaultValue(SettingEntryBase setting)
         {
-            return setting.SettingType == typeof(Color) ? IsEqualColorConfig((Color)setting.Get(), (Color)setting.DefaultValue) : setting.Get().ToString() == setting.DefaultValue.ToString();
+            if (setting == null || setting.DefaultValue == null || setting.Get() == null)
+                return true;
+
+            try
+            {
+                return setting.SettingType == typeof(Color) ? IsEqualColorConfig((Color)setting.Get(), (Color)setting.DefaultValue) : setting.Get().ToString() == setting.DefaultValue.ToString();
+            }
+            catch
+            {
+                return true;
+            }
         }
     }
 }

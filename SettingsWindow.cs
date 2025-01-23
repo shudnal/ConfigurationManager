@@ -138,7 +138,7 @@ namespace ConfigurationManager
 
                 GUI.enabled = true;
 
-                newVal = GUILayout.Toggle(_showDebug, "Debug mode", GetToggleStyle());
+                newVal = GUILayout.Toggle(_showDebug, "Show mod GUID in tooltip", GetToggleStyle());
                 if (_showDebug != newVal)
                 {
                     _showDebug = newVal;
@@ -350,7 +350,7 @@ namespace ConfigurationManager
 
         public void BuildSettingList()
         {
-            SettingSearcher.CollectSettings(out var results, out var modsWithoutSettings, _showDebug);
+            SettingSearcher.CollectSettings(out var results, out var modsWithoutSettings);
 
             _modsWithoutSettings = string.Join(", ", modsWithoutSettings.Select(x => x.TrimStart('!')).OrderBy(x => x).ToArray());
             _allSettings = results.ToList();

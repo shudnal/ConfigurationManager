@@ -1,3 +1,6 @@
+# 1.0.23
+* fixed occasional error when Advanced and Debug toggles enabled
+
 # 1.0.22
 * categories will be sorted in the order in which they were declared by the mod author (with config option to keep order by name)
 * fixed memory leak when window was open
