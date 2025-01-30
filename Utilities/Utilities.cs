@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using UnityEngine;
+using System.Globalization;
 
 namespace ConfigurationManager.Utilities
 {
@@ -77,7 +78,18 @@ namespace ConfigurationManager.Utilities
 
         public static string AppendZero(this string s)
         {
-            return !s.Contains(".") && !s.Contains(",") ? s + ".0" : s;
+            return !s.Contains(".") ? s + ".0" : s;
+        }
+
+        public static bool TryParseFloat(string input, out float result)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                result = 0;
+                return false;
+            }
+
+            return float.TryParse(input.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out result);
         }
 
         public static bool IsFloat(Type type)
@@ -87,7 +99,7 @@ namespace ConfigurationManager.Utilities
 
         public static string AppendZeroIfFloat(this string s, Type type)
         {
-            return IsFloat(type) ? s.AppendZero() : s;
+            return IsFloat(type) ? s.Replace(',', '.').AppendZero() : s;
         }
 
         public static float RoundWithPrecision(float value, int precision)

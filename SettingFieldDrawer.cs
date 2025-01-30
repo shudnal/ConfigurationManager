@@ -32,7 +32,7 @@ namespace ConfigurationManager
         public static bool SettingKeyboardShortcut => _currentKeyboardShortcutToSet != null;
 
         public static readonly HashSet<string> customFieldDrawerFailed = new HashSet<string>();
-
+        
         static SettingFieldDrawer()
         {
             SettingDrawHandlers = new Dictionary<Type, Action<SettingEntryBase>>
@@ -364,16 +364,12 @@ namespace ConfigurationManager
             }
             else
             {
-                var strVal = value.ToString().AppendZeroIfFloat(setting.SettingType);
+                var strVal = value.ToString().Replace(',', '.').AppendZeroIfFloat(setting.SettingType);
                 var strResult = GUILayout.TextField(strVal, GetTextStyle(setting), GUILayout.Width(50));
-                if (strResult != strVal)
+                if (strResult != strVal && Utilities.Utils.TryParseFloat(strResult, out float resultVal))
                 {
-                    LogInfo(strResult);
-                    if (float.TryParse(strResult.Replace(".", ","), out float resultVal))
-                    {
-                        var clampedResultVal = Mathf.Clamp(resultVal, leftValue, rightValue);
-                        setting.Set(Convert.ChangeType(Utilities.Utils.RoundWithPrecision(clampedResultVal, _rangePrecision.Value), setting.SettingType));
-                    }
+                    var clampedResultVal = Mathf.Clamp(resultVal, leftValue, rightValue);
+                    setting.Set(Convert.ChangeType(Utilities.Utils.RoundWithPrecision(clampedResultVal, _rangePrecision.Value), setting.SettingType));
                 }
             }
         }

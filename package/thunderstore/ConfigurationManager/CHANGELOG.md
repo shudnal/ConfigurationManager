@@ -1,3 +1,6 @@
+# 1.0.24
+* fixed range field input
+
 # 1.0.23
 * fixed occasional error when Advanced and Debug toggles enabled
 
