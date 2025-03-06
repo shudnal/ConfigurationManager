@@ -20,6 +20,7 @@ Press hotkey button in game (default `F1`) to open mod window and change configu
 * Dropdown menu style refined
 * Lots of minor refinements and improvements
 * Readonly entries (locked from server) could be colored, disabled or completely hidden
+* Window can be scaled to better fit 4K screens
 
 ## Valheim specific
 The game does not take input while the window is open (only player input by default).

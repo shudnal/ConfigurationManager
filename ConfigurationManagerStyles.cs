@@ -82,8 +82,8 @@ namespace ConfigurationManager
 
             categoryHeaderStyleDefault = new GUIStyle(labelStyle)
             {
-                alignment = TextAnchor.UpperCenter,
-                wordWrap = true,
+                alignment = TextAnchor.MiddleCenter,
+                wordWrap = false,
                 stretchWidth = true
             };
 
@@ -166,6 +166,7 @@ namespace ConfigurationManager
         {
             return thumbStyle;
         }
+
         public static GUIStyle GetBoxStyle()
         {
             return boxStyle;

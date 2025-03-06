@@ -1,3 +1,8 @@
+# 1.0.25
+* window scaling
+* ServerSync updated
+* double click on window header or new keybind config to reset window size, position and scale
+
 # 1.0.24
 * fixed range field input
 

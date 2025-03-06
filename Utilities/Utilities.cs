@@ -187,7 +187,7 @@ namespace ConfigurationManager.Utilities
         const int verticalAreaSize = 10;
         const int horizontalAreaSize = 10;
 
-        public static Rect ResizeWindow(int id, Rect rect, out bool sizeChanged)
+        public static Rect ResizeWindow(int id, Rect rect, float scaleFactor, out bool sizeChanged)
         {
             sizeChanged = false;
 
@@ -197,11 +197,15 @@ namespace ConfigurationManager.Utilities
             if (_currentWindowId != 0 && _currentWindowId != id)
                 return rect;
 
-            var mousePos = UnityInput.Current.mousePosition;
-            mousePos.x = Mathf.Clamp(mousePos.x, 0, Screen.width);
-            mousePos.y = Mathf.Clamp(mousePos.y, 0, Screen.height);
+            Vector3 mousePos = GUI.matrix.inverse.MultiplyPoint(UnityInput.Current.mousePosition);
 
-            mousePos.y = Screen.height - mousePos.y; // Convert to GUI coords
+            float screenHeight = Screen.height / scaleFactor;
+            float screenWidth = Screen.width / scaleFactor;
+
+            mousePos.x = Mathf.Clamp(mousePos.x, 0, screenWidth);
+            mousePos.y = Mathf.Clamp(mousePos.y, 0, screenHeight);
+
+            mousePos.y = screenHeight - mousePos.y; // Convert to GUI coords
 
             bool handleBoth = new Rect(
                 rect.x + rect.width - functionalAreaSize,
@@ -234,8 +238,8 @@ namespace ConfigurationManager.Utilities
             if (_handleClicked)
             {
                 // Resize window by dragging. Size will be clamped later.
-                rect.size = new Vector2(_handleVertical ? _originalWindow.width + (Math.Min(mousePos.x, Screen.width - 5f) - _clickedPosition.x) : rect.width,
-                                        _handleHorizontal ? _originalWindow.height + (Math.Min(mousePos.y, Screen.height - 5f) - _clickedPosition.y) : rect.height);
+                rect.size = new Vector2(_handleVertical ? _originalWindow.width + (Math.Min(mousePos.x, screenWidth - 5f) - _clickedPosition.x) : rect.width,
+                                        _handleHorizontal ? _originalWindow.height + (Math.Min(mousePos.y, screenHeight - 5f) - _clickedPosition.y) : rect.height);
 
                 if (UnityInput.Current.GetMouseButtonUp(0))
                 {

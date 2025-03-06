@@ -13,6 +13,12 @@ namespace ConfigurationManager
     {
         internal const int _headerSize = 20;
 
+        internal float scaleFactor;
+        internal Matrix4x4 guiMatrix;
+
+        private float lastClickTime = 0f;
+        private const float doubleClickThreshold = 0.3f;
+
         void OnGUI()
         {
             if (DisplayingWindow)
@@ -20,8 +26,14 @@ namespace ConfigurationManager
                 CreateStyles();
                 SetUnlockCursor(0, true);
 
+                if (scaleFactor != (scaleFactor = _scaleFactor.Value))
+                    guiMatrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(scaleFactor, scaleFactor, 1f));
+                
                 currentWindowRect.size = _windowSize.Value;
                 currentWindowRect.position = _windowPosition.Value;
+
+                Matrix4x4 originalMatrix = GUI.matrix;
+                GUI.matrix = guiMatrix;
 
                 GUI.Box(currentWindowRect, GUIContent.none, new GUIStyle());
                 GUI.backgroundColor = _windowBackgroundColor.Value;
@@ -33,20 +45,49 @@ namespace ConfigurationManager
 
                 if (!UnityInput.Current.GetKeyDown(KeyCode.Mouse0) && (currentWindowRect.x != _windowPosition.Value.x || currentWindowRect.y != _windowPosition.Value.y))
                     SaveCurrentSizeAndPosition();
+
+                GUI.matrix = originalMatrix;
             }
         }
 
         internal void SaveCurrentSizeAndPosition()
         {
-            _windowSize.Value = new Vector2(Mathf.Clamp(currentWindowRect.size.x, 500f, Screen.width), Mathf.Clamp(currentWindowRect.size.y, 200f, Screen.height));
-            _windowPosition.Value = new Vector2(Mathf.Clamp(currentWindowRect.position.x, 0f, Screen.width - _windowSize.Value.x / 4f), Mathf.Clamp(currentWindowRect.position.y, 0f, Screen.height - _headerSize));
+            _windowSize.Value = new Vector2(Mathf.Clamp(currentWindowRect.size.x, 500f, Screen.width / _scaleFactor.Value), Mathf.Clamp(currentWindowRect.size.y, 200f, Screen.height / _scaleFactor.Value));
+            _windowPosition.Value = new Vector2(Mathf.Clamp(currentWindowRect.position.x, 0f, Screen.width / _scaleFactor.Value - _windowSize.Value.x / 4f), Mathf.Clamp(currentWindowRect.position.y, 0f, Screen.height / _scaleFactor.Value - _headerSize * 2));
             Config.Save();
             SettingFieldDrawer.ClearComboboxCache();
         }
 
+        internal void ResetWindowSizeAndPosition()
+        {
+            _windowSize.Value = (Vector2)_windowSize.DefaultValue;
+            _windowPosition.Value = (Vector2)_windowPosition.DefaultValue;
+            _scaleFactor.Value = (float)_scaleFactor.DefaultValue;
+            Config.Save();
+            SettingFieldDrawer.ClearComboboxCache();
+        }
+
+        private void HandleHeaderDblClick(Rect titleBarRect)
+        {
+            Event e = Event.current;
+
+            if (e.type == EventType.MouseDown && e.button == 0 && titleBarRect.Contains(e.mousePosition))
+            {
+                float timeSinceLastClick = Time.time - lastClickTime;
+
+                if (timeSinceLastClick < doubleClickThreshold)
+                    ResetWindowSizeAndPosition();
+
+                lastClickTime = Time.time;
+            }
+        }
+
         private void SettingsWindow(int id)
         {
-            GUI.DragWindow(new Rect(0, 0, currentWindowRect.width, _headerSize));
+            Rect headerRect = new Rect(0, 0, currentWindowRect.width, _headerSize);
+            HandleHeaderDblClick(headerRect);
+
+            GUI.DragWindow(headerRect);
             DrawWindowHeader();
 
             _settingWindowScrollPos = GUILayout.BeginScrollView(_settingWindowScrollPos, false, true);
@@ -102,7 +143,7 @@ namespace ConfigurationManager
             if (!SettingFieldDrawer.DrawCurrentDropdown())
                 DrawTooltip(currentWindowRect);
 
-            currentWindowRect = Utilities.Utils.ResizeWindow(id, currentWindowRect, out bool sizeChanged);
+            currentWindowRect = Utilities.Utils.ResizeWindow(id, currentWindowRect, _scaleFactor.Value, out bool sizeChanged);
             
             if (sizeChanged)
                 SaveCurrentSizeAndPosition();
@@ -151,7 +192,7 @@ namespace ConfigurationManager
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
             {
-                GUILayout.Label(_searchText.Value, GetLabelStyle(), GUILayout.ExpandWidth(false));
+                GUILayout.Label(_searchText.Value, GetLabelStyle(), GUILayout.ExpandWidth(false), GUILayout.ExpandHeight(false));
 
                 GUI.SetNextControlName(SearchBoxName);
                 SearchString = GUILayout.TextField(SearchString, GetTextStyle(), GUILayout.ExpandWidth(true));

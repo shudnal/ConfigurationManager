@@ -20,7 +20,7 @@ namespace ConfigurationManager
     {
         public const string GUID = "_shudnal.ConfigurationManager";
         public const string pluginName = "Valheim Configuration Manager";
-        public const string Version = "1.0.24";
+        public const string Version = "1.0.25";
 
         internal static ConfigurationManager instance;
         private static SettingFieldDrawer _fieldDrawer;
@@ -69,6 +69,12 @@ namespace ConfigurationManager
         /// Window is visible and is blocking the whole screen. This is true until the user moves the window, which lets it run while user interacts with the game.
         /// </summary>
         public bool IsWindowFullscreen => DisplayingWindow;
+
+        /// <summary>
+        /// Current window scale factor
+        /// </summary>
+        public float ScaleFactor => _scaleFactor.Value;
+
         #endregion
 
         private PropertyInfo _curLockState;
@@ -98,6 +104,7 @@ namespace ConfigurationManager
         public static ConfigEntry<ReadOnlyStyle> _readOnlyStyle;
 
         public static ConfigEntry<KeyboardShortcut> _keybind;
+        public static ConfigEntry<KeyboardShortcut> _keybindResetPosition;
         public static ConfigEntry<bool> _hideSingleSection;
         public static ConfigEntry<bool> _pluginConfigCollapsedDefault;
         public static ConfigEntry<Vector2> _windowPosition;
@@ -107,6 +114,7 @@ namespace ConfigurationManager
         public static ConfigEntry<int> _rangePrecision;
         public static ConfigEntry<int> _vectorPrecision;
         public static ConfigEntry<bool> _vectorDynamicPrecision;
+        public static ConfigEntry<float> _scaleFactor;
 
         public static ConfigEntry<bool> _sortCategoriesByName;
         public static ConfigEntry<bool> _categoriesCollapseable;
@@ -182,6 +190,10 @@ namespace ConfigurationManager
             _rangePrecision = Config.Bind("General", "Range field precision", 3, "Number of symbols after comma in floating-point numbers");
             _vectorPrecision = Config.Bind("General", "Vector field precision", 2, "Number of symbols after comma in vectors");
             _vectorDynamicPrecision = Config.Bind("General", "Vector field dynamic precision", true, "If every value in vector is integer .0 part will be omitted. Type \",\" or \".\" in vector field to enable precision back.");
+            _scaleFactor = Config.Bind("General", "Scale factor", 1f, new ConfigDescription("Scale factor of configuration manager window", new AcceptableValueRange<float>(0.5f, 2.5f)));
+            _keybindResetPosition = Config.Bind("General", "Reset position and size", new KeyboardShortcut(KeyCode.F1, KeyCode.LeftControl), "Set configuration manager window size and position to default values. " +
+                                                                                                                                             "\nWARNING!!! If custom config drawer uses mouse position it will break.");
+
 
             _orderPluginByGuid.SettingChanged += (sender, args) => BuildSettingList();
 
@@ -273,6 +285,9 @@ namespace ConfigurationManager
 
             if (OverrideHotkey)
                 return;
+
+            if (_keybindResetPosition.Value.IsDown())
+                ResetWindowSizeAndPosition();
 
             if (!DisplayingWindow && _keybind.Value.IsDown())
                 DisplayingWindow = true;
