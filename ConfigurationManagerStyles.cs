@@ -142,121 +142,30 @@ namespace ConfigurationManager
             thumbStyle = new GUIStyle(GUI.skin.horizontalSliderThumb);
         }
 
-        public static GUIStyle GetWindowStyle()
-        {
-            return windowStyle;
-        }
-
-        public static GUIStyle GetCategoryStyle(bool isDefaultStyle = true)
-        {
-            return isDefaultStyle ? categoryHeaderStyleDefault : categoryHeaderStyleChanged;
-        }
-
-        public static GUIStyle GetHeaderStyle()
-        {
-            return pluginHeaderStyle;
-        }
-
-        public static GUIStyle GetSliderStyle()
-        {
-            return sliderStyle;
-        }
-
-        public static GUIStyle GetThumbStyle()
-        {
-            return thumbStyle;
-        }
-
-        public static GUIStyle GetBoxStyle()
-        {
-            return boxStyle;
-        }
-
-        public static GUIStyle GetTooltipStyle()
-        {
-            return tooltipStyle;
-        }
-
-        public static GUIStyle GetBackgroundStyle()
-        {
-            return backgroundStyle;
-        }
-
-        public static GUIStyle GetComboBoxStyle()
-        {
-            return comboBoxStyle;
-        }
-
-        public static GUIStyle GetToggleStyle()
-        {
-            return toggleStyle;
-        }
-
-        public static GUIStyle GetToggleStyle(bool isDefaulValue = true)
-        {
-            return isDefaulValue ? toggleStyleValueDefault : toggleStyleValueChanged;
-        }
-
-        public static GUIStyle GetToggleStyle(SettingEntryBase setting)
-        {
-            return GetToggleStyle(IsDefaultValue(setting));
-        }
-
-        public static GUIStyle GetLabelStyle()
-        {
-            return labelStyle;
-        }
-
-        public static GUIStyle GetLabelStyle(bool isDefaulValue = true)
-        {
-            return isDefaulValue ? labelStyleValueDefault : labelStyleValueChanged;
-        }
+        public static GUIStyle GetWindowStyle() => windowStyle;
+        public static GUIStyle GetCategoryStyle(bool isDefaultStyle = true) => isDefaultStyle ? categoryHeaderStyleDefault : categoryHeaderStyleChanged;
+        public static GUIStyle GetHeaderStyle() => pluginHeaderStyle;
+        public static GUIStyle GetSliderStyle() => sliderStyle;
+        public static GUIStyle GetThumbStyle() => thumbStyle;
+        public static GUIStyle GetBoxStyle() => boxStyle;
+        public static GUIStyle GetTooltipStyle() => tooltipStyle;
+        public static GUIStyle GetBackgroundStyle() => backgroundStyle;
+        public static GUIStyle GetComboBoxStyle() => comboBoxStyle;
+        public static GUIStyle GetToggleStyle() => toggleStyle;
+        public static GUIStyle GetToggleStyle(bool isDefaulValue = true) => isDefaulValue ? toggleStyleValueDefault : toggleStyleValueChanged;
+        public static GUIStyle GetToggleStyle(SettingEntryBase setting) => GetToggleStyle(IsDefaultValue(setting));
+        public static GUIStyle GetLabelStyle() => labelStyle;
+        public static GUIStyle GetLabelStyle(bool isDefaulValue = true) => isDefaulValue ? labelStyleValueDefault : labelStyleValueChanged;
+        public static GUIStyle GetLabelStyle(SettingEntryBase setting) => GetLabelStyle(IsDefaultValue(setting));
+        public static GUIStyle GetButtonStyle() => buttonStyle;
+        public static GUIStyle GetButtonStyle(bool isDefaulValue = true) => isDefaulValue ? buttonStyleValueDefault : buttonStyleValueChanged;
+        public static GUIStyle GetButtonStyle(SettingEntryBase setting) => GetButtonStyle(IsDefaultValue(setting));
+        public static GUIStyle GetTextStyle(bool isDefaulValue = true) => isDefaulValue ? textStyleValueDefault : textStyleValueChanged;
+        public static GUIStyle GetTextStyle(SettingEntryBase setting) => GetTextStyle(IsDefaultValue(setting));
+        public static GUIStyle GetTextStyle(float setting, float defaultValue) => GetTextStyle(setting == defaultValue);
+        public static GUIStyle GetTextStyle(Color setting, Color defaultValue) => GetTextStyle(IsEqualColorConfig(setting, defaultValue));
+        public static bool IsEqualColorConfig(Color setting, Color defaultValue) => ColorUtility.ToHtmlStringRGBA(setting) == ColorUtility.ToHtmlStringRGBA(defaultValue);
         
-        public static GUIStyle GetLabelStyle(SettingEntryBase setting)
-        {
-            return GetLabelStyle(IsDefaultValue(setting));
-        }
-
-        public static GUIStyle GetButtonStyle()
-        {
-            return buttonStyle;
-        }
-
-        public static GUIStyle GetButtonStyle(bool isDefaulValue = true)
-        {
-            return isDefaulValue ? buttonStyleValueDefault : buttonStyleValueChanged;
-        }
-        
-        public static GUIStyle GetButtonStyle(SettingEntryBase setting)
-        {
-            return GetButtonStyle(IsDefaultValue(setting));
-        }
-
-        public static GUIStyle GetTextStyle(bool isDefaulValue = true)
-        {
-            return isDefaulValue ? textStyleValueDefault : textStyleValueChanged;
-        }
-
-        public static GUIStyle GetTextStyle(SettingEntryBase setting)
-        {
-            return GetTextStyle(IsDefaultValue(setting));
-        }
-
-        public static GUIStyle GetTextStyle(float setting, float defaultValue)
-        {
-            return GetTextStyle(setting == defaultValue);
-        }
-
-        public static GUIStyle GetTextStyle(Color setting, Color defaultValue)
-        {
-            return GetTextStyle(IsEqualColorConfig(setting, defaultValue));
-        }
-
-        public static bool IsEqualColorConfig(Color setting, Color defaultValue)
-        {
-            return ColorUtility.ToHtmlStringRGBA(setting) == ColorUtility.ToHtmlStringRGBA(defaultValue);
-        }
-
         internal static bool IsDefaultValue(SettingEntryBase setting)
         {
             if (setting == null || setting.DefaultValue == null || setting.Get() == null)

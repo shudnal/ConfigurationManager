@@ -32,6 +32,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="ConfigFilesEditor.cs" />
     <Compile Include="ConfigSettingEntry.cs" />
     <Compile Include="LegacySettingEntry.cs" />
     <Compile Include="PropertySettingEntry.cs" />
@@ -43,6 +44,7 @@
     <Compile Include="Utilities\ComboBox.cs" />
     <Compile Include="Utilities\GUIFocus.cs" />
     <Compile Include="Utilities\GUIHelper.cs" />
+    <Compile Include="Utilities\GUIScale.cs" />
     <Compile Include="Utilities\Utilities.cs" />
     <Compile Include="ConfigurationManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -133,6 +135,9 @@
     </PackageReference>
     <PackageReference Include="LitJson">
       <Version>0.19.0</Version>
+    </PackageReference>
+    <PackageReference Include="UTF.Unknown">
+      <Version>2.5.1</Version>
     </PackageReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

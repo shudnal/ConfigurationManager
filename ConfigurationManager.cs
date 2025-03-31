@@ -20,7 +20,7 @@ namespace ConfigurationManager
     {
         public const string GUID = "_shudnal.ConfigurationManager";
         public const string pluginName = "Valheim Configuration Manager";
-        public const string Version = "1.0.25";
+        public const string Version = "1.1.0";
 
         internal static ConfigurationManager instance;
         private static SettingFieldDrawer _fieldDrawer;
@@ -71,9 +71,19 @@ namespace ConfigurationManager
         public bool IsWindowFullscreen => DisplayingWindow;
 
         /// <summary>
-        /// Current window scale factor
+        /// Window scale factor
         /// </summary>
         public float ScaleFactor => _scaleFactor.Value;
+
+        /// <summary>
+        /// Screen width with scale factor
+        /// </summary>
+        public float ScreenWidth => Screen.width / ScaleFactor;
+
+        /// <summary>
+        /// Screen height with scale factor
+        /// </summary>
+        public float ScreenHeight => Screen.height / ScaleFactor;
 
         #endregion
 
@@ -126,6 +136,11 @@ namespace ConfigurationManager
         public static ConfigEntry<string> _advancedText;
         public static ConfigEntry<string> _closeText;
 
+        public static ConfigEntry<Vector2> _windowPositionTextEditor;
+        public static ConfigEntry<Vector2> _windowSizeTextEditor;
+        public static ConfigEntry<string> _searchTextEditor;
+        public static ConfigEntry<string> _saveFileTextEditor;
+
         public static ConfigEntry<string> _searchText;
         public static ConfigEntry<string> _reloadText;
         public static ConfigEntry<string> _resetText;
@@ -139,6 +154,7 @@ namespace ConfigurationManager
         public static ConfigEntry<string> _shortcutKeyText;
         public static ConfigEntry<string> _shortcutKeysText;
         public static ConfigEntry<string> _noOptionsPluginsText;
+        public static ConfigEntry<string> _toggleTextEditor;
 
         public static ConfigEntry<Color> _windowBackgroundColor;
         public static ConfigEntry<Color> _tooltipBackgroundColor;
@@ -222,6 +238,12 @@ namespace ConfigurationManager
             _expandText = Config.Bind("Text - Menu", "List Expand", "Expand", new ConfigDescription("Expand button text"));
             _collapseText = Config.Bind("Text - Menu", "List Collapse", "Collapse", new ConfigDescription("Collapse button text"));
             _noOptionsPluginsText = Config.Bind("Text - Menu", "Plugins without options", "Plugins with no options available", new ConfigDescription("Text in footer"));
+            _toggleTextEditor = Config.Bind("Text - Menu", "File Editor", "File Editor", new ConfigDescription("Open file editor label text"));
+
+            _searchTextEditor = Config.Bind("Text - File Editor", "Search", "Search:", new ConfigDescription("Search label text"));
+            _saveFileTextEditor = Config.Bind("Text - File Editor", "Save", "Save", new ConfigDescription("Save changes in file"));
+            _windowPositionTextEditor = Config.Bind("Text - File Editor", "Window position", new Vector2(_windowPosition.Value.x + DefaultWindowRect.size.x + 35f, _windowPosition.Value.y), "Window position");
+            _windowSizeTextEditor = Config.Bind("Text - File Editor", "Window size", new Vector2(DefaultWindowRect.size.y, DefaultWindowRect.size.x) * 2f, "Window size");
 
             _reloadText = Config.Bind("Text - Plugin", "Reload", "Reload From File", new ConfigDescription("Reload mod config from file text"));
             _resetText = Config.Bind("Text - Plugin", "Reset", "Reset To Default", new ConfigDescription("Reset mod config to default text"));

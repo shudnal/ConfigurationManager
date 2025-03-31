@@ -1,3 +1,7 @@
+# 1.0.26
+* improvements to window scaling
+* Configuration File Editor
+
 # 1.0.25
 * window scaling
 * ServerSync updated

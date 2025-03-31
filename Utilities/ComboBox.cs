@@ -132,6 +132,7 @@ namespace ConfigurationManager.Utilities
                     GUI.Box(outerRectLocal, GUIContent.none, boxStyle);
 
                     _scrollPosition = GUI.BeginScrollView(outerRectLocal, _scrollPosition, innerRect, false, false);
+                    try
                     {
                         const int initialSelectedItem = -1;
                         var newSelectedItemIndex = GUI.SelectionGrid(innerRect, initialSelectedItem, listContent, 1, listStyle);
@@ -141,7 +142,10 @@ namespace ConfigurationManager.Utilities
                             isClickedComboButton = false;
                         }
                     }
-                    GUI.EndScrollView(true);
+                    finally
+                    {
+                        GUI.EndScrollView();
+                    }
                 };
             }
 

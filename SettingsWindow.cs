@@ -19,6 +19,8 @@ namespace ConfigurationManager
         private float lastClickTime = 0f;
         private const float doubleClickThreshold = 0.3f;
 
+        private ConfigFilesEditor configFilesEditor;
+
         void OnGUI()
         {
             if (DisplayingWindow)
@@ -26,7 +28,7 @@ namespace ConfigurationManager
                 CreateStyles();
                 SetUnlockCursor(0, true);
 
-                if (scaleFactor != (scaleFactor = _scaleFactor.Value))
+                if (scaleFactor != (scaleFactor = ScaleFactor))
                     guiMatrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(scaleFactor, scaleFactor, 1f));
                 
                 currentWindowRect.size = _windowSize.Value;
@@ -46,14 +48,19 @@ namespace ConfigurationManager
                 if (!UnityInput.Current.GetKeyDown(KeyCode.Mouse0) && (currentWindowRect.x != _windowPosition.Value.x || currentWindowRect.y != _windowPosition.Value.y))
                     SaveCurrentSizeAndPosition();
 
+                if (configFilesEditor == null)
+                    configFilesEditor = new ConfigFilesEditor();
+
+                configFilesEditor.OnGUI();
+
                 GUI.matrix = originalMatrix;
             }
         }
 
         internal void SaveCurrentSizeAndPosition()
         {
-            _windowSize.Value = new Vector2(Mathf.Clamp(currentWindowRect.size.x, 500f, Screen.width / _scaleFactor.Value), Mathf.Clamp(currentWindowRect.size.y, 200f, Screen.height / _scaleFactor.Value));
-            _windowPosition.Value = new Vector2(Mathf.Clamp(currentWindowRect.position.x, 0f, Screen.width / _scaleFactor.Value - _windowSize.Value.x / 4f), Mathf.Clamp(currentWindowRect.position.y, 0f, Screen.height / _scaleFactor.Value - _headerSize * 2));
+            _windowSize.Value = new Vector2(Mathf.Clamp(currentWindowRect.size.x, 500f, ScreenWidth), Mathf.Clamp(currentWindowRect.size.y, 200f, ScreenHeight));
+            _windowPosition.Value = new Vector2(Mathf.Clamp(currentWindowRect.position.x, 0f, ScreenWidth - _windowSize.Value.x / 4f), Mathf.Clamp(currentWindowRect.position.y, 0f, ScreenHeight - _headerSize * 2));
             Config.Save();
             SettingFieldDrawer.ClearComboboxCache();
         }
@@ -62,6 +69,8 @@ namespace ConfigurationManager
         {
             _windowSize.Value = (Vector2)_windowSize.DefaultValue;
             _windowPosition.Value = (Vector2)_windowPosition.DefaultValue;
+            _windowSizeTextEditor.Value = (Vector2)_windowSizeTextEditor.DefaultValue;
+            _windowPositionTextEditor.Value = (Vector2)_windowPositionTextEditor.DefaultValue;
             _scaleFactor.Value = (float)_scaleFactor.DefaultValue;
             Config.Save();
             SettingFieldDrawer.ClearComboboxCache();
@@ -69,16 +78,12 @@ namespace ConfigurationManager
 
         private void HandleHeaderDblClick(Rect titleBarRect)
         {
-            Event e = Event.current;
-
-            if (e.type == EventType.MouseDown && e.button == 0 && titleBarRect.Contains(e.mousePosition))
+            if (UnityInput.Current.GetMouseButtonDown(0) && titleBarRect.Contains(Event.current.mousePosition))
             {
-                float timeSinceLastClick = Time.time - lastClickTime;
-
-                if (timeSinceLastClick < doubleClickThreshold)
+                if (Time.fixedTime != lastClickTime && Time.fixedTime - lastClickTime < doubleClickThreshold)
                     ResetWindowSizeAndPosition();
 
-                lastClickTime = Time.time;
+                lastClickTime = Time.fixedTime;
             }
         }
 
@@ -96,6 +101,7 @@ namespace ConfigurationManager
             var scrollHeight = currentWindowRect.height;
 
             GUILayout.BeginVertical();
+            try
             {
                 float currentHeight = 0;
 
@@ -137,13 +143,16 @@ namespace ConfigurationManager
                 GUILayout.Label(_noOptionsPluginsText.Value + ": " + _modsWithoutSettings, GetLabelStyle());
                 GUILayout.Space(10);
             }
-            GUILayout.EndVertical();
-            GUILayout.EndScrollView();
+            finally
+            {
+                GUILayout.EndVertical();
+                GUILayout.EndScrollView();
+            }
 
             if (!SettingFieldDrawer.DrawCurrentDropdown())
                 DrawTooltip(currentWindowRect);
 
-            currentWindowRect = Utilities.Utils.ResizeWindow(id, currentWindowRect, _scaleFactor.Value, out bool sizeChanged);
+            currentWindowRect = Utilities.Utils.ResizeWindow(id, currentWindowRect, out bool sizeChanged);
             
             if (sizeChanged)
                 SaveCurrentSizeAndPosition();
@@ -179,12 +188,11 @@ namespace ConfigurationManager
 
                 GUI.enabled = true;
 
-                newVal = GUILayout.Toggle(_showDebug, "Show mod GUID in tooltip", GetToggleStyle());
-                if (_showDebug != newVal)
-                {
-                    _showDebug = newVal;
+                if (_showDebug != (_showDebug = GUILayout.Toggle(_showDebug, "Show mod GUID in tooltip", GetToggleStyle())))
                     BuildSettingList();
-                }
+
+                if (GUILayout.Button(_toggleTextEditor.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
+                    configFilesEditor.IsOpen = !configFilesEditor.IsOpen;
 
                 if (GUILayout.Button(_closeText.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
                     DisplayingWindow = false;
@@ -192,7 +200,7 @@ namespace ConfigurationManager
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
             {
-                GUILayout.Label(_searchText.Value, GetLabelStyle(), GUILayout.ExpandWidth(false), GUILayout.ExpandHeight(false));
+                GUILayout.Label(_searchText.Value, GetLabelStyle(), GUILayout.Width(GetLabelStyle().CalcSize(new GUIContent(_searchText.Value)).x + 4));
 
                 GUI.SetNextControlName(SearchBoxName);
                 SearchString = GUILayout.TextField(SearchString, GetTextStyle(), GUILayout.ExpandWidth(true));
