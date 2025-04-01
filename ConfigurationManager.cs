@@ -52,7 +52,7 @@ namespace ConfigurationManager
         public Rect DefaultWindowRect { get; private set; }
         public Rect currentWindowRect; 
         private Vector2 _settingWindowScrollPos;
-        private bool _showDebug;
+        private Vector2 _settingWindowCategoriesScrollPos;
 
         #region Compat
         internal Rect SettingWindowRect
@@ -64,6 +64,7 @@ namespace ConfigurationManager
             }
         }
         private bool _windowWasMoved;
+        private bool _showDebug;
 
         /// <summary>
         /// Window is visible and is blocking the whole screen. This is true until the user moves the window, which lets it run while user interacts with the game.
@@ -98,7 +99,9 @@ namespace ConfigurationManager
 
         internal int LeftColumnWidth { get; private set; }
         internal int RightColumnWidth { get; private set; }
-        
+        internal int PluginListColumnWidth { get; private set; }
+        internal int SettingsListColumnWidth { get; private set; }
+
         public enum ReadOnlyStyle
         {
             Ignored,
@@ -124,7 +127,10 @@ namespace ConfigurationManager
         public static ConfigEntry<int> _rangePrecision;
         public static ConfigEntry<int> _vectorPrecision;
         public static ConfigEntry<bool> _vectorDynamicPrecision;
+
         public static ConfigEntry<float> _scaleFactor;
+        public static ConfigEntry<float> _splitViewListSize;
+        public static ConfigEntry<float> _columnSeparatorPosition;
 
         public static ConfigEntry<bool> _sortCategoriesByName;
         public static ConfigEntry<bool> _categoriesCollapseable;
@@ -140,8 +146,10 @@ namespace ConfigurationManager
         public static ConfigEntry<Vector2> _windowSizeTextEditor;
         public static ConfigEntry<string> _searchTextEditor;
         public static ConfigEntry<string> _saveFileTextEditor;
+        public static ConfigEntry<string> _windowTitleTextEditor;
 
         public static ConfigEntry<string> _searchText;
+        public static ConfigEntry<string> _searchTextSplitView;
         public static ConfigEntry<string> _reloadText;
         public static ConfigEntry<string> _resetText;
         public static ConfigEntry<string> _resetSettingText;
@@ -154,7 +162,9 @@ namespace ConfigurationManager
         public static ConfigEntry<string> _shortcutKeyText;
         public static ConfigEntry<string> _shortcutKeysText;
         public static ConfigEntry<string> _noOptionsPluginsText;
-        public static ConfigEntry<string> _toggleTextEditor;
+        public static ConfigEntry<string> _toggleTextEditorText;
+        public static ConfigEntry<string> _viewModeSingleColumnText;
+        public static ConfigEntry<string> _viewModeSplitViewText;
 
         public static ConfigEntry<Color> _windowBackgroundColor;
         public static ConfigEntry<Color> _tooltipBackgroundColor;
@@ -199,17 +209,19 @@ namespace ConfigurationManager
             _hideSingleSection = Config.Bind("General", "Hide single sections", false, new ConfigDescription("Show section title for plugins with only one section"));
             _loggingEnabled = Config.Bind("General", "Logging enabled", false, new ConfigDescription("Enable logging"));
             _pluginConfigCollapsedDefault = Config.Bind("General", "Plugin collapsed default", true, new ConfigDescription("If set to true plugins will be collapsed when opening the configuration manager window"));
-            _windowPosition = Config.Bind("General", "Window position", new Vector2(55, 35), "Window position");
-            _windowSize = Config.Bind("General", "Window size", DefaultWindowRect.size, "Window size");
+            _windowPosition = Config.Bind("General", "Window position", GetDefaultManagerWindowPosition(), "Window position");
+            _windowSize = Config.Bind("General", "Window size", GetDefaultManagerWindowSize(), "Window size");
             _textSize = Config.Bind("General", "Font size", 14, "Font size");
             _orderPluginByGuid = Config.Bind("General", "Order plugins by GUID", false, "Default order is by plugin name");
             _rangePrecision = Config.Bind("General", "Range field precision", 3, "Number of symbols after comma in floating-point numbers");
             _vectorPrecision = Config.Bind("General", "Vector field precision", 2, "Number of symbols after comma in vectors");
             _vectorDynamicPrecision = Config.Bind("General", "Vector field dynamic precision", true, "If every value in vector is integer .0 part will be omitted. Type \",\" or \".\" in vector field to enable precision back.");
-            _scaleFactor = Config.Bind("General", "Scale factor", 1f, new ConfigDescription("Scale factor of configuration manager window", new AcceptableValueRange<float>(0.5f, 2.5f)));
             _keybindResetPosition = Config.Bind("General", "Reset position and size", new KeyboardShortcut(KeyCode.F1, KeyCode.LeftControl), "Set configuration manager window size and position to default values. " +
-                                                                                                                                             "\nWARNING!!! If custom config drawer uses mouse position it will break.");
+                                                                                                                                             "\nWARNING!!! If custom config drawer uses mouse position it could break.");
 
+            _scaleFactor = Config.Bind("General - Window", "Scale factor", 1f, new ConfigDescription("Scale factor of configuration manager window", new AcceptableValueRange<float>(0.5f, 2.5f)));
+            _splitViewListSize = Config.Bind("General - Window", "Split View list relative size", 0.3f, new ConfigDescription("Relative size (percentage of window width) of split view plugin names list", new AcceptableValueRange<float>(0.1f, 0.5f)));
+            _columnSeparatorPosition = Config.Bind("General - Window", "Setting name relative size", 0.4f, new ConfigDescription("Relative position of virtual line separating setting name from value", new AcceptableValueRange<float>(0.2f, 0.6f)));
 
             _orderPluginByGuid.SettingChanged += (sender, args) => BuildSettingList();
 
@@ -235,15 +247,20 @@ namespace ConfigurationManager
             _advancedText = Config.Bind("Text - Menu", "Advanced", "Advanced", new ConfigDescription("Advanced settings toggle text"));
             _closeText = Config.Bind("Text - Menu", "Close", "Close", new ConfigDescription("Advanced settings toggle text"));
             _searchText = Config.Bind("Text - Menu", "Search", "Search Settings:", new ConfigDescription("Search label text"));
+            _searchTextSplitView = Config.Bind("Text - Menu", "Search in Split View", "Search:", new ConfigDescription("Search label text"));
             _expandText = Config.Bind("Text - Menu", "List Expand", "Expand", new ConfigDescription("Expand button text"));
             _collapseText = Config.Bind("Text - Menu", "List Collapse", "Collapse", new ConfigDescription("Collapse button text"));
             _noOptionsPluginsText = Config.Bind("Text - Menu", "Plugins without options", "Plugins with no options available", new ConfigDescription("Text in footer"));
-            _toggleTextEditor = Config.Bind("Text - Menu", "File Editor", "File Editor", new ConfigDescription("Open file editor label text"));
+            _viewModeSingleColumnText = Config.Bind("Text - Menu", "Single Column", "Single Column", new ConfigDescription("Text for button to change to single column view mode"));
+            _viewModeSplitViewText = Config.Bind("Text - Menu", "Split View", "Split View", new ConfigDescription("Text for button to change to split view mode"));
 
-            _searchTextEditor = Config.Bind("Text - File Editor", "Search", "Search:", new ConfigDescription("Search label text"));
-            _saveFileTextEditor = Config.Bind("Text - File Editor", "Save", "Save", new ConfigDescription("Save changes in file"));
-            _windowPositionTextEditor = Config.Bind("Text - File Editor", "Window position", new Vector2(_windowPosition.Value.x + DefaultWindowRect.size.x + 35f, _windowPosition.Value.y), "Window position");
-            _windowSizeTextEditor = Config.Bind("Text - File Editor", "Window size", new Vector2(DefaultWindowRect.size.y, DefaultWindowRect.size.x) * 2f, "Window size");
+            _windowPositionTextEditor = Config.Bind("File Editor", "Window position", GetDefaultTextEditorWindowPosition(), "Window position");
+            _windowSizeTextEditor = Config.Bind("File Editor", "Window size", GetDefaultTextEditorWindowSize(), "Window size");
+
+            _toggleTextEditorText = Config.Bind("File Editor - Text", "Open button", "Open File Editor", new ConfigDescription("Open file editor label text"));
+            _searchTextEditor = Config.Bind("File Editor - Text", "Search", "Search:", new ConfigDescription("Search label text"));
+            _saveFileTextEditor = Config.Bind("File Editor - Text", "Save", "Save", new ConfigDescription("Save changes in file"));
+            _windowTitleTextEditor = Config.Bind("File Editor - Text", "Title", "Configuration Files Editor", new ConfigDescription("Window title"));
 
             _reloadText = Config.Bind("Text - Plugin", "Reload", "Reload From File", new ConfigDescription("Reload mod config from file text"));
             _resetText = Config.Bind("Text - Plugin", "Reset", "Reset To Default", new ConfigDescription("Reset mod config to default text"));
@@ -274,6 +291,12 @@ namespace ConfigurationManager
             currentWindowRect = new Rect(_windowPosition.Value, _windowSize.Value);
         }
 
+        private Vector2 GetDefaultManagerWindowPosition() => DefaultWindowRect.position;
+        private Vector2 GetDefaultManagerWindowSize() => DefaultWindowRect.size;
+
+        private Vector2 GetDefaultTextEditorWindowPosition() => new Vector2(GetDefaultManagerWindowPosition().x + GetDefaultManagerWindowSize().x + 35f, GetDefaultManagerWindowPosition().y);
+        private Vector2 GetDefaultTextEditorWindowSize() => new Vector2(Screen.width - GetDefaultTextEditorWindowPosition().x - GetDefaultManagerWindowPosition().x, GetDefaultManagerWindowSize().y + GetDefaultManagerWindowPosition().y);
+        
         void OnDestroy()
         {
             instance = null;

@@ -1,6 +1,7 @@
-# 1.0.26
+# 1.1.0
 * improvements to window scaling
 * Configuration File Editor
+* new view mode - Split View
 
 # 1.0.25
 * window scaling

@@ -5,6 +5,7 @@ using static ConfigurationManager.ConfigurationManagerStyles;
 using static ConfigurationManager.ConfigurationManager;
 using BepInEx;
 using UtfUnknown;
+using System;
 
 namespace ConfigurationManager
 {
@@ -72,10 +73,15 @@ namespace ConfigurationManager
             windowRect.size = _windowSizeTextEditor.Value;
             windowRect.position = _windowPositionTextEditor.Value;
 
-            windowRect = GUI.Window(WindowId, windowRect, DrawWindow, "Configuration Files Editor");
+            Color color = GUI.backgroundColor;
+            GUI.backgroundColor = _windowBackgroundColor.Value;
+
+            windowRect = GUI.Window(WindowId, windowRect, DrawWindow, _windowTitleTextEditor.Value, GetWindowStyle());
 
             if (!UnityInput.Current.GetKeyDown(KeyCode.Mouse0) && (windowRect.x != _windowPositionTextEditor.Value.x || windowRect.y != _windowPositionTextEditor.Value.y))
                 SaveCurrentSizeAndPosition();
+            
+            GUI.backgroundColor = color;
         }
 
         internal void SaveCurrentSizeAndPosition()
@@ -113,9 +119,16 @@ namespace ConfigurationManager
         {
             GUILayout.BeginHorizontal();
             {
-                if (!_activeFile.IsNullOrWhiteSpace() && fileContent != File.ReadAllText(_activeFile))
-                    if (GUILayout.Button(_saveFileTextEditor.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
-                        File.WriteAllText(_activeFile, fileContent, CharsetDetector.DetectFromFile(_activeFile).Detected.Encoding);
+                try
+                {
+                    if (!_activeFile.IsNullOrWhiteSpace() && fileContent != File.ReadAllText(_activeFile))
+                        if (GUILayout.Button(_saveFileTextEditor.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
+                            File.WriteAllText(_activeFile, fileContent, CharsetDetector.DetectFromFile(_activeFile).Detected.Encoding);
+                }
+                catch (Exception e)
+                {
+                    _errorText = e.Message;
+                }
 
                 GUILayout.Label(_errorText, GUILayout.ExpandWidth(true));
 
@@ -129,8 +142,11 @@ namespace ConfigurationManager
         {
             GUILayout.BeginHorizontal();
             {
+                var backgroundColor = GUI.backgroundColor;
+                GUI.backgroundColor = _entryBackgroundColor.Value;
+
                 // Tree
-                GUILayout.BeginVertical(GUILayout.MaxWidth(windowRect.width * 0.3f));
+                GUILayout.BeginVertical(GetBackgroundStyle(), GUILayout.MaxWidth(windowRect.width * 0.3f));
                 {
                     DrawSearchBox();
 
@@ -142,7 +158,7 @@ namespace ConfigurationManager
                 GUILayout.EndVertical();
 
                 // Content
-                GUILayout.BeginVertical(GUILayout.MaxWidth(windowRect.width * 0.7f));
+                GUILayout.BeginVertical(GetBackgroundStyle(), GUILayout.MaxWidth(windowRect.width * 0.7f));
                 {
                     DrawContentButtons();
 
@@ -151,6 +167,8 @@ namespace ConfigurationManager
                     GUILayout.EndScrollView();
                 }
                 GUILayout.EndVertical();
+
+                GUI.backgroundColor = backgroundColor;
             }
             GUILayout.EndHorizontal();
 
@@ -254,8 +272,9 @@ namespace ConfigurationManager
             }
             catch (IOException e)
             {
-                Debug.LogError($"Failed to load file {filePath}: {e.Message}");
-                fileContent = $"Failed to load file: {e.Message}";
+                LogError($"Failed to load file {filePath}: {e.Message}");
+                _errorText = "Failed to load file";
+                fileContent = e.Message;
             }
         }
     }

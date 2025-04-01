@@ -174,16 +174,16 @@ namespace ConfigurationManager
                 return DrawPluginHeaderLabel(content);
 
             GUILayout.BeginHorizontal();
-            GUILayout.FlexibleSpace();
             bool state = DrawPluginHeaderLabel(content);
-            GUILayout.FlexibleSpace();
             toggleCollapseAll = !isCollapsed && GUILayout.Button(hasCollapsedCategories ? "v" : "<", GetButtonStyle(), GUILayout.ExpandWidth(false));
             GUILayout.EndHorizontal();
 
             return state;
         }
 
-        private static bool DrawPluginHeaderLabel(GUIContent content) => GUILayout.Button(content, GetHeaderStyle(), GUILayout.ExpandWidth(true));
+        public static bool DrawPluginHeaderLabel(GUIContent content) => GUILayout.Button(content, GetHeaderStyle(), GUILayout.ExpandWidth(true));
+        
+        public static bool DrawPluginHeaderSplitViewList(GUIContent content, bool isActivePlugin) => GUILayout.Button(content, GetHeaderStyleSplitView(isActivePlugin), GUILayout.ExpandWidth(true));
 
         public static bool DrawCurrentDropdown()
         {

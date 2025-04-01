@@ -24,7 +24,10 @@ namespace ConfigurationManager
         private static GUIStyle categoryHeaderStyleDefault;
         private static GUIStyle categoryHeaderStyleChanged;
         private static GUIStyle pluginHeaderStyle;
+        private static GUIStyle pluginHeaderStyleSplitView;
+        private static GUIStyle pluginHeaderStyleSplitViewActive;
         private static GUIStyle backgroundStyle;
+        private static GUIStyle backgroundStyleWithHover;
         private static GUIStyle tooltipStyle;
         public static int fontSize = 14;
         
@@ -93,6 +96,17 @@ namespace ConfigurationManager
 
             pluginHeaderStyle = new GUIStyle(categoryHeaderStyleDefault);
 
+            pluginHeaderStyleSplitView = new GUIStyle(labelStyle)
+            {
+                alignment = TextAnchor.MiddleLeft,
+                wordWrap = true,
+                stretchWidth = false
+            };
+
+            pluginHeaderStyleSplitViewActive = new GUIStyle(pluginHeaderStyleSplitView);
+            pluginHeaderStyleSplitViewActive.normal.textColor = _fontColorValueChanged.Value;
+            pluginHeaderStyleSplitViewActive.onNormal.textColor = _fontColorValueChanged.Value;
+
             toggleStyle = new GUIStyle(GUI.skin.toggle);
             toggleStyle.normal.textColor = _fontColor.Value;
             toggleStyle.onNormal.textColor = _fontColor.Value;
@@ -130,6 +144,9 @@ namespace ConfigurationManager
             backgroundStyle.fontSize = fontSize;
             backgroundStyle.normal.background = EntryBackground;
 
+            backgroundStyleWithHover = new GUIStyle(backgroundStyle);
+            backgroundStyleWithHover.hover.background = TooltipBackground;
+
             tooltipStyle = new GUIStyle(GUI.skin.box);
             tooltipStyle.normal.textColor = _fontColor.Value;
             tooltipStyle.fontSize = fontSize;
@@ -145,11 +162,12 @@ namespace ConfigurationManager
         public static GUIStyle GetWindowStyle() => windowStyle;
         public static GUIStyle GetCategoryStyle(bool isDefaultStyle = true) => isDefaultStyle ? categoryHeaderStyleDefault : categoryHeaderStyleChanged;
         public static GUIStyle GetHeaderStyle() => pluginHeaderStyle;
+        public static GUIStyle GetHeaderStyleSplitView(bool isActivePlugin = false) => isActivePlugin ? pluginHeaderStyleSplitViewActive : pluginHeaderStyleSplitView;
         public static GUIStyle GetSliderStyle() => sliderStyle;
         public static GUIStyle GetThumbStyle() => thumbStyle;
         public static GUIStyle GetBoxStyle() => boxStyle;
         public static GUIStyle GetTooltipStyle() => tooltipStyle;
-        public static GUIStyle GetBackgroundStyle() => backgroundStyle;
+        public static GUIStyle GetBackgroundStyle(bool withHover = false) => withHover ? backgroundStyleWithHover : backgroundStyle;
         public static GUIStyle GetComboBoxStyle() => comboBoxStyle;
         public static GUIStyle GetToggleStyle() => toggleStyle;
         public static GUIStyle GetToggleStyle(bool isDefaulValue = true) => isDefaulValue ? toggleStyleValueDefault : toggleStyleValueChanged;

@@ -1,6 +1,7 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
+using HarmonyLib;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,6 +22,25 @@ namespace ConfigurationManager
 
         private ConfigFilesEditor configFilesEditor;
 
+        private bool _splitView = true;
+
+        public bool SplitView
+        {
+            get => _splitView;
+            set
+            {
+                if (_splitView == (_splitView = value))
+                    return;
+
+                if (_splitView)
+                {
+                    _filteredSetings.Where(plg => !plg.Collapsed).Skip(1).Do(plg => plg.Collapsed = true);
+                    if (_filteredSetings.All(plg => plg.Collapsed) && _filteredSetings.FirstOrDefault() is PluginSettingsData plugin)
+                        plugin.Collapsed = false;
+                }
+            }
+        }
+
         void OnGUI()
         {
             if (DisplayingWindow)
@@ -30,7 +50,7 @@ namespace ConfigurationManager
 
                 if (scaleFactor != (scaleFactor = ScaleFactor))
                     guiMatrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(scaleFactor, scaleFactor, 1f));
-                
+
                 currentWindowRect.size = _windowSize.Value;
                 currentWindowRect.position = _windowPosition.Value;
 
@@ -38,15 +58,17 @@ namespace ConfigurationManager
                 GUI.matrix = guiMatrix;
 
                 GUI.Box(currentWindowRect, GUIContent.none, new GUIStyle());
+                Color color = GUI.backgroundColor;
                 GUI.backgroundColor = _windowBackgroundColor.Value;
 
-                RightColumnWidth = Mathf.RoundToInt(Mathf.Clamp(currentWindowRect.width / 2.5f * fontSize / 12f, currentWindowRect.width * 0.5f, currentWindowRect.width * 0.8f));
-                LeftColumnWidth = Mathf.RoundToInt(Mathf.Clamp(currentWindowRect.width - RightColumnWidth - 100, currentWindowRect.width * 0.2f, currentWindowRect.width * 0.5f)) - 15;
+                CalculateSettingsColumnsWidth(currentWindowRect.width);
 
                 currentWindowRect = GUILayout.Window(WindowId, currentWindowRect, SettingsWindow, _windowTitle.Value, GetWindowStyle());
 
                 if (!UnityInput.Current.GetKeyDown(KeyCode.Mouse0) && (currentWindowRect.x != _windowPosition.Value.x || currentWindowRect.y != _windowPosition.Value.y))
                     SaveCurrentSizeAndPosition();
+
+                GUI.backgroundColor = color;
 
                 if (configFilesEditor == null)
                     configFilesEditor = new ConfigFilesEditor();
@@ -55,6 +77,15 @@ namespace ConfigurationManager
 
                 GUI.matrix = originalMatrix;
             }
+        }
+
+        private void CalculateSettingsColumnsWidth(float width)
+        {
+            PluginListColumnWidth = Mathf.RoundToInt(width * GetSplitViewListRelativeSize());
+            SettingsListColumnWidth = Mathf.RoundToInt(SplitView ? width - PluginListColumnWidth : width);
+
+            LeftColumnWidth = Mathf.RoundToInt(Mathf.Clamp(SettingsListColumnWidth * GetColumnSeparatorPosition(), width * 0.1f, width * 0.8f)) - 15;
+            RightColumnWidth = Mathf.RoundToInt(Mathf.Clamp(SettingsListColumnWidth - LeftColumnWidth - 100, width * 0.2f, width * 0.8f));
         }
 
         internal void SaveCurrentSizeAndPosition()
@@ -67,11 +98,16 @@ namespace ConfigurationManager
 
         internal void ResetWindowSizeAndPosition()
         {
-            _windowSize.Value = (Vector2)_windowSize.DefaultValue;
-            _windowPosition.Value = (Vector2)_windowPosition.DefaultValue;
-            _windowSizeTextEditor.Value = (Vector2)_windowSizeTextEditor.DefaultValue;
-            _windowPositionTextEditor.Value = (Vector2)_windowPositionTextEditor.DefaultValue;
             _scaleFactor.Value = (float)_scaleFactor.DefaultValue;
+            _splitViewListSize.Value = (float)_splitViewListSize.DefaultValue;
+            _columnSeparatorPosition.Value = (float)_columnSeparatorPosition.DefaultValue;
+
+            CalculateDefaultWindowRect();
+
+            _windowSize.Value = GetDefaultManagerWindowSize();
+            _windowPosition.Value = GetDefaultManagerWindowPosition();
+            _windowSizeTextEditor.Value = GetDefaultTextEditorWindowSize();
+            _windowPositionTextEditor.Value = GetDefaultTextEditorWindowPosition();
             Config.Save();
             SettingFieldDrawer.ClearComboboxCache();
         }
@@ -95,6 +131,85 @@ namespace ConfigurationManager
             GUI.DragWindow(headerRect);
             DrawWindowHeader();
 
+            if (SplitView)
+                DrawSplitView();
+            else
+                DrawSingleColumn();
+
+            if (!SettingFieldDrawer.DrawCurrentDropdown())
+                DrawTooltip(currentWindowRect);
+
+            currentWindowRect = Utilities.Utils.ResizeWindow(id, currentWindowRect, out bool sizeChanged);
+
+            if (sizeChanged)
+                SaveCurrentSizeAndPosition();
+        }
+
+        private void DrawSplitView()
+        {
+            var scrollHeight = currentWindowRect.height;
+
+            GUILayout.BeginHorizontal();
+            {
+                GUILayout.BeginVertical(GUILayout.Width(PluginListColumnWidth));
+
+                GUILayout.BeginHorizontal();
+                DrawSearchBox();
+                GUILayout.EndHorizontal();
+
+                _settingWindowScrollPos = GUILayout.BeginScrollView(_settingWindowScrollPos, false, true);
+
+                try
+                {
+                    foreach (var plugin in _filteredSetings)
+                        DrawPluginInSplitViewList(plugin);
+
+                    GUILayout.Space(5);
+                    GUILayout.Label(_noOptionsPluginsText.Value + ": " + _modsWithoutSettings, GetLabelStyle());
+                    GUILayout.Space(5);
+                }
+                finally
+                {
+                    GUILayout.EndScrollView();
+                    GUILayout.EndVertical();
+                }
+
+                GUILayout.Space(5f);
+
+                PluginSettingsData pluginSettings = _filteredSetings.FirstOrDefault(plg => !plg.Collapsed) ?? _filteredSetings.FirstOrDefault();
+
+                if (pluginSettings != null)
+                {
+                    pluginSettings.Collapsed = false;
+
+                    GUILayout.BeginVertical(GUILayout.Width(SettingsListColumnWidth));
+
+                    GUILayout.BeginHorizontal(GetBackgroundStyle());
+                    SettingFieldDrawer.DrawPluginHeaderLabel(GetPluginHeaderName(pluginSettings, showGUID: true));
+                    GUILayout.EndHorizontal();
+
+                    _settingWindowCategoriesScrollPos = GUILayout.BeginScrollView(_settingWindowCategoriesScrollPos, false, true);
+                    try
+                    {
+                        DrawPluginCategoriesSplitView(pluginSettings, pluginSettings.Categories.Any(cat => cat.Collapsed));
+                    }
+                    finally
+                    {
+                        GUILayout.EndScrollView();
+                        GUILayout.EndVertical();
+                    }
+                }
+                else
+                {
+                    GUILayout.FlexibleSpace();
+                }
+            }
+
+            GUILayout.EndHorizontal();
+        }
+
+        private void DrawSingleColumn()
+        {
             _settingWindowScrollPos = GUILayout.BeginScrollView(_settingWindowScrollPos, false, true);
 
             var scrollPosition = _settingWindowScrollPos.y;
@@ -148,14 +263,6 @@ namespace ConfigurationManager
                 GUILayout.EndVertical();
                 GUILayout.EndScrollView();
             }
-
-            if (!SettingFieldDrawer.DrawCurrentDropdown())
-                DrawTooltip(currentWindowRect);
-
-            currentWindowRect = Utilities.Utils.ResizeWindow(id, currentWindowRect, out bool sizeChanged);
-            
-            if (sizeChanged)
-                SaveCurrentSizeAndPosition();
         }
 
         private void DrawWindowHeader()
@@ -188,46 +295,58 @@ namespace ConfigurationManager
 
                 GUI.enabled = true;
 
-                if (_showDebug != (_showDebug = GUILayout.Toggle(_showDebug, "Show mod GUID in tooltip", GetToggleStyle())))
-                    BuildSettingList();
-
-                if (GUILayout.Button(_toggleTextEditor.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
+                if (GUILayout.Button(_toggleTextEditorText.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
                     configFilesEditor.IsOpen = !configFilesEditor.IsOpen;
+
+                GUILayout.Space(10);
+
+                if (GUILayout.Button(SplitView ? _viewModeSingleColumnText.Value : _viewModeSplitViewText.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
+                    SplitView = !SplitView;
 
                 if (GUILayout.Button(_closeText.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
                     DisplayingWindow = false;
             }
             GUILayout.EndHorizontal();
-            GUILayout.BeginHorizontal();
+
+            if (!SplitView)
             {
-                GUILayout.Label(_searchText.Value, GetLabelStyle(), GUILayout.Width(GetLabelStyle().CalcSize(new GUIContent(_searchText.Value)).x + 4));
-
-                GUI.SetNextControlName(SearchBoxName);
-                SearchString = GUILayout.TextField(SearchString, GetTextStyle(), GUILayout.ExpandWidth(true));
-
-                if (_focusSearchBox)
+                GUILayout.BeginHorizontal();
                 {
-                    GUI.FocusWindow(WindowId);
-                    GUI.FocusControl(SearchBoxName);
-                    _focusSearchBox = false;
-                }
-                Color color = GUI.backgroundColor;
-                GUI.backgroundColor = _widgetBackgroundColor.Value;
-                if (GUILayout.Button(_clearText.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
-                    SearchString = string.Empty;
-                GUI.backgroundColor = color;
+                    DrawSearchBox();
 
-                GUILayout.Space(8);
+                    GUILayout.Space(8);
 
-                if (GUILayout.Button(_pluginConfigCollapsedDefault.Value ? _expandText.Value : _collapseText.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
-                {
-                    var newValue = !_pluginConfigCollapsedDefault.Value;
-                    _pluginConfigCollapsedDefault.Value = newValue;
-                    foreach (var plugin in _filteredSetings)
-                        plugin.Collapsed = newValue;
+                    if (GUILayout.Button(_pluginConfigCollapsedDefault.Value ? _expandText.Value : _collapseText.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
+                    {
+                        var newValue = !_pluginConfigCollapsedDefault.Value;
+                        _pluginConfigCollapsedDefault.Value = newValue;
+                        foreach (var plugin in _filteredSetings)
+                            plugin.Collapsed = newValue;
+                    }
                 }
+                GUILayout.EndHorizontal();
             }
-            GUILayout.EndHorizontal();
+        }
+
+        private void DrawSearchBox()
+        {
+            string label = SplitView ? _searchTextSplitView.Value : _searchText.Value;
+            GUILayout.Label(label, GetLabelStyle(), GUILayout.Width(GetLabelStyle().CalcSize(new GUIContent(label)).x + 4));
+
+            GUI.SetNextControlName(SearchBoxName);
+            SearchString = GUILayout.TextField(SearchString, GetTextStyle(), GUILayout.ExpandWidth(true));
+
+            if (_focusSearchBox)
+            {
+                GUI.FocusWindow(WindowId);
+                GUI.FocusControl(SearchBoxName);
+                _focusSearchBox = false;
+            }
+            Color color = GUI.backgroundColor;
+            GUI.backgroundColor = _widgetBackgroundColor.Value;
+            if (GUILayout.Button(_clearText.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
+                SearchString = string.Empty;
+            GUI.backgroundColor = color;
         }
 
         private void DrawSinglePlugin(PluginSettingsData plugin)
@@ -235,15 +354,11 @@ namespace ConfigurationManager
             var backgroundColor = GUI.backgroundColor;
             GUI.backgroundColor = _entryBackgroundColor.Value;
 
-            GUILayout.BeginVertical(GetBackgroundStyle());
-
-            var categoryHeader = _showDebug ?
-                new GUIContent(plugin.Info.Name.TrimStart('!') + " " + plugin.Info.Version, "GUID: " + plugin.Info.GUID) :
-                new GUIContent(plugin.Info.Name.TrimStart('!') + " " + plugin.Info.Version);
+            GUILayout.BeginVertical(GetBackgroundStyle(withHover: plugin.Collapsed));
 
             bool hasCollapsedCategories = plugin.Categories.Any(cat => cat.Collapsed);
 
-            if (SettingFieldDrawer.DrawPluginHeader(categoryHeader, plugin.Collapsed, hasCollapsedCategories, out bool toggleCollapseAll) && !IsSearching)
+            if (SettingFieldDrawer.DrawPluginHeader(GetPluginHeaderName(plugin), plugin.Collapsed, hasCollapsedCategories, out bool toggleCollapseAll) && !IsSearching)
                 plugin.Collapsed = !plugin.Collapsed;
 
             if (IsSearching || !plugin.Collapsed)
@@ -259,6 +374,49 @@ namespace ConfigurationManager
             GUI.backgroundColor = backgroundColor;
         }
 
+        private GUIContent GetPluginHeaderName(PluginSettingsData plugin, bool showGUID = false) => new GUIContent($"{plugin.Info.Name.TrimStart('!')} {plugin.Info.Version}{(showGUID ? $" ({plugin.Info.GUID})" : "")}");
+
+        private void DrawPluginInSplitViewList(PluginSettingsData plugin)
+        {
+            var backgroundColor = GUI.backgroundColor;
+            GUI.backgroundColor = _entryBackgroundColor.Value;
+
+            GUILayout.BeginHorizontal(GetBackgroundStyle(withHover: true));
+
+            bool hasCollapsedCategories = plugin.Categories.Any(cat => cat.Collapsed);
+
+            if (SettingFieldDrawer.DrawPluginHeaderSplitViewList(GetPluginHeaderName(plugin), !plugin.Collapsed))
+            {
+                plugin.Collapsed = false;
+                _filteredSetings.Where(plg => plg != plugin).Do(plg => plg.Collapsed = true);
+            }
+
+            GUILayout.EndHorizontal();
+
+            GUI.backgroundColor = backgroundColor;
+        }
+
+        private void DrawPluginCategoriesSplitView(PluginSettingsData plugin, bool hasCollapsedCategories, bool toggleCollapseAll = false)
+        {
+            foreach (var category in plugin.Categories)
+            {
+                Color backgroundColor = GUI.backgroundColor;
+                GUI.backgroundColor = _entryBackgroundColor.Value;
+
+                GUILayout.BeginVertical(GetBackgroundStyle());
+
+                DrawSingleCategory(plugin, hasCollapsedCategories, toggleCollapseAll, category);
+                
+                GUILayout.EndVertical();
+
+                GUI.backgroundColor = backgroundColor;
+            }
+
+            GUILayout.FlexibleSpace();
+
+            DrawFooterButtons(plugin);
+        }
+
         private void DrawFooterButtons(PluginSettingsData plugin)
         {
             GUILayout.BeginHorizontal();
@@ -268,34 +426,21 @@ namespace ConfigurationManager
 
             if (GUILayout.Button(_reloadText.Value, GetButtonStyle(), GUILayout.ExpandWidth(true)))
             {
-                foreach (var category in plugin.Categories)
-                {
-                    foreach (var setting in category.Settings)
-                    {
-                        setting.PluginInstance.Config.Reload();
-                        break;
-                    }
-                    break;
-                }
+                plugin.Categories.FirstOrDefault()?.Settings.FirstOrDefault()?.PluginInstance.Config.Reload();
                 BuildFilteredSettingList();
             }
 
             if (GUILayout.Button(_resetText.Value, GetButtonStyle(), GUILayout.ExpandWidth(true)))
             {
                 foreach (var category in plugin.Categories)
-                {
                     foreach (var setting in category.Settings)
-                    {
                         setting.Set(setting.DefaultValue);
-                    }
-                }
+
                 BuildFilteredSettingList();
             }
 
-            if (GUILayout.Button(_collapseText.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
-            {
+            if (!SplitView && GUILayout.Button(_collapseText.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
                 plugin.Collapsed = !plugin.Collapsed;
-            }
 
             GUI.backgroundColor = color;
             GUILayout.EndHorizontal();
@@ -377,6 +522,7 @@ namespace ConfigurationManager
         {
             if (setting.HideDefaultButton) return;
 
+            Color color = GUI.backgroundColor;
             GUI.backgroundColor = _widgetBackgroundColor.Value;
 
             bool DrawDefaultButton()
@@ -395,6 +541,8 @@ namespace ConfigurationManager
                 if (DrawDefaultButton())
                     setting.Set(null);
             }
+
+            GUI.backgroundColor = color;
         }
 
         public void BuildSettingList()
@@ -407,7 +555,7 @@ namespace ConfigurationManager
             BuildFilteredSettingList();
         }
 
-        public bool IsSearching => SearchString.Length > 1;
+        public bool IsSearching => !SplitView && SearchString.Length > 1;
 
         public void BuildFilteredSettingList()
         {
@@ -495,17 +643,24 @@ namespace ConfigurationManager
             return searchStrings.All(s => combinedSearchTarget.IndexOf(s, StringComparison.InvariantCultureIgnoreCase) >= 0);
         }
 
+        public const int c_defaultWidth = 700;
+        public const int c_defaultHeight = 900;
+
         private void CalculateDefaultWindowRect()
         {
-            var width = Mathf.Min(Screen.width, 650);
-            var height = Mathf.Min(Screen.height, 800);
-            var offsetX = Mathf.RoundToInt((Screen.width - width) / 2f);
-            var offsetY = Mathf.RoundToInt((Screen.height - height) / 2f);
+            var width = Mathf.Min(Screen.width, c_defaultWidth) * (SplitView ? 1f + GetSplitViewListRelativeSize() : 1f);
+            var height = Mathf.Min(Screen.height, c_defaultHeight);
+            var offsetX = Mathf.RoundToInt((Screen.width - width) / 10f);
+            var offsetY = Mathf.RoundToInt((Screen.height - height) / 10f);
+
             DefaultWindowRect = new Rect(offsetX, offsetY, width, height);
 
-            LeftColumnWidth = Mathf.RoundToInt(DefaultWindowRect.width / 2.5f);
-            RightColumnWidth = (int)DefaultWindowRect.width - LeftColumnWidth - 115;
+            CalculateSettingsColumnsWidth(DefaultWindowRect.width);
         }
+
+        private static float GetSplitViewListRelativeSize() => _splitViewListSize == null ? 0.3f : _splitViewListSize.Value;
+
+        private static float GetColumnSeparatorPosition() => _columnSeparatorPosition == null ? 0.4f : _columnSeparatorPosition.Value;
 
         private static void DrawTooltip(Rect area)
         {
