@@ -29,6 +29,7 @@ namespace ConfigurationManager
         public static ConfigEntry<PreventInput> _preventInput;
         public static ConfigEntry<bool> _showMainMenuButton;
         public static ConfigEntry<string> _mainMenuButtonCaption;
+        public static ConfigEntry<bool> _useValheimGuiScaleFactor; 
 
         private static readonly Harmony harmony = new Harmony(GUID);
 
@@ -48,6 +49,7 @@ namespace ConfigurationManager
                                                                                                                         "\n All - prevent all input events"));
             _showMainMenuButton = Config.Bind("Valheim", "Main menu button", true, new ConfigDescription("Add button in main menu to open/close configuration manager window"));
             _mainMenuButtonCaption = Config.Bind("Valheim", "Main menu button caption", "Mods settings", new ConfigDescription("Main menu button caption"));
+            _useValheimGuiScaleFactor = Config.Bind("Valheim", "Use Valheim GUI scaling", true, new ConfigDescription("Use Valheim scale factor from Accessibility - Scale GUI"));
 
             _showMainMenuButton.SettingChanged += (sender, args) => SetupMenuButton();
             _mainMenuButtonCaption.SettingChanged += (sender, args) => SetupMenuButton();
@@ -202,6 +204,13 @@ namespace ConfigurationManager
 
             menuButton.GetComponentInChildren<TMP_Text>().text = _mainMenuButtonCaption.Value;
             menuButton.SetActive(_showMainMenuButton.Value);
+        }
+
+        public float GetScreenSizeFactor()
+        {
+            float a = (float)Screen.width / GuiScaler.m_minWidth;
+            float b = (float)Screen.height / GuiScaler.m_minHeight;
+            return Mathf.Min(a, b) * GuiScaler.m_largeGuiScale;
         }
 
         [HarmonyPatch(typeof(PlayerController), nameof(PlayerController.TakeInput))]

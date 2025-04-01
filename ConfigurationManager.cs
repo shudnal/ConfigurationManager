@@ -73,7 +73,7 @@ namespace ConfigurationManager
         /// <summary>
         /// Window scale factor
         /// </summary>
-        public float ScaleFactor => _scaleFactor.Value;
+        public float ScaleFactor => _scaleFactor.Value * (_useValheimGuiScaleFactor.Value ? GetScreenSizeFactor() : 1f);
 
         /// <summary>
         /// Screen width with scale factor
