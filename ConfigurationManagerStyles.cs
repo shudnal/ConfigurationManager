@@ -7,6 +7,7 @@ namespace ConfigurationManager
     {
         private static GUIStyle windowStyle;
         private static GUIStyle labelStyle;
+        private static GUIStyle labelStyleInfo;
         private static GUIStyle labelStyleValueDefault;
         private static GUIStyle labelStyleValueChanged;
         private static GUIStyle textStyleValueDefault;
@@ -49,6 +50,14 @@ namespace ConfigurationManager
             labelStyle.normal.textColor = _fontColor.Value;
             labelStyle.fontSize = fontSize;
 
+            labelStyleInfo = new GUIStyle(labelStyle);
+            labelStyleInfo.hover.textColor = _fontColorValueChanged.Value;
+            labelStyleInfo.hover.background = TooltipBackground;
+            labelStyleInfo.alignment = TextAnchor.UpperCenter;
+            labelStyleInfo.margin.right = 10;
+            labelStyleInfo.margin.top = 6;
+            labelStyleInfo.padding = new RectOffset(0, 0, 0, 0);
+
             labelStyleValueDefault = new GUIStyle(GUI.skin.label);
             labelStyleValueDefault.normal.textColor = _fontColorValueDefault.Value;
             labelStyleValueDefault.fontSize = fontSize;
@@ -62,7 +71,6 @@ namespace ConfigurationManager
             textStyleValueDefault.fontSize = fontSize;
 
             textStyleValueChanged = new GUIStyle(GUI.skin.textArea);
-            textStyleValueChanged.name += "changed";
             textStyleValueChanged.normal.textColor = _fontColorValueChanged.Value;
             textStyleValueChanged.fontSize = fontSize;
 
@@ -72,13 +80,11 @@ namespace ConfigurationManager
             buttonStyle.fontSize = fontSize;
 
             buttonStyleValueDefault = new GUIStyle(GUI.skin.button);
-            buttonStyleValueDefault.name += "default";
             buttonStyleValueDefault.normal.textColor = _fontColorValueDefault.Value;
             buttonStyleValueDefault.onNormal.textColor = _fontColorValueDefault.Value;
             buttonStyleValueDefault.fontSize = fontSize;
 
             buttonStyleValueChanged = new GUIStyle(GUI.skin.button);
-            buttonStyleValueChanged.name += "changed";
             buttonStyleValueChanged.normal.textColor = _fontColorValueChanged.Value;
             buttonStyleValueChanged.onNormal.textColor = _fontColorValueChanged.Value;
             buttonStyleValueChanged.fontSize = fontSize;
@@ -111,13 +117,16 @@ namespace ConfigurationManager
             toggleStyle.normal.textColor = _fontColor.Value;
             toggleStyle.onNormal.textColor = _fontColor.Value;
             toggleStyle.fontSize = fontSize;
+            toggleStyle.imagePosition = ImagePosition.ImageLeft;
+            toggleStyle.padding.top = 2;
+            toggleStyle.padding.left = 16;
+            toggleStyle.margin.top = 5;
 
             toggleStyleValueDefault = new GUIStyle(toggleStyle);
             toggleStyleValueDefault.normal.textColor = _fontColorValueDefault.Value;
             toggleStyleValueDefault.onNormal.textColor = _fontColorValueDefault.Value;
 
             toggleStyleValueChanged = new GUIStyle(toggleStyle);
-            toggleStyleValueChanged.name += "changed";
             toggleStyleValueChanged.normal.textColor = _fontColorValueChanged.Value;
             toggleStyleValueChanged.onNormal.textColor = _fontColorValueChanged.Value;
 
@@ -151,8 +160,11 @@ namespace ConfigurationManager
             tooltipStyle.normal.textColor = _fontColor.Value;
             tooltipStyle.fontSize = fontSize;
             tooltipStyle.wordWrap = true;
-            tooltipStyle.alignment = TextAnchor.MiddleCenter;
+            tooltipStyle.alignment = TextAnchor.MiddleLeft;
             tooltipStyle.normal.background = TooltipBackground;
+            tooltipStyle.padding.left = 10;
+            tooltipStyle.padding.right = 10;
+            tooltipStyle.richText = true;
 
             sliderStyle = new GUIStyle(GUI.skin.horizontalSlider);
 
@@ -175,6 +187,7 @@ namespace ConfigurationManager
         public static GUIStyle GetLabelStyle() => labelStyle;
         public static GUIStyle GetLabelStyle(bool isDefaulValue = true) => isDefaulValue ? labelStyleValueDefault : labelStyleValueChanged;
         public static GUIStyle GetLabelStyle(SettingEntryBase setting) => GetLabelStyle(IsDefaultValue(setting));
+        public static GUIStyle GetLabelStyleInfo() => labelStyleInfo;
         public static GUIStyle GetButtonStyle() => buttonStyle;
         public static GUIStyle GetButtonStyle(bool isDefaulValue = true) => isDefaulValue ? buttonStyleValueDefault : buttonStyleValueChanged;
         public static GUIStyle GetButtonStyle(SettingEntryBase setting) => GetButtonStyle(IsDefaultValue(setting));

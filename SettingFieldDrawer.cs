@@ -55,6 +55,7 @@ namespace ConfigurationManager
 
         public void DrawSettingValue(SettingEntryBase setting)
         {
+            var color = GUI.backgroundColor;
             GUI.backgroundColor = _widgetBackgroundColor.Value;
 
             if (DrawCustomField(setting))
@@ -70,6 +71,8 @@ namespace ConfigurationManager
                 DrawEnumField(setting);
             else
                 DrawUnknownField(setting, _instance.RightColumnWidth);
+
+            GUI.backgroundColor = color;
         }
 
         public bool DrawCustomField(SettingEntryBase setting)
@@ -144,13 +147,13 @@ namespace ConfigurationManager
             _comboBoxCache.Clear();
         }
 
-        public static void DrawCenteredLabel(string text, GUIStyle labelStyle, params GUILayoutOption[] options)
+        public static void DrawCenteredLabel(string text, GUIStyle labelStyle)
         {
-            GUILayout.BeginHorizontal(options);
+            GUILayout.BeginVertical(GUILayout.Width(60));
             GUILayout.FlexibleSpace();
             GUILayout.Label(text, labelStyle);
             GUILayout.FlexibleSpace();
-            GUILayout.EndHorizontal();
+            GUILayout.EndVertical();
         }
 
         public static bool DrawCategoryHeader(string text)
@@ -347,43 +350,46 @@ namespace ConfigurationManager
             var leftValue = (float)Convert.ToDouble(setting.AcceptableValueRange.Key, CultureInfo.InvariantCulture);
             var rightValue = (float)Convert.ToDouble(setting.AcceptableValueRange.Value, CultureInfo.InvariantCulture);
 
-            float result = DrawCenteredHorizontalSlider(converted, leftValue, rightValue);
+            float height = GetTextStyle(setting).CalcHeight(new GUIContent(value.ToString()), 100f);
+            GUILayout.BeginHorizontal(GUILayout.Height(height));
 
-            if (Math.Abs(result - converted) >= Mathf.Abs(rightValue - leftValue) / Math.Pow(10, _rangePrecision.Value + 2))
+            try
             {
-                var newValue = Convert.ChangeType(Utilities.Utils.RoundWithPrecision(result, _rangePrecision.Value), setting.SettingType, CultureInfo.InvariantCulture);
-                setting.Set(newValue);
-            }
+                float result = DrawCenteredHorizontalSlider(converted, leftValue, rightValue, height);
 
-            if (setting.ShowRangeAsPercent == true)
-            {
-                DrawCenteredLabel(
-                    $"{Mathf.Abs(result - leftValue) / Mathf.Abs(rightValue - leftValue):P0}",
-                    GetLabelStyle(setting),
-                    GUILayout.Width(60));
-            }
-            else
-            {
-                var strVal = value.ToString().Replace(',', '.').AppendZeroIfFloat(setting.SettingType);
-                var strResult = GUILayout.TextField(strVal, GetTextStyle(setting), GUILayout.Width(50));
-                if (strResult != strVal && Utilities.Utils.TryParseFloat(strResult, out float resultVal))
+                if (Math.Abs(result - converted) >= Mathf.Abs(rightValue - leftValue) / Math.Pow(10, _rangePrecision.Value + 2))
                 {
-                    var clampedResultVal = Mathf.Clamp(resultVal, leftValue, rightValue);
-                    setting.Set(Convert.ChangeType(Utilities.Utils.RoundWithPrecision(clampedResultVal, _rangePrecision.Value), setting.SettingType));
+                    var newValue = Convert.ChangeType(Utilities.Utils.RoundWithPrecision(result, _rangePrecision.Value), setting.SettingType, CultureInfo.InvariantCulture);
+                    setting.Set(newValue);
                 }
+
+                if (setting.ShowRangeAsPercent == true)
+                {
+                    DrawCenteredLabel($"{Mathf.Abs(result - leftValue) / Mathf.Abs(rightValue - leftValue):P0}", GetLabelStyle(setting));
+                }
+                else
+                {
+                    var strVal = value.ToString().Replace(',', '.').AppendZeroIfFloat(setting.SettingType);
+                    var strResult = GUILayout.TextField(strVal, GetTextStyle(setting), GUILayout.Width(50));
+                    if (strResult != strVal && Utilities.Utils.TryParseFloat(strResult, out float resultVal))
+                    {
+                        var clampedResultVal = Mathf.Clamp(resultVal, leftValue, rightValue);
+                        setting.Set(Convert.ChangeType(Utilities.Utils.RoundWithPrecision(clampedResultVal, _rangePrecision.Value), setting.SettingType));
+                    }
+                }
+            }
+            finally
+            {
+                GUILayout.EndHorizontal();
             }
         }
 
-        private static float DrawCenteredHorizontalSlider(float converted, float leftValue, float rightValue)
+        private static float DrawCenteredHorizontalSlider(float converted, float leftValue, float rightValue, float height)
         {
-            GUILayout.BeginHorizontal();
-            GUILayout.BeginVertical();
-            GUILayout.FlexibleSpace();
-            GUILayout.Space(4);
+            GUILayout.BeginVertical(GUILayout.Height(height));
+            GUILayout.Space(height * 0.45f);
             var result = GUILayout.HorizontalSlider(converted, leftValue, rightValue, GetSliderStyle(), GetThumbStyle(), GUILayout.ExpandWidth(true));
-            GUILayout.FlexibleSpace();
             GUILayout.EndVertical();
-            GUILayout.EndHorizontal();
             return result;
         }
 

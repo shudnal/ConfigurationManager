@@ -1,7 +1,12 @@
 # 1.1.0
-* improvements to window scaling
-* Configuration File Editor
-* new view mode - Split View
+* new feature - Configuration File Editor for ingame editing of cfg, yaml and json files
+* new default view mode - Split View (legacy Simgle Column mode is still available)
+* multiple visual improvements
+* window scaling now respects Valheim scaling and still has its own config
+* tooltip text aligned by left and tooltip size respects line separators and text size
+* toggle and slider properly aligned
+* settings now has little [?] next to settings value to get tooltip on hover
+* added several hovers for better readability
 
 # 1.0.25
 * window scaling

@@ -22,17 +22,15 @@ namespace ConfigurationManager
 
         private ConfigFilesEditor configFilesEditor;
 
-        private bool _splitView = true;
-
         public bool SplitView
         {
-            get => _splitView;
+            get => _splitView == null ? true : _splitView.Value;
             set
             {
-                if (_splitView == (_splitView = value))
+                if (_splitView.Value == (_splitView.Value = value))
                     return;
 
-                if (_splitView)
+                if (_splitView.Value)
                 {
                     _filteredSetings.Where(plg => !plg.Collapsed).Skip(1).Do(plg => plg.Collapsed = true);
                     if (_filteredSetings.All(plg => plg.Collapsed) && _filteredSetings.FirstOrDefault() is PluginSettingsData plugin)
@@ -81,10 +79,10 @@ namespace ConfigurationManager
 
         private void CalculateSettingsColumnsWidth(float width)
         {
-            PluginListColumnWidth = Mathf.RoundToInt(width * GetSplitViewListRelativeSize());
+            PluginListColumnWidth = Mathf.RoundToInt(width * _splitViewListSize.Value);
             SettingsListColumnWidth = Mathf.RoundToInt(SplitView ? width - PluginListColumnWidth : width);
 
-            LeftColumnWidth = Mathf.RoundToInt(Mathf.Clamp(SettingsListColumnWidth * GetColumnSeparatorPosition(), width * 0.1f, width * 0.8f)) - 15;
+            LeftColumnWidth = Mathf.RoundToInt(Mathf.Clamp(SettingsListColumnWidth * _columnSeparatorPosition.Value, width * 0.1f, width * 0.8f)) - 18;
             RightColumnWidth = Mathf.RoundToInt(Mathf.Clamp(SettingsListColumnWidth - LeftColumnWidth - 100, width * 0.2f, width * 0.8f));
         }
 
@@ -513,9 +511,18 @@ namespace ConfigurationManager
         private void DrawSettingName(SettingEntryBase setting)
         {
             if (setting.HideSettingName) return;
+            
+            var color = GUI.backgroundColor;
+            GUI.backgroundColor = _widgetBackgroundColor.Value;
 
-            GUILayout.Label(new GUIContent(setting.DispName.TrimStart('!'), setting.Description), GetLabelStyle(),
-                GUILayout.Width(LeftColumnWidth), GUILayout.MaxWidth(LeftColumnWidth));
+            GUILayout.BeginHorizontal(GUILayout.Width(LeftColumnWidth), GUILayout.MaxWidth(LeftColumnWidth));
+            GUILayout.Label(new GUIContent(setting.DispName.TrimStart('!'), setting.Description), GetLabelStyle());
+            GUILayout.FlexibleSpace();
+            if (_showTooltipBlock.Value)
+                GUILayout.Label(new GUIContent("[?]", setting.Description), GetLabelStyleInfo(), GUILayout.Width(18f));
+            GUILayout.EndHorizontal();
+
+            GUI.backgroundColor = color;
         }
 
         private static void DrawDefaultButton(SettingEntryBase setting)
@@ -555,7 +562,7 @@ namespace ConfigurationManager
             BuildFilteredSettingList();
         }
 
-        public bool IsSearching => !SplitView && SearchString.Length > 1;
+        public bool IsSearching => SearchString.Length > 1;
 
         public void BuildFilteredSettingList()
         {
@@ -648,7 +655,7 @@ namespace ConfigurationManager
 
         private void CalculateDefaultWindowRect()
         {
-            var width = Mathf.Min(Screen.width, c_defaultWidth) * (SplitView ? 1f + GetSplitViewListRelativeSize() : 1f);
+            var width = Mathf.Min(Screen.width, c_defaultWidth) * (SplitView ? 1f + _splitViewListSize.Value : 1f);
             var height = Mathf.Min(Screen.height, c_defaultHeight);
             var offsetX = Mathf.RoundToInt((Screen.width - width) / 10f);
             var offsetY = Mathf.RoundToInt((Screen.height - height) / 10f);
@@ -658,10 +665,6 @@ namespace ConfigurationManager
             CalculateSettingsColumnsWidth(DefaultWindowRect.width);
         }
 
-        private static float GetSplitViewListRelativeSize() => _splitViewListSize == null ? 0.3f : _splitViewListSize.Value;
-
-        private static float GetColumnSeparatorPosition() => _columnSeparatorPosition == null ? 0.4f : _columnSeparatorPosition.Value;
-
         private static void DrawTooltip(Rect area)
         {
             if (!string.IsNullOrEmpty(GUI.tooltip))
@@ -670,8 +673,17 @@ namespace ConfigurationManager
 
                 var color = GUI.backgroundColor;
                 GUI.backgroundColor = _tooltipBackgroundColor.Value;
-                const int width = 400;
-                var height = GetTooltipStyle().CalcHeight(new GUIContent(GUI.tooltip), 400) + 10;
+
+                string[] lines = GUI.tooltip.Split('\n'); 
+
+                int maxIndex = lines
+                    .Select((line, index) => new { Line = line, Index = index })
+                    .OrderByDescending(select => select.Line.Length)
+                    .First().Index;
+
+                GetTooltipStyle().CalcMinMaxWidth(new GUIContent(lines[maxIndex]), out _, out float width);
+
+                var height = GetTooltipStyle().CalcHeight(new GUIContent(GUI.tooltip), width) + 10;
 
                 var x = currentEvent.mousePosition.x + width > area.width
                     ? area.width - width

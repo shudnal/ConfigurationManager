@@ -120,17 +120,19 @@ namespace ConfigurationManager
         public static ConfigEntry<KeyboardShortcut> _keybindResetPosition;
         public static ConfigEntry<bool> _hideSingleSection;
         public static ConfigEntry<bool> _pluginConfigCollapsedDefault;
-        public static ConfigEntry<Vector2> _windowPosition;
-        public static ConfigEntry<Vector2> _windowSize;
         public static ConfigEntry<int> _textSize;
         public static ConfigEntry<bool> _orderPluginByGuid;
         public static ConfigEntry<int> _rangePrecision;
         public static ConfigEntry<int> _vectorPrecision;
         public static ConfigEntry<bool> _vectorDynamicPrecision;
 
+        public static ConfigEntry<bool> _splitView;
         public static ConfigEntry<float> _scaleFactor;
         public static ConfigEntry<float> _splitViewListSize;
         public static ConfigEntry<float> _columnSeparatorPosition;
+        public static ConfigEntry<Vector2> _windowPosition;
+        public static ConfigEntry<Vector2> _windowSize;
+        public static ConfigEntry<bool> _showTooltipBlock;
 
         public static ConfigEntry<bool> _sortCategoriesByName;
         public static ConfigEntry<bool> _categoriesCollapseable;
@@ -198,7 +200,6 @@ namespace ConfigurationManager
         {
             instance = this;
 
-            CalculateDefaultWindowRect();
 
             _fieldDrawer = new SettingFieldDrawer(this);
 
@@ -209,21 +210,29 @@ namespace ConfigurationManager
             _hideSingleSection = Config.Bind("General", "Hide single sections", false, new ConfigDescription("Show section title for plugins with only one section"));
             _loggingEnabled = Config.Bind("General", "Logging enabled", false, new ConfigDescription("Enable logging"));
             _pluginConfigCollapsedDefault = Config.Bind("General", "Plugin collapsed default", true, new ConfigDescription("If set to true plugins will be collapsed when opening the configuration manager window"));
-            _windowPosition = Config.Bind("General", "Window position", GetDefaultManagerWindowPosition(), "Window position");
-            _windowSize = Config.Bind("General", "Window size", GetDefaultManagerWindowSize(), "Window size");
             _textSize = Config.Bind("General", "Font size", 14, "Font size");
             _orderPluginByGuid = Config.Bind("General", "Order plugins by GUID", false, "Default order is by plugin name");
             _rangePrecision = Config.Bind("General", "Range field precision", 3, "Number of symbols after comma in floating-point numbers");
             _vectorPrecision = Config.Bind("General", "Vector field precision", 2, "Number of symbols after comma in vectors");
             _vectorDynamicPrecision = Config.Bind("General", "Vector field dynamic precision", true, "If every value in vector is integer .0 part will be omitted. Type \",\" or \".\" in vector field to enable precision back.");
-            _keybindResetPosition = Config.Bind("General", "Reset position and size", new KeyboardShortcut(KeyCode.F1, KeyCode.LeftControl), "Set configuration manager window size and position to default values. " +
+            _keybindResetPosition = Config.Bind("General", "Reset position and size", new KeyboardShortcut(KeyCode.F1, KeyCode.LeftControl), "Set configuration manager window size and position to default values." +
                                                                                                                                              "\nWARNING!!! If custom config drawer uses mouse position it could break.");
 
+            _orderPluginByGuid.SettingChanged += (sender, args) => BuildSettingList();
+
+            _splitView = Config.Bind("General - Window", "Split View", true, "If enabled - plugins will be shown in the left column and plugin settings will be shown in the right column.");
             _scaleFactor = Config.Bind("General - Window", "Scale factor", 1f, new ConfigDescription("Scale factor of configuration manager window", new AcceptableValueRange<float>(0.5f, 2.5f)));
             _splitViewListSize = Config.Bind("General - Window", "Split View list relative size", 0.3f, new ConfigDescription("Relative size (percentage of window width) of split view plugin names list", new AcceptableValueRange<float>(0.1f, 0.5f)));
             _columnSeparatorPosition = Config.Bind("General - Window", "Setting name relative size", 0.4f, new ConfigDescription("Relative position of virtual line separating setting name from value", new AcceptableValueRange<float>(0.2f, 0.6f)));
 
-            _orderPluginByGuid.SettingChanged += (sender, args) => BuildSettingList();
+            CalculateDefaultWindowRect();
+
+            _windowPosition = Config.Bind("General - Window", "Window position", GetDefaultManagerWindowPosition(), "Window position");
+            _windowSize = Config.Bind("General - Window", "Window size", GetDefaultManagerWindowSize(), "Window size");
+            _showTooltipBlock = Config.Bind("General - Window", "Show ? next to config values", true, "Show hoverable block to get tooltip.");
+
+            _windowPositionTextEditor = Config.Bind("General - File Editor", "Window position", GetDefaultTextEditorWindowPosition(), "Window position");
+            _windowSizeTextEditor = Config.Bind("General - File Editor", "Window size", GetDefaultTextEditorWindowSize(), "Window size");
 
             _sortCategoriesByName = Config.Bind("General - Categories", "Sort by name", false, "If disabled, categories will be sorted in the order in which they were declared by the mod author.");
             _categoriesCollapseable = Config.Bind("General - Categories", "Collapsable categories", true, "Categories can be collapsed to reduce lagging and to ease scrolling.");
@@ -253,9 +262,6 @@ namespace ConfigurationManager
             _noOptionsPluginsText = Config.Bind("Text - Menu", "Plugins without options", "Plugins with no options available", new ConfigDescription("Text in footer"));
             _viewModeSingleColumnText = Config.Bind("Text - Menu", "Single Column", "Single Column", new ConfigDescription("Text for button to change to single column view mode"));
             _viewModeSplitViewText = Config.Bind("Text - Menu", "Split View", "Split View", new ConfigDescription("Text for button to change to split view mode"));
-
-            _windowPositionTextEditor = Config.Bind("File Editor", "Window position", GetDefaultTextEditorWindowPosition(), "Window position");
-            _windowSizeTextEditor = Config.Bind("File Editor", "Window size", GetDefaultTextEditorWindowSize(), "Window size");
 
             _toggleTextEditorText = Config.Bind("File Editor - Text", "Open button", "Open File Editor", new ConfigDescription("Open file editor label text"));
             _searchTextEditor = Config.Bind("File Editor - Text", "Search", "Search:", new ConfigDescription("Search label text"));
