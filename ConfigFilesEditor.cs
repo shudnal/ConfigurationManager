@@ -6,6 +6,7 @@ using static ConfigurationManager.ConfigurationManager;
 using BepInEx;
 using UtfUnknown;
 using System;
+using System.Linq;
 
 namespace ConfigurationManager
 {
@@ -14,7 +15,6 @@ namespace ConfigurationManager
         private readonly string[] directories = new string[2] { Paths.ConfigPath, Paths.PluginPath };
 
         private readonly Dictionary<string, bool> folderStates = new Dictionary<string, bool>();
-        private readonly string[] validExtensions = { ".json", ".yaml", ".yml", ".cfg" };
 
         private Vector2 scrollPosition;
         private string fileContent;
@@ -30,6 +30,7 @@ namespace ConfigurationManager
         private string _searchString;
         private string _errorText;
         private string _activeFile;
+        private string _activeDirectory;
 
         public bool IsSearching => SearchString.Length > 1;
 
@@ -153,7 +154,7 @@ namespace ConfigurationManager
                     scrollPosition = GUILayout.BeginScrollView(scrollPosition, GUILayout.Width(windowRect.width * 0.3f));
                     DrawDirectories(directories);
                     GUILayout.EndScrollView();
-
+                    DrawDirectoriesMenu();
                 }
                 GUILayout.EndVertical();
 
@@ -191,7 +192,7 @@ namespace ConfigurationManager
         {
             foreach (string directory in directories)
             {
-                if (!DirectoryContainsValidFiles(directory))
+                if (!_showEmptyFolders.Value && !DirectoryContainsValidFiles(directory))
                     continue;
 
                 string folderName = Path.GetFileName(directory);
@@ -199,7 +200,8 @@ namespace ConfigurationManager
                 if (!folderStates.ContainsKey(directory))
                     folderStates[directory] = false;
                 
-                folderStates[directory] = GUILayout.Toggle(folderStates[directory], " " + folderName, GetToggleStyle());
+                if (folderStates[directory] != (folderStates[directory] = GUILayout.Toggle(folderStates[directory], " " + folderName, GetToggleStyle(directory != _activeDirectory))) && folderStates[directory])
+                    _activeDirectory = directory;
 
                 if (folderStates[directory])
                 {
@@ -220,15 +222,9 @@ namespace ConfigurationManager
             string[] files = Directory.GetFiles(path);
 
             foreach (string file in files)
-            {
                 if (IsValidFile(file))
-                {
-                    if (GUILayout.Button("  " + Path.GetFileName(file), GetLabelStyle(file != _activeFile)))
-                    {
+                    if (GUILayout.Button("  " + Path.GetFileName(file), GetLabelStyle(file != _activeFile), GUILayout.ExpandHeight(false)))
                         LoadFileToEditor(file); 
-                    }
-                }
-            }
         }
 
         private bool IsValidFile(string file)
@@ -238,14 +234,20 @@ namespace ConfigurationManager
                 return false;
 
             string extension = Path.GetExtension(file).ToLower();
-            foreach (string validExtension in validExtensions)
-            {
+            foreach (string validExtension in _editableExtensions.Value.Split(',').Select(GetNormalizedExtention))
                 if (extension == validExtension)
-                {
                     return SearchString.IsNullOrWhiteSpace() || filename.IndexOf(SearchString, System.StringComparison.OrdinalIgnoreCase) > -1;
-                }
-            }
+
             return false;
+        }
+
+        private string GetNormalizedExtention(string extension)
+        {
+            if (extension.IsNullOrWhiteSpace())
+                return string.Empty;
+
+            string ext = extension.Trim().ToLower();
+            return ext.StartsWith('.') ? ext : "." + ext;
         }
 
         private bool DirectoryContainsValidFiles(string path)
@@ -269,12 +271,79 @@ namespace ConfigurationManager
             {
                 fileContent = File.ReadAllText(filePath);
                 _activeFile = filePath;
+                _activeDirectory = Path.GetDirectoryName(filePath);
             }
             catch (IOException e)
             {
                 LogError($"Failed to load file {filePath}: {e.Message}");
                 _errorText = "Failed to load file";
                 fileContent = e.Message;
+            }
+        }
+
+        private string newItemName = "";
+        private bool creatingFolder = false;
+        private bool creatingFile = false;
+
+        private void DrawDirectoriesMenu()
+        {
+            if (creatingFolder || creatingFile)
+            {
+                GUILayout.BeginHorizontal();
+                newItemName = GUILayout.TextField(newItemName, GUILayout.ExpandWidth(true));
+                if (GUILayout.Button("OK", GetButtonStyle(), GUILayout.ExpandWidth(false)))
+                {
+                    CreateNewItem(newItemName, creatingFolder);
+                    creatingFolder = false;
+                    creatingFile = false;
+                }
+                if (GUILayout.Button("Cancel", GetButtonStyle(), GUILayout.ExpandWidth(false)))
+                {
+                    creatingFolder = false;
+                    creatingFile = false;
+                }
+                GUILayout.EndHorizontal();
+            }
+
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("New folder", GetButtonStyle()))
+            {
+                creatingFolder = true;
+                creatingFile = false;
+                newItemName = "";
+            }
+            if (GUILayout.Button("New file", GetButtonStyle()))
+            {
+                creatingFile = true;
+                creatingFolder = false;
+                newItemName = "";
+            }
+            
+            _showEmptyFolders.Value = GUILayout.Toggle(_showEmptyFolders.Value, "Empty folders", GetToggleStyle(), GUILayout.ExpandWidth(false));
+
+            GUILayout.EndHorizontal();
+        }
+
+        private void CreateNewItem(string itemName, bool isFolder)
+        {
+            if (string.IsNullOrWhiteSpace(itemName))
+                return;
+
+            if (string.IsNullOrEmpty(_activeDirectory))
+                return;
+
+            string newPath = Path.Combine(_activeDirectory, itemName);
+
+            if (isFolder)
+            {
+                Directory.CreateDirectory(newPath);
+                _showEmptyFolders.Value = true;
+                _activeDirectory = newPath;
+            }
+            else
+            {
+                File.Create(newPath).Close();
+                _activeFile = newPath;
             }
         }
     }

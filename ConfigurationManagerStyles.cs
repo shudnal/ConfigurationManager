@@ -30,6 +30,8 @@ namespace ConfigurationManager
         private static GUIStyle backgroundStyle;
         private static GUIStyle backgroundStyleWithHover;
         private static GUIStyle tooltipStyle;
+        private static GUIStyle fileEditorFileStyle;
+        private static GUIStyle fileEditorDirectoryStyle;
         public static int fontSize = 14;
         
         public static void CreateStyles()

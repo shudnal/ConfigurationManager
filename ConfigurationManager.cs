@@ -149,6 +149,8 @@ namespace ConfigurationManager
         public static ConfigEntry<string> _searchTextEditor;
         public static ConfigEntry<string> _saveFileTextEditor;
         public static ConfigEntry<string> _windowTitleTextEditor;
+        public static ConfigEntry<string> _editableExtensions;
+        public static ConfigEntry<bool> _showEmptyFolders;
 
         public static ConfigEntry<string> _searchText;
         public static ConfigEntry<string> _searchTextSplitView;
@@ -196,10 +198,9 @@ namespace ConfigurationManager
                 instance.Logger.LogError(data);
         }
 
-        void Awake()
+        private void Awake()
         {
             instance = this;
-
 
             _fieldDrawer = new SettingFieldDrawer(this);
 
@@ -231,6 +232,8 @@ namespace ConfigurationManager
             _windowSize = Config.Bind("General - Window", "Window size", GetDefaultManagerWindowSize(), "Window size");
             _showTooltipBlock = Config.Bind("General - Window", "Show ? next to config values", true, "Show hoverable block to get tooltip.");
 
+            _editableExtensions = Config.Bind("General - File Editor", "Editable files", "json,yaml,yml,cfg", new ConfigDescription("Comma separated list of extensions"));
+            _showEmptyFolders = Config.Bind("General - File Editor", "Show empty folders", false, new ConfigDescription("Hide or show directories with no files"));
             _windowPositionTextEditor = Config.Bind("General - File Editor", "Window position", GetDefaultTextEditorWindowPosition(), "Window position");
             _windowSizeTextEditor = Config.Bind("General - File Editor", "Window size", GetDefaultTextEditorWindowSize(), "Window size");
 
