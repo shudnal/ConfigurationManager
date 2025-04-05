@@ -41,6 +41,7 @@ namespace ConfigurationManager
         private const string SearchBoxName = "searchBoxEditor";
         private const int DirectoryOffset = 20;
         private bool _focusSearchBox;
+        private bool _focusTextArea;
         private string _searchString;
         private string _errorText;
         private string _activeFile;
@@ -225,7 +226,17 @@ namespace ConfigurationManager
                     _textScrollPosition = GUILayout.BeginScrollView(_textScrollPosition);
 
                     GUI.enabled = File.Exists(_activeFile);
-                    _fileContent = GUILayout.TextArea(_fileContent, GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(true));
+                    
+                    GUI.SetNextControlName("textEditor");
+                    _fileContent = GUILayout.TextArea(_fileContent, GetFileEditorTextArea(), GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(true));
+                    
+                    if (_focusTextArea || GUI.GetNameOfFocusedControl() == "textEditor")
+                    {
+                        GUI.FocusWindow(WindowId);
+                        GUI.FocusControl("textEditor");
+                        _focusTextArea = false;
+                    }
+
                     GUI.enabled = true;
                     GUILayout.EndScrollView();
                 }
@@ -453,6 +464,7 @@ namespace ConfigurationManager
                 _activeDirectory = Path.GetDirectoryName(filePath);
                 _errorText = string.Empty;
                 SetFileEditState(FileEditState.None);
+                _focusTextArea = true;
             }
             catch (IOException e)
             {

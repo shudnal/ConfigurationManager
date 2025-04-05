@@ -36,6 +36,7 @@ namespace ConfigurationManager
         private static GUIStyle fileEditorDirectoryStyleActive;
         private static GUIStyle fileEditorRenameFileField;
         private static GUIStyle fileEditorErrorText;
+        private static GUIStyle fileEditorTextArea;
 
         public static int fontSize = 14;
         
@@ -201,6 +202,11 @@ namespace ConfigurationManager
 
             fileEditorErrorText = new GUIStyle(labelStyle);
             fileEditorErrorText.normal.textColor = Color.red;
+
+            fileEditorTextArea = new GUIStyle(GUI.skin.textArea);
+            fileEditorTextArea.padding = new RectOffset(5, 5, 5, 5);
+            fileEditorTextArea.wordWrap = true;
+            fileEditorTextArea.richText = true;
         }
 
         public static GUIStyle GetWindowStyle() => windowStyle;
@@ -231,6 +237,7 @@ namespace ConfigurationManager
         public static GUIStyle GetDirectoryStyle(bool isActive) => isActive ? fileEditorDirectoryStyleActive : fileEditorDirectoryStyle;
         public static GUIStyle GetFileNameFieldStyle() => fileEditorRenameFileField;
         public static GUIStyle GetFileNameErrorStyle() => fileEditorErrorText;
+        public static GUIStyle GetFileEditorTextArea() => fileEditorTextArea; 
         public static bool IsEqualColorConfig(Color setting, Color defaultValue) => ColorUtility.ToHtmlStringRGBA(setting) == ColorUtility.ToHtmlStringRGBA(defaultValue);
         internal static bool IsDefaultValue(SettingEntryBase setting)
         {
