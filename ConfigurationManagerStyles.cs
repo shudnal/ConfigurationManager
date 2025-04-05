@@ -31,7 +31,12 @@ namespace ConfigurationManager
         private static GUIStyle backgroundStyleWithHover;
         private static GUIStyle tooltipStyle;
         private static GUIStyle fileEditorFileStyle;
+        private static GUIStyle fileEditorFileStyleActive;
         private static GUIStyle fileEditorDirectoryStyle;
+        private static GUIStyle fileEditorDirectoryStyleActive;
+        private static GUIStyle fileEditorRenameFileField;
+        private static GUIStyle fileEditorErrorText;
+
         public static int fontSize = 14;
         
         public static void CreateStyles()
@@ -171,6 +176,31 @@ namespace ConfigurationManager
             sliderStyle = new GUIStyle(GUI.skin.horizontalSlider);
 
             thumbStyle = new GUIStyle(GUI.skin.horizontalSliderThumb);
+
+            fileEditorDirectoryStyle = new GUIStyle(toggleStyle);
+            fileEditorDirectoryStyle.wordWrap = false;
+            fileEditorDirectoryStyle.margin = new RectOffset(4, 4, 4, 4);
+            fileEditorDirectoryStyle.fontStyle = FontStyle.Bold;
+
+            fileEditorDirectoryStyleActive = new GUIStyle(fileEditorDirectoryStyle);
+            fileEditorDirectoryStyleActive.normal.textColor = _fontColorValueChanged.Value;
+            fileEditorDirectoryStyleActive.onNormal.textColor = _fontColorValueChanged.Value;
+
+            fileEditorFileStyle = new GUIStyle(labelStyle);
+            fileEditorFileStyle.padding.left = 6;
+            fileEditorFileStyle.wordWrap = false;
+            fileEditorFileStyle.margin.bottom = 2;
+            fileEditorFileStyle.margin.top = 2;
+
+            fileEditorFileStyleActive = new GUIStyle(fileEditorFileStyle);
+            fileEditorFileStyleActive.normal.textColor = _fontColorValueChanged.Value;
+            fileEditorFileStyleActive.onNormal.textColor = _fontColorValueChanged.Value;
+
+            fileEditorRenameFileField = new GUIStyle(textStyleValueChanged);
+            fileEditorRenameFileField.wordWrap = true;
+
+            fileEditorErrorText = new GUIStyle(labelStyle);
+            fileEditorErrorText.normal.textColor = Color.red;
         }
 
         public static GUIStyle GetWindowStyle() => windowStyle;
@@ -197,8 +227,11 @@ namespace ConfigurationManager
         public static GUIStyle GetTextStyle(SettingEntryBase setting) => GetTextStyle(IsDefaultValue(setting));
         public static GUIStyle GetTextStyle(float setting, float defaultValue) => GetTextStyle(setting == defaultValue);
         public static GUIStyle GetTextStyle(Color setting, Color defaultValue) => GetTextStyle(IsEqualColorConfig(setting, defaultValue));
+        public static GUIStyle GetFileStyle(bool isActive) => isActive ? fileEditorFileStyleActive : fileEditorFileStyle;
+        public static GUIStyle GetDirectoryStyle(bool isActive) => isActive ? fileEditorDirectoryStyleActive : fileEditorDirectoryStyle;
+        public static GUIStyle GetFileNameFieldStyle() => fileEditorRenameFileField;
+        public static GUIStyle GetFileNameErrorStyle() => fileEditorErrorText;
         public static bool IsEqualColorConfig(Color setting, Color defaultValue) => ColorUtility.ToHtmlStringRGBA(setting) == ColorUtility.ToHtmlStringRGBA(defaultValue);
-        
         internal static bool IsDefaultValue(SettingEntryBase setting)
         {
             if (setting == null || setting.DefaultValue == null || setting.Get() == null)

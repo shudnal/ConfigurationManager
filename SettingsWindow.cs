@@ -665,7 +665,7 @@ namespace ConfigurationManager
             CalculateSettingsColumnsWidth(DefaultWindowRect.width);
         }
 
-        private static void DrawTooltip(Rect area)
+        internal static void DrawTooltip(Rect area)
         {
             if (!string.IsNullOrEmpty(GUI.tooltip))
             {

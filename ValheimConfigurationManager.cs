@@ -9,6 +9,7 @@ using ServerSync;
 using System;
 using System.IO;
 using TMPro;
+using YamlDotNet.Serialization;
 
 namespace ConfigurationManager
 {
@@ -118,7 +119,7 @@ namespace ConfigurationManager
                         if (text.IsNullOrWhiteSpace())
                             continue;
 
-                        hiddenSettingsList.AddRange(LitJson.JsonMapper.ToObject<List<string>>(text));
+                        hiddenSettingsList.AddRange(new DeserializerBuilder().Build().Deserialize<List<string>>(text));
                         reader.Close();
                         fs.Dispose();
                     }
@@ -247,6 +248,7 @@ namespace ConfigurationManager
                 yield return AccessTools.Method(typeof(Toggle), nameof(Toggle.OnSubmit));
                 yield return AccessTools.Method(typeof(Toggle), nameof(Toggle.OnPointerClick));
                 yield return AccessTools.Method(typeof(Player), nameof(Player.UseHotbarItem));
+                yield return AccessTools.Method(typeof(ScrollRect), nameof(ScrollRect.OnScroll));
             }
 
             [HarmonyPriority(Priority.First)]
