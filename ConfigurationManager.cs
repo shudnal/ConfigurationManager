@@ -291,7 +291,7 @@ namespace ConfigurationManager
             _windowBackgroundColor = Config.Bind("Colors", "Window background color", new Color(0, 0, 0, 1), "Window background color");
             _entryBackgroundColor = Config.Bind("Colors", "Entry background color", new Color(0.55f, 0.5f, 0.5f, 0.84f), "Entry background color");
             _tooltipBackgroundColor = Config.Bind("Colors", "Tooltip background color", new Color(0.55f, 0.5f, 0.45f, 0.95f), "Tooltip background color");
-            _headerBackgroundColor = Config.Bind("Colors", "Category header background color", new Color(0.55f, 0.5f, 0.5f, 1f), "Category header background color");
+            _headerBackgroundColor = Config.Bind("Colors", "Header background color", new Color(0.74f, 0.54f, 0.37f, 0.8f), "Header background color");
             _widgetBackgroundColor = Config.Bind("Colors", "Widget color", new Color(0.88f, 0.46f, 0, 0.8f), "Widget color");
             _enabledBackgroundColor = Config.Bind("Colors", "Enabled toggle color", new Color(0.88f, 0.46f, 0f, 1f), "Color of enabled toggle");
             _readOnlyColor = Config.Bind("Colors", "Readonly color", Color.gray, "Color of readonly setting");

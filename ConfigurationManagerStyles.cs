@@ -105,6 +105,8 @@ namespace ConfigurationManager
                 wordWrap = false,
                 stretchWidth = true
             };
+            categoryHeaderStyleDefault.padding.top = 1;
+            categoryHeaderStyleDefault.padding.bottom = 1;
 
             categoryHeaderStyleChanged = new GUIStyle(categoryHeaderStyleDefault);
             categoryHeaderStyleChanged.normal.textColor = _fontColorValueChanged.Value;
@@ -167,12 +169,14 @@ namespace ConfigurationManager
             backgroundStyleWithHover.hover.background = TooltipBackground;
 
             categoryBackgroundStyle = new GUIStyle(backgroundStyle);
-            categoryBackgroundStyle.margin.bottom = 0;
+            categoryBackgroundStyle.margin.bottom = 6;
             categoryBackgroundStyle.margin.top = 0;
 
             categoryHeaderBackgroundStyle = new GUIStyle(backgroundStyle);
             categoryHeaderBackgroundStyle.normal.background = HeaderBackground;
             categoryHeaderBackgroundStyle.margin.bottom = 0;
+            categoryHeaderBackgroundStyle.padding.bottom = 0;
+            categoryHeaderBackgroundStyle.padding.top = 0;
 
             tooltipStyle = new GUIStyle(GUI.skin.box);
             tooltipStyle.normal.textColor = _fontColor.Value;

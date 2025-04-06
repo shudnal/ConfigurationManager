@@ -462,11 +462,7 @@ namespace ConfigurationManager
             if (category.Settings.Any() && (!category.Collapsed || IsSearching))
             {
                 GUILayout.BeginVertical(GetCategoryBackgroundStyle());
-                foreach (var setting in category.Settings)
-                {
-                    DrawSingleSetting(setting);
-                    GUILayout.Space(2);
-                }
+                category.Settings.Do(DrawSingleSetting);
                 GUILayout.EndVertical();
             }
         }
