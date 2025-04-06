@@ -159,8 +159,7 @@ namespace ConfigurationManager
 
                 try
                 {
-                    foreach (var plugin in _filteredSetings)
-                        DrawPluginInSplitViewList(plugin);
+                    _filteredSetings.Do(DrawPluginInSplitViewList);
 
                     GUILayout.Space(5);
                     GUILayout.Label(_noOptionsPluginsText.Value + ": " + _modsWithoutSettings, GetLabelStyle());
@@ -174,22 +173,24 @@ namespace ConfigurationManager
 
                 GUILayout.Space(5f);
 
-                PluginSettingsData pluginSettings = _filteredSetings.FirstOrDefault(plg => !plg.Collapsed) ?? _filteredSetings.FirstOrDefault();
+                PluginSettingsData plugin = _filteredSetings.FirstOrDefault(plg => !plg.Collapsed) ?? _filteredSetings.FirstOrDefault();
 
-                if (pluginSettings != null)
+                if (plugin != null)
                 {
-                    pluginSettings.Collapsed = false;
+                    plugin.Collapsed = false;
 
                     GUILayout.BeginVertical(GUILayout.Width(SettingsListColumnWidth));
 
+                    bool hasCollapsedCategories = plugin.Categories.Any(cat => cat.Collapsed);
+
                     GUILayout.BeginHorizontal(GetBackgroundStyle());
-                    SettingFieldDrawer.DrawPluginHeaderLabel(GetPluginHeaderName(pluginSettings, showGUID: true));
+                    SettingFieldDrawer.DrawPluginHeader(GetPluginHeaderName(plugin, showGUID: true), plugin.Collapsed, hasCollapsedCategories, out bool toggleCollapseAll);
                     GUILayout.EndHorizontal();
 
                     _settingWindowCategoriesScrollPos = GUILayout.BeginScrollView(_settingWindowCategoriesScrollPos, false, true);
                     try
                     {
-                        DrawPluginCategoriesSplitView(pluginSettings, pluginSettings.Categories.Any(cat => cat.Collapsed));
+                        DrawPluginCategoriesSplitView(plugin, hasCollapsedCategories, toggleCollapseAll);
                     }
                     finally
                     {
@@ -401,11 +402,7 @@ namespace ConfigurationManager
                 Color backgroundColor = GUI.backgroundColor;
                 GUI.backgroundColor = _entryBackgroundColor.Value;
 
-                GUILayout.BeginVertical(GetBackgroundStyle());
-
                 DrawSingleCategory(plugin, hasCollapsedCategories, toggleCollapseAll, category);
-                
-                GUILayout.EndVertical();
 
                 GUI.backgroundColor = backgroundColor;
             }
@@ -454,17 +451,23 @@ namespace ConfigurationManager
                     category.Collapsed = !hasCollapsedCategories;
 
                 if (plugin.Categories.Count > 1 || !_hideSingleSection.Value)
+                {
+                    GUILayout.BeginVertical(GetCategoryHeaderBackgroundStyle(), GUILayout.ExpandHeight(false));
                     if (category.Collapsed && !IsSearching ? SettingFieldDrawer.DrawCollapsedCategoryHeader(category.Name, category.Settings.All(IsDefaultValue)) : SettingFieldDrawer.DrawCategoryHeader(category.Name) && !IsSearching)
                         category.Collapsed = !category.Collapsed;
+                    GUILayout.EndVertical();
+                }
             }
 
-            if (!category.Collapsed || IsSearching)
+            if (category.Settings.Any() && (!category.Collapsed || IsSearching))
             {
+                GUILayout.BeginVertical(GetCategoryBackgroundStyle());
                 foreach (var setting in category.Settings)
                 {
                     DrawSingleSetting(setting);
                     GUILayout.Space(2);
                 }
+                GUILayout.EndVertical();
             }
         }
 
@@ -716,6 +719,11 @@ namespace ConfigurationManager
                 tooltipBackground.SetPixel(0, 0, _tooltipBackgroundColor.Value);
                 tooltipBackground.Apply();
                 TooltipBackground = tooltipBackground;
+
+                var headerBackground = new Texture2D(1, 1, TextureFormat.ARGB32, false);
+                headerBackground.SetPixel(0, 0, _headerBackgroundColor.Value);
+                headerBackground.Apply();
+                HeaderBackground = headerBackground;
             }
         }
 
@@ -724,10 +732,12 @@ namespace ConfigurationManager
             Destroy(WindowBackground);
             Destroy(EntryBackground);
             Destroy(TooltipBackground);
+            Destroy(HeaderBackground);
 
             WindowBackground = null;
             EntryBackground = null;
             TooltipBackground = null;
+            HeaderBackground = null;
 
             CreateBackgrounds();
         }

@@ -29,6 +29,8 @@ namespace ConfigurationManager
         private static GUIStyle pluginHeaderStyleSplitViewActive;
         private static GUIStyle backgroundStyle;
         private static GUIStyle backgroundStyleWithHover;
+        private static GUIStyle categoryBackgroundStyle;
+        private static GUIStyle categoryHeaderBackgroundStyle;
         private static GUIStyle tooltipStyle;
         private static GUIStyle fileEditorFileStyle;
         private static GUIStyle fileEditorFileStyleActive;
@@ -164,6 +166,14 @@ namespace ConfigurationManager
             backgroundStyleWithHover = new GUIStyle(backgroundStyle);
             backgroundStyleWithHover.hover.background = TooltipBackground;
 
+            categoryBackgroundStyle = new GUIStyle(backgroundStyle);
+            categoryBackgroundStyle.margin.bottom = 0;
+            categoryBackgroundStyle.margin.top = 0;
+
+            categoryHeaderBackgroundStyle = new GUIStyle(backgroundStyle);
+            categoryHeaderBackgroundStyle.normal.background = HeaderBackground;
+            categoryHeaderBackgroundStyle.margin.bottom = 0;
+
             tooltipStyle = new GUIStyle(GUI.skin.box);
             tooltipStyle.normal.textColor = _fontColor.Value;
             tooltipStyle.fontSize = fontSize;
@@ -218,6 +228,8 @@ namespace ConfigurationManager
         public static GUIStyle GetBoxStyle() => boxStyle;
         public static GUIStyle GetTooltipStyle() => tooltipStyle;
         public static GUIStyle GetBackgroundStyle(bool withHover = false) => withHover ? backgroundStyleWithHover : backgroundStyle;
+        public static GUIStyle GetCategoryBackgroundStyle() => categoryBackgroundStyle;
+        public static GUIStyle GetCategoryHeaderBackgroundStyle() => categoryHeaderBackgroundStyle;
         public static GUIStyle GetComboBoxStyle() => comboBoxStyle;
         public static GUIStyle GetToggleStyle() => toggleStyle;
         public static GUIStyle GetToggleStyle(bool isDefaulValue = true) => isDefaulValue ? toggleStyleValueDefault : toggleStyleValueChanged;
