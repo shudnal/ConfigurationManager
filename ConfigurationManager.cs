@@ -156,8 +156,6 @@ namespace ConfigurationManager
 
         public static ConfigEntry<string> _searchText;
         public static ConfigEntry<string> _searchTextSplitView;
-        public static ConfigEntry<string> _reloadText;
-        public static ConfigEntry<string> _resetText;
         public static ConfigEntry<string> _resetSettingText;
         public static ConfigEntry<string> _expandText;
         public static ConfigEntry<string> _collapseText;
@@ -276,9 +274,6 @@ namespace ConfigurationManager
             _searchTextEditor = Config.Bind("File Editor - Text", "Search", "Search:", new ConfigDescription("Search label text"));
             _saveFileTextEditor = Config.Bind("File Editor - Text", "Save", "Save", new ConfigDescription("Save changes in file"));
             _windowTitleTextEditor = Config.Bind("File Editor - Text", "Title", "Configuration Files Editor", new ConfigDescription("Window title"));
-
-            _reloadText = Config.Bind("Text - Plugin", "Reload", "Reload From File", new ConfigDescription("Reload mod config from file text"));
-            _resetText = Config.Bind("Text - Plugin", "Reset", "Reset To Default", new ConfigDescription("Reset mod config to default text"));
 
             _resetSettingText = Config.Bind("Text - Config", "Setting Reset", "Reset", new ConfigDescription("Reset setting text"));
             _clearText = Config.Bind("Text - Config", "Setting Clear", "Clear", new ConfigDescription("Clear search text"));

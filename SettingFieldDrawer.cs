@@ -61,7 +61,7 @@ namespace ConfigurationManager
             if (DrawCustomField(setting))
                 return;
 
-            if (setting.ShowRangeAsPercent != null && setting.AcceptableValueRange.Key != null)
+            if (setting.AcceptableValueRange.Key != null)
                 DrawRangeField(setting);
             else if (setting.AcceptableValues != null)
                 DrawListField(setting);

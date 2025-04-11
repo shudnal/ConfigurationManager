@@ -419,21 +419,6 @@ namespace ConfigurationManager
             var color = GUI.backgroundColor;
             GUI.backgroundColor = _widgetBackgroundColor.Value;
 
-            if (GUILayout.Button(_reloadText.Value, GetButtonStyle(), GUILayout.ExpandWidth(true)))
-            {
-                plugin.Categories.FirstOrDefault()?.Settings.FirstOrDefault()?.PluginInstance.Config.Reload();
-                BuildFilteredSettingList();
-            }
-
-            if (GUILayout.Button(_resetText.Value, GetButtonStyle(), GUILayout.ExpandWidth(true)))
-            {
-                foreach (var category in plugin.Categories)
-                    foreach (var setting in category.Settings)
-                        setting.Set(setting.DefaultValue);
-
-                BuildFilteredSettingList();
-            }
-
             if (!SplitView && GUILayout.Button(_collapseText.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
                 plugin.Collapsed = !plugin.Collapsed;
 
