@@ -17,7 +17,8 @@ namespace ConfigurationManager
         internal float scaleFactor;
         internal Matrix4x4 guiMatrix;
 
-        private float lastClickTime = 0f;
+        private float lastClickTime;
+        private Vector2 lastClickPosition;
         private const float doubleClickThreshold = 0.3f;
 
         private ConfigFilesEditor configFilesEditor;
@@ -63,7 +64,7 @@ namespace ConfigurationManager
 
                 currentWindowRect = GUILayout.Window(WindowId, currentWindowRect, SettingsWindow, _windowTitle.Value, GetWindowStyle());
 
-                if (!UnityInput.Current.GetKeyDown(KeyCode.Mouse0) && (currentWindowRect.x != _windowPosition.Value.x || currentWindowRect.y != _windowPosition.Value.y))
+                if (!UnityInput.Current.GetKeyDown(KeyCode.Mouse0) && (currentWindowRect.position != _windowPosition.Value))
                     SaveCurrentSizeAndPosition();
 
                 GUI.backgroundColor = color;
@@ -114,10 +115,11 @@ namespace ConfigurationManager
         {
             if (UnityInput.Current.GetMouseButtonDown(0) && titleBarRect.Contains(Event.current.mousePosition))
             {
-                if (Time.fixedTime != lastClickTime && Time.fixedTime - lastClickTime < doubleClickThreshold)
+                if (lastClickPosition == Event.current.mousePosition && Time.fixedTime != lastClickTime && Time.fixedTime - lastClickTime < doubleClickThreshold)
                     ResetWindowSizeAndPosition();
 
                 lastClickTime = Time.fixedTime;
+                lastClickPosition = Event.current.mousePosition;
             }
         }
 
@@ -145,8 +147,6 @@ namespace ConfigurationManager
 
         private void DrawSplitView()
         {
-            var scrollHeight = currentWindowRect.height;
-
             GUILayout.BeginHorizontal();
             {
                 GUILayout.BeginVertical(GUILayout.Width(PluginListColumnWidth));
@@ -179,7 +179,7 @@ namespace ConfigurationManager
                 {
                     plugin.Collapsed = false;
 
-                    GUILayout.BeginVertical(GUILayout.Width(SettingsListColumnWidth));
+                    GUILayout.BeginVertical(GUILayout.MaxWidth(SettingsListColumnWidth));
 
                     bool hasCollapsedCategories = plugin.Categories.Any(cat => cat.Collapsed);
 
@@ -203,7 +203,6 @@ namespace ConfigurationManager
                     GUILayout.FlexibleSpace();
                 }
             }
-
             GUILayout.EndHorizontal();
         }
 
