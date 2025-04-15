@@ -22,8 +22,8 @@ namespace ConfigurationManager
 
         public static Dictionary<Type, Action<SettingEntryBase>> SettingDrawHandlers { get; }
 
-        private static readonly Dictionary<SettingEntryBase, ComboBox> _comboBoxCache = new Dictionary<SettingEntryBase, ComboBox>();
-        private static readonly Dictionary<SettingEntryBase, ColorCacheEntry> _colorCache = new Dictionary<SettingEntryBase, ColorCacheEntry>();
+        private static readonly Dictionary<SettingEntryBase, ComboBox> ComboBoxCache = new Dictionary<SettingEntryBase, ComboBox>();
+        private static readonly Dictionary<SettingEntryBase, ColorCacheEntry> ColorCache = new Dictionary<SettingEntryBase, ColorCacheEntry>();
 
         private static ConfigurationManager _instance;
 
@@ -31,7 +31,7 @@ namespace ConfigurationManager
         
         public static bool SettingKeyboardShortcut => _currentKeyboardShortcutToSet != null;
 
-        public static readonly HashSet<string> customFieldDrawerFailed = new HashSet<string>();
+        public static readonly HashSet<string> CustomFieldDrawerFailed = new HashSet<string>();
         
         static SettingFieldDrawer()
         {
@@ -132,13 +132,13 @@ namespace ConfigurationManager
             if (setting == null)
                 return false;
 
-            return customFieldDrawerFailed.Contains(GetSettingID(setting));
+            return CustomFieldDrawerFailed.Contains(GetSettingID(setting));
         }
 
         public static void SetSettingFailedToCustomDraw(SettingEntryBase setting, Exception e = null)
         {
             string settingID = GetSettingID(setting);
-            customFieldDrawerFailed.Add(settingID);
+            CustomFieldDrawerFailed.Add(settingID);
 
             if (e != null)
                 LogWarning(settingID + "\n" + e);
@@ -153,14 +153,14 @@ namespace ConfigurationManager
         {
             ClearComboboxCache();
 
-            foreach (var tex in _colorCache)
+            foreach (var tex in ColorCache)
                 UnityEngine.Object.Destroy(tex.Value.Tex);
-            _colorCache.Clear();
+            ColorCache.Clear();
         }
 
         public static void ClearComboboxCache()
         {
-            _comboBoxCache.Clear();
+            ComboBoxCache.Clear();
         }
 
         public static void DrawCenteredLabel(string text, GUIStyle labelStyle)
@@ -323,16 +323,16 @@ namespace ConfigurationManager
             var buttonText = ObjectToGuiContent(setting.Get());
             var dispRect = GUILayoutUtility.GetRect(buttonText, GetButtonStyle(), GUILayout.ExpandWidth(true));
 
-            if (!_comboBoxCache.TryGetValue(setting, out var box))
+            if (!ComboBoxCache.TryGetValue(setting, out var box))
             {
                 box = new ComboBox(dispRect, buttonText, 
                                 list.Cast<object>().Select(ObjectToGuiContent).ToArray(), ObjectToGuiContent(setting.DefaultValue),
-                                GetButtonStyle(), GetButtonStyle(isDefaulValue:false),
+                                GetButtonStyle(), GetButtonStyle(isDefaultValue:false),
                                 GetBoxStyle(),
                                 GetComboBoxStyle(), 
                                 windowYmax);
 
-                _comboBoxCache[setting] = box;
+                ComboBoxCache[setting] = box;
             }
             else
             {
@@ -509,11 +509,6 @@ namespace ConfigurationManager
 
         private static void DrawKeyboardShortcut(SettingEntryBase setting)
         {
-            var value = setting.Get();
-            if (value.GetType() == typeof(KeyCode)){
-                value = new KeyboardShortcut((KeyCode)value);
-            }
-
             if (ReferenceEquals(_currentKeyboardShortcutToSet, setting))
             {
                 GUILayout.Label(_shortcutKeysText.Value, GetButtonStyle(), GUILayout.ExpandWidth(true));
@@ -616,11 +611,11 @@ namespace ConfigurationManager
             GUIHelper.BeginColor(setting);
             GUILayout.Label(string.Empty, GUILayout.ExpandWidth(true));
 
-            if (!_colorCache.TryGetValue(obj, out var cacheEntry))
+            if (!ColorCache.TryGetValue(obj, out var cacheEntry))
             {
                 cacheEntry = new ColorCacheEntry { Tex = new Texture2D(40, 10, TextureFormat.ARGB32, false), Last = setting };
                 cacheEntry.Tex.FillTexture(setting);
-                _colorCache[obj] = cacheEntry;
+                ColorCache[obj] = cacheEntry;
             }
 
             if (Event.current.type == EventType.Repaint)

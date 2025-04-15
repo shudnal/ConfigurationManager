@@ -250,17 +250,17 @@ namespace ConfigurationManager
         public static GUIStyle GetCategoryHeaderBackgroundStyle(bool withHover = false) => withHover ? categoryHeaderBackgroundStyleWithHover : categoryHeaderBackgroundStyle;
         public static GUIStyle GetComboBoxStyle() => comboBoxStyle;
         public static GUIStyle GetToggleStyle() => toggleStyle;
-        public static GUIStyle GetToggleStyle(bool isDefaulValue = true) => isDefaulValue ? toggleStyleValueDefault : toggleStyleValueChanged;
+        public static GUIStyle GetToggleStyle(bool isDefaultValue = true) => isDefaultValue ? toggleStyleValueDefault : toggleStyleValueChanged;
         public static GUIStyle GetToggleStyle(SettingEntryBase setting) => GetToggleStyle(IsDefaultValue(setting));
         public static GUIStyle GetLabelStyle() => labelStyle;
-        public static GUIStyle GetLabelStyle(bool isDefaulValue = true) => isDefaulValue ? labelStyleValueDefault : labelStyleValueChanged;
+        public static GUIStyle GetLabelStyle(bool isDefaultValue = true) => isDefaultValue ? labelStyleValueDefault : labelStyleValueChanged;
         public static GUIStyle GetLabelStyle(SettingEntryBase setting) => GetLabelStyle(IsDefaultValue(setting));
         public static GUIStyle GetLabelStyleInfo() => labelStyleInfo;
         public static GUIStyle GetLabelStyleSettingName() => labelStyleSettingName;
         public static GUIStyle GetButtonStyle() => buttonStyle;
-        public static GUIStyle GetButtonStyle(bool isDefaulValue = true) => isDefaulValue ? buttonStyleValueDefault : buttonStyleValueChanged;
+        public static GUIStyle GetButtonStyle(bool isDefaultValue = true) => isDefaultValue ? buttonStyleValueDefault : buttonStyleValueChanged;
         public static GUIStyle GetButtonStyle(SettingEntryBase setting) => GetButtonStyle(IsDefaultValue(setting));
-        public static GUIStyle GetTextStyle(bool isDefaulValue = true) => isDefaulValue ? textStyleValueDefault : textStyleValueChanged;
+        public static GUIStyle GetTextStyle(bool isDefaultValue = true) => isDefaultValue ? textStyleValueDefault : textStyleValueChanged;
         public static GUIStyle GetTextStyle(SettingEntryBase setting) => GetTextStyle(IsDefaultValue(setting));
         public static GUIStyle GetTextStyle(float setting, float defaultValue) => GetTextStyle(setting == defaultValue);
         public static GUIStyle GetTextStyle(Color setting, Color defaultValue) => GetTextStyle(IsEqualColorConfig(setting, defaultValue));
@@ -272,7 +272,7 @@ namespace ConfigurationManager
         public static bool IsEqualColorConfig(Color setting, Color defaultValue) => ColorUtility.ToHtmlStringRGBA(setting) == ColorUtility.ToHtmlStringRGBA(defaultValue);
         internal static bool IsDefaultValue(SettingEntryBase setting)
         {
-            if (setting == null || setting.DefaultValue == null || setting.Get() == null)
+            if (setting?.DefaultValue == null || setting.Get() == null)
                 return true;
 
             try

@@ -1,5 +1,4 @@
 ﻿using BepInEx;
-using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
 using System;
@@ -12,7 +11,10 @@ namespace ConfigurationManager
 {
     public partial class ConfigurationManager
     {
-        internal const int _headerSize = 20;
+        internal const int HeaderSize = 20;
+        internal const int DefaultWidth = 700;
+        internal const int DefaultHeight = 900;
+
 
         internal float scaleFactor;
         internal Matrix4x4 guiMatrix;
@@ -20,13 +22,13 @@ namespace ConfigurationManager
         private float lastClickTime;
         private float lastDoubleClickTime;
         private Vector2 lastClickPosition;
-        private const float doubleClickThreshold = 0.3f;
+        private const float DoubleClickThreshold = 0.3f;
 
-        private ConfigFilesEditor configFilesEditor;
+        private ConfigFilesEditor _configFilesEditor;
 
         public bool SplitView
         {
-            get => _splitView == null ? true : _splitView.Value;
+            get => _splitView == null || _splitView.Value;
             set
             {
                 if (_splitView.Value == (_splitView.Value = value))
@@ -54,11 +56,11 @@ namespace ConfigurationManager
                 currentWindowRect.size = _windowSize.Value;
                 currentWindowRect.position = _windowPosition.Value;
 
-                Matrix4x4 originalMatrix = GUI.matrix;
+                var originalMatrix = GUI.matrix;
                 GUI.matrix = guiMatrix;
 
                 GUI.Box(currentWindowRect, GUIContent.none, new GUIStyle());
-                Color color = GUI.backgroundColor;
+                var color = GUI.backgroundColor;
                 GUI.backgroundColor = _windowBackgroundColor.Value;
 
                 CalculateSettingsColumnsWidth(currentWindowRect.width);
@@ -70,10 +72,10 @@ namespace ConfigurationManager
 
                 GUI.backgroundColor = color;
 
-                if (configFilesEditor == null)
-                    configFilesEditor = new ConfigFilesEditor();
+                if (_configFilesEditor == null)
+                    _configFilesEditor = new ConfigFilesEditor();
 
-                configFilesEditor.OnGUI();
+                _configFilesEditor.OnGUI();
 
                 GUI.matrix = originalMatrix;
             }
@@ -91,7 +93,7 @@ namespace ConfigurationManager
         internal void SaveCurrentSizeAndPosition()
         {
             _windowSize.Value = new Vector2(Mathf.Clamp(currentWindowRect.size.x, 500f, ScreenWidth), Mathf.Clamp(currentWindowRect.size.y, 200f, ScreenHeight));
-            _windowPosition.Value = new Vector2(Mathf.Clamp(currentWindowRect.position.x, 0f, ScreenWidth - _windowSize.Value.x / 4f), Mathf.Clamp(currentWindowRect.position.y, 0f, ScreenHeight - _headerSize * 2));
+            _windowPosition.Value = new Vector2(Mathf.Clamp(currentWindowRect.position.x, 0f, ScreenWidth - _windowSize.Value.x / 4f), Mathf.Clamp(currentWindowRect.position.y, 0f, ScreenHeight - HeaderSize * 2));
             Config.Save();
             SettingFieldDrawer.ClearComboboxCache();
         }
@@ -120,11 +122,11 @@ namespace ConfigurationManager
         {
             if (UnityInput.Current.GetMouseButtonDown(0) && titleBarRect.Contains(Event.current.mousePosition))
             {
-                if (lastClickPosition == Event.current.mousePosition && Time.fixedTime != lastClickTime && Time.fixedTime - lastClickTime < doubleClickThreshold)
+                if (lastClickPosition == Event.current.mousePosition && Time.fixedTime != lastClickTime && Time.fixedTime - lastClickTime < DoubleClickThreshold)
                 {
                     ResetWindowSizeAndPosition();
 
-                    if (Time.fixedTime != lastDoubleClickTime && Time.fixedTime - lastDoubleClickTime < doubleClickThreshold)
+                    if (Time.fixedTime != lastDoubleClickTime && Time.fixedTime - lastDoubleClickTime < DoubleClickThreshold)
                         ResetWindowScale();
 
                     lastDoubleClickTime = Time.fixedTime;
@@ -137,7 +139,7 @@ namespace ConfigurationManager
 
         private void SettingsWindow(int id)
         {
-            Rect headerRect = new Rect(0, 0, currentWindowRect.width, _headerSize);
+            var headerRect = new Rect(0, 0, currentWindowRect.width, HeaderSize);
             HandleHeaderDblClick(headerRect);
 
             GUI.DragWindow(headerRect);
@@ -156,7 +158,7 @@ namespace ConfigurationManager
             if (!SettingFieldDrawer.DrawCurrentDropdown())
                 DrawTooltip(currentWindowRect);
 
-            currentWindowRect = Utilities.Utils.ResizeWindow(id, currentWindowRect, out bool sizeChanged);
+            currentWindowRect = Utilities.Utils.ResizeWindow(id, currentWindowRect, out var sizeChanged);
 
             if (sizeChanged)
                 SaveCurrentSizeAndPosition();
@@ -187,7 +189,7 @@ namespace ConfigurationManager
 
                 GUILayout.Space(5f);
 
-                PluginSettingsData plugin = _filteredSetings.FirstOrDefault(plg => !plg.Collapsed) ?? _filteredSetings.FirstOrDefault();
+                var plugin = _filteredSetings.FirstOrDefault(plg => !plg.Collapsed) ?? _filteredSetings.FirstOrDefault();
 
                 if (plugin != null)
                 {
@@ -195,9 +197,9 @@ namespace ConfigurationManager
 
                     GUILayout.BeginVertical(GUILayout.MaxWidth(SettingsListColumnWidth));
 
-                    bool hasCollapsedCategories = plugin.Categories.Any(cat => cat.Collapsed);
+                    var hasCollapsedCategories = plugin.Categories.Any(cat => cat.Collapsed);
 
-                    SettingFieldDrawer.DrawPluginHeader(GetPluginHeaderName(plugin, showGUID: true), plugin.Collapsed, hasCollapsedCategories, withHover:false, out bool toggleCollapseAll);
+                    SettingFieldDrawer.DrawPluginHeader(GetPluginHeaderName(plugin, showGuid: true), plugin.Collapsed, hasCollapsedCategories, withHover:false, out var toggleCollapseAll);
 
                     _settingWindowCategoriesScrollPos = GUILayout.BeginScrollView(_settingWindowCategoriesScrollPos, false, true);
                     try
@@ -301,11 +303,11 @@ namespace ConfigurationManager
                 GUILayout.Space(15f);
 
                 if (GUILayout.Button(_toggleTextEditorText.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
-                    configFilesEditor.IsOpen = !configFilesEditor.IsOpen;
+                    _configFilesEditor.IsOpen = !_configFilesEditor.IsOpen;
 
                 GUILayout.Space(15f);
 
-                string maxString = _viewModeListViewText.Value.Length > _viewModeSplitViewText.Value.Length ? _viewModeListViewText.Value : _viewModeSplitViewText.Value;
+                var maxString = _viewModeListViewText.Value.Length > _viewModeSplitViewText.Value.Length ? _viewModeListViewText.Value : _viewModeSplitViewText.Value;
                 if (GUILayout.Button(SplitView ? _viewModeListViewText.Value : _viewModeSplitViewText.Value, GetButtonStyle(), GUILayout.ExpandWidth(false), GUILayout.Width(GetButtonStyle().CalcSize(new GUIContent(maxString)).x)))
                     SplitView = !SplitView;
 
@@ -327,7 +329,7 @@ namespace ConfigurationManager
 
             if (string.IsNullOrEmpty(SearchString) && Event.current.type == EventType.Repaint)
             {
-                GUIStyle placeholderStyle = new GUIStyle(GetTextStyle());
+                var placeholderStyle = new GUIStyle(GetTextStyle());
                 placeholderStyle.normal.textColor = Color.gray;
 
                 GUI.Label(GUILayoutUtility.GetLastRect(), _searchText.Value, placeholderStyle);
@@ -354,9 +356,9 @@ namespace ConfigurationManager
 
             try
             {
-                bool hasCollapsedCategories = plugin.Categories.Any(cat => cat.Collapsed);
+                var hasCollapsedCategories = plugin.Categories.Any(cat => cat.Collapsed);
 
-                if (SettingFieldDrawer.DrawPluginHeader(GetPluginHeaderName(plugin), plugin.Collapsed, hasCollapsedCategories, withHover:true, out bool toggleCollapseAll) && !IsSearching)
+                if (SettingFieldDrawer.DrawPluginHeader(GetPluginHeaderName(plugin), plugin.Collapsed, hasCollapsedCategories, withHover:true, out var toggleCollapseAll) && !IsSearching)
                     plugin.Collapsed = !plugin.Collapsed;
 
                 if (IsSearching || !plugin.Collapsed)
@@ -368,7 +370,7 @@ namespace ConfigurationManager
             }
         }
 
-        private GUIContent GetPluginHeaderName(PluginSettingsData plugin, bool showGUID = false) => new GUIContent($"{plugin.Info.Name.TrimStart('!')} {plugin.Info.Version}{(showGUID ? $" ({plugin.Info.GUID})" : "")}");
+        private GUIContent GetPluginHeaderName(PluginSettingsData plugin, bool showGuid = false) => new GUIContent($"{plugin.Info.Name.TrimStart('!')} {plugin.Info.Version}{(showGuid ? $" ({plugin.Info.GUID})" : "")}");
 
         private void DrawPluginInSplitViewList(PluginSettingsData plugin)
         {
@@ -376,8 +378,6 @@ namespace ConfigurationManager
             GUI.backgroundColor = _entryBackgroundColor.Value;
 
             GUILayout.BeginHorizontal(GetBackgroundStyle(withHover: true));
-
-            bool hasCollapsedCategories = plugin.Categories.Any(cat => cat.Collapsed);
 
             if (SettingFieldDrawer.DrawPluginHeaderSplitViewList(GetPluginHeaderName(plugin), !plugin.Collapsed))
             {
@@ -397,7 +397,7 @@ namespace ConfigurationManager
 
         private void DrawSingleCategory(PluginSettingsData plugin, bool hasCollapsedCategories, bool toggleCollapseAll, PluginSettingsData.PluginSettingsGroupData category)
         {
-            Color backgroundColor = GUI.backgroundColor;
+            var backgroundColor = GUI.backgroundColor;
             GUI.backgroundColor = _entryBackgroundColor.Value;
 
             if (!string.IsNullOrEmpty(category.Name))
@@ -428,12 +428,12 @@ namespace ConfigurationManager
 
         private void DrawSingleSetting(SettingEntryBase setting)
         {
-            Color contentColor = GUI.contentColor;
-            bool enabled = GUI.enabled;
+            var contentColor = GUI.contentColor;
+            var guiEnabled = GUI.enabled;
 
             if (setting.ReadOnly == true && _readOnlyStyle.Value != ReadOnlyStyle.Ignored)
             {
-                if (enabled)
+                if (guiEnabled)
                     GUI.enabled = _readOnlyStyle.Value != ReadOnlyStyle.Disabled;
 
                 if (_readOnlyStyle.Value == ReadOnlyStyle.Colored)
@@ -460,8 +460,8 @@ namespace ConfigurationManager
 
             GUILayout.EndHorizontal();
 
-            if (enabled && !Utilities.ComboBox.IsShown())
-                GUI.enabled = enabled;
+            if (guiEnabled && !Utilities.ComboBox.IsShown())
+                GUI.enabled = true;
 
             GUI.contentColor = contentColor;
         }
@@ -478,7 +478,7 @@ namespace ConfigurationManager
             GUILayout.FlexibleSpace();
             if (_showTooltipBlock.Value)
             {
-                GUIContent content = new GUIContent("[?]", setting.Description);
+                var content = new GUIContent("[?]", setting.Description);
                 GUILayout.Label(content, GetLabelStyleInfo(), GUILayout.Width(GetLabelStyleInfo().CalcSize(content).x));
             }
 
@@ -491,10 +491,10 @@ namespace ConfigurationManager
         {
             if (setting.HideDefaultButton) return;
 
-            Color color = GUI.backgroundColor;
+            var color = GUI.backgroundColor;
             GUI.backgroundColor = _widgetBackgroundColor.Value;
 
-            bool DrawDefaultButton()
+            bool DrawResetButton()
             {
                 GUILayout.Space(5);
                 return GUILayout.Button(_resetSettingText.Value, GetButtonStyle(), GUILayout.ExpandWidth(false));
@@ -502,12 +502,12 @@ namespace ConfigurationManager
 
             if (setting.DefaultValue != null)
             {
-                if (DrawDefaultButton())
+                if (DrawResetButton())
                     setting.Set(setting.DefaultValue);
             }
             else if (setting.SettingType.IsClass)
             {
-                if (DrawDefaultButton())
+                if (DrawResetButton())
                     setting.Set(null);
             }
 
@@ -533,7 +533,7 @@ namespace ConfigurationManager
             if (_readOnlyStyle.Value == ReadOnlyStyle.Hidden)
                 results = results.Where(x => x.ReadOnly != true);
             if (HideSettings())
-                results = results.Where(x => !(x as ConfigSettingEntry).ShouldBeHidden());
+                results = results.Where(x => !((ConfigSettingEntry) x).ShouldBeHidden());
 
             if (IsSearching)
             {
@@ -574,7 +574,7 @@ namespace ConfigurationManager
                             Name = x.Key, 
                             Settings = x.OrderByDescending(set => set.Order).ThenBy(set => set.DispName).ToList(),
                             Collapsed = _categoriesCollapseable.Value && 
-                                            (collapsedCategoryState.TryGetValue(Tuple.Create(pluginSettings.Key.Name, x.Key), out bool collapsed) 
+                                            (collapsedCategoryState.TryGetValue(Tuple.Create(pluginSettings.Key.Name, x.Key), out var collapsed) 
                                             ? collapsed
                                             : _categoriesCollapsedDefault.Value && originalCategoryOrder.Count > 20 && x.All(IsDefaultValue))
                         });
@@ -590,11 +590,6 @@ namespace ConfigurationManager
                 .ToList();
         }
 
-        private static bool IsKeyboardShortcut(SettingEntryBase x)
-        {
-            return x.SettingType == typeof(KeyboardShortcut);
-        }
-
         private static bool ContainsSearchString(SettingEntryBase setting, string[] searchStrings)
         {
             var combinedSearchTarget = setting.PluginInfo.Name + "\n" +
@@ -608,13 +603,10 @@ namespace ConfigurationManager
             return searchStrings.All(s => combinedSearchTarget.IndexOf(s, StringComparison.InvariantCultureIgnoreCase) >= 0);
         }
 
-        public const int c_defaultWidth = 700;
-        public const int c_defaultHeight = 900;
-
         private void CalculateDefaultWindowRect()
         {
-            var width = Mathf.Min(Screen.width, c_defaultWidth) * (SplitView ? 1f + _splitViewListSize.Value : 1f);
-            var height = Mathf.Min(Screen.height, c_defaultHeight);
+            var width = Mathf.Min(Screen.width, DefaultWidth) * (SplitView ? 1f + _splitViewListSize.Value : 1f);
+            var height = Mathf.Min(Screen.height, DefaultHeight);
             var offsetX = Mathf.RoundToInt((Screen.width - width) / 10f);
             var offsetY = Mathf.RoundToInt((Screen.height - height) / 10f);
 

@@ -217,7 +217,7 @@ namespace ConfigurationManager
             _vectorPrecision = Config.Bind("General", "Vector field precision", 2, "Number of symbols after comma in vectors");
             _vectorDynamicPrecision = Config.Bind("General", "Vector field dynamic precision", true, "If every value in vector is integer .0 part will be omitted. Type \",\" or \".\" in vector field to enable precision back.");
             _keybindResetPosition = Config.Bind("General", "Reset position and size", new KeyboardShortcut(KeyCode.F1, KeyCode.LeftControl), "Set configuration manager window size and position to default values.");
-            _keybindResetScale = Config.Bind("General", "Reset position and size", new KeyboardShortcut(KeyCode.F1, KeyCode.LeftShift), "Set configuration manager window scale to default value.");
+            _keybindResetScale = Config.Bind("General", "Reset scale", new KeyboardShortcut(KeyCode.F1, KeyCode.LeftShift), "Set configuration manager window scale to default value.");
 
             _orderPluginByGuid.SettingChanged += (sender, args) => BuildSettingList();
 

@@ -2,7 +2,6 @@
 // Copyright 2018 GNU General Public License v3.0
 
 using BepInEx;
-using BepInEx.Logging;
 using System;
 using System.Reflection;
 
@@ -95,7 +94,7 @@ namespace ConfigurationManager
                 {
                     var inv = objToStr.GetType().GetMethod("Invoke", BindingFlags.Instance | BindingFlags.Public);
                     if (inv != null)
-                        entry.ObjToStr = o => inv.Invoke(objToStr, new object[] { o }) as string;
+                        entry.ObjToStr = o => inv.Invoke(objToStr, new[] { o }) as string;
                 }
                 else
                 {

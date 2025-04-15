@@ -24,17 +24,16 @@ namespace ConfigurationManager
             RenamingFile
         }
 
-        private readonly string[] directories = new string[2] { Paths.ConfigPath, Paths.PluginPath };
+        private readonly string[] _directories = { Paths.ConfigPath, Paths.PluginPath };
 
-        private readonly Dictionary<string, bool> folderStates = new Dictionary<string, bool>();
-        private readonly string trashBinDirectory = Path.Combine(Paths.CachePath, "ConfigurationManagerTrashBin");
+        private readonly Dictionary<string, bool> _folderStates = new Dictionary<string, bool>();
+        private readonly string _trashBinDirectory = Path.Combine(Paths.CachePath, "ConfigurationManagerTrashBin");
 
         private Vector2 _scrollPosition;
         private string _fileContent;
         private Vector2 _textScrollPosition;
 
-        private Rect windowRect = new Rect(100, 100, 800, 600);
-        private bool _isOpen;
+        private Rect _windowRect = new Rect(_windowPositionTextEditor.Value, _windowSizeTextEditor.Value);
 
         private const int WindowId = -680;
 
@@ -66,44 +65,30 @@ namespace ConfigurationManager
                 if (value == null)
                     value = string.Empty;
 
-                if (_searchString == value)
-                    return;
-
                 _searchString = value;
             }
         }
 
-        public bool IsOpen
-        {
-            get => _isOpen;
-            set
-            {
-                if (_isOpen == value)
-                    return;
-
-                _isOpen = value;
-            }
-        }
-
-        public ConfigFilesEditor()
-        {
-            windowRect = new Rect(_windowPositionTextEditor.Value, _windowSizeTextEditor.Value);
-        }
+        public bool IsOpen { get; set; }
 
         public void OnGUI()
         {
             if (!IsOpen)
                 return;
 
-            windowRect.size = _windowSizeTextEditor.Value;
-            windowRect.position = _windowPositionTextEditor.Value;
+            _windowRect.size = _windowSizeTextEditor.Value;
+            _windowRect.position = _windowPositionTextEditor.Value;
 
             Color color = GUI.backgroundColor;
             GUI.backgroundColor = _windowBackgroundColor.Value;
 
-            windowRect = GUI.Window(WindowId, windowRect, DrawWindow, _activeFile.IsNullOrWhiteSpace() ? _windowTitleTextEditor.Value : "..." + _activeFile.Replace(Path.GetDirectoryName(Paths.BepInExRootPath), ""), GetWindowStyle());
+            _windowRect = GUI.Window(WindowId, _windowRect, DrawWindow,
+                _activeFile.IsNullOrWhiteSpace()
+                    ? _windowTitleTextEditor.Value
+                    : "..." + _activeFile.Replace(Path.GetDirectoryName(Paths.BepInExRootPath) ?? string.Empty, ""), GetWindowStyle());
 
-            if (!UnityInput.Current.GetKeyDown(KeyCode.Mouse0) && (windowRect.x != _windowPositionTextEditor.Value.x || windowRect.y != _windowPositionTextEditor.Value.y))
+            if (!UnityInput.Current.GetKeyDown(KeyCode.Mouse0) &&
+                (_windowRect.position != _windowPositionTextEditor.Value))
                 SaveCurrentSizeAndPosition();
 
             GUI.backgroundColor = color;
@@ -111,8 +96,8 @@ namespace ConfigurationManager
 
         internal void SaveCurrentSizeAndPosition()
         {
-            _windowSizeTextEditor.Value = new Vector2(Mathf.Clamp(windowRect.size.x, 1000f, instance.ScreenWidth), Mathf.Clamp(windowRect.size.y, 600f, instance.ScreenHeight));
-            _windowPositionTextEditor.Value = new Vector2(Mathf.Clamp(windowRect.position.x, 0f, instance.ScreenWidth - _windowSize.Value.x / 4f), Mathf.Clamp(windowRect.position.y, 0f, instance.ScreenHeight - _headerSize * 2));
+            _windowSizeTextEditor.Value = new Vector2(Mathf.Clamp(_windowRect.size.x, 1000f, instance.ScreenWidth), Mathf.Clamp(_windowRect.size.y, 600f, instance.ScreenHeight));
+            _windowPositionTextEditor.Value = new Vector2(Mathf.Clamp(_windowRect.position.x, 0f, instance.ScreenWidth - _windowSize.Value.x / 4f), Mathf.Clamp(_windowRect.position.y, 0f, instance.ScreenHeight - HeaderSize * 2));
             instance.Config.Save();
         }
 
@@ -210,16 +195,16 @@ namespace ConfigurationManager
 
                     DrawSearchBox();
 
-                    _scrollPosition = GUILayout.BeginScrollView(_scrollPosition, GUILayout.Width(windowRect.width * 0.3f));
+                    _scrollPosition = GUILayout.BeginScrollView(_scrollPosition, GUILayout.Width(_windowRect.width * 0.3f));
                     _directoryDepth = 0;
-                    DrawDirectories(directories);
+                    DrawDirectories(_directories);
                     GUILayout.EndScrollView();
                     DrawDirectoriesMenu();
                 }
                 GUILayout.EndVertical();
 
                 // Content
-                GUILayout.BeginVertical(GetBackgroundStyle(), GUILayout.MaxWidth(windowRect.width * 0.7f));
+                GUILayout.BeginVertical(GetBackgroundStyle(), GUILayout.MaxWidth(_windowRect.width * 0.7f));
                 {
                     DrawContentButtons();
 
@@ -246,18 +231,18 @@ namespace ConfigurationManager
             }
             GUILayout.EndHorizontal();
 
-            GUI.DragWindow(new Rect(0, 0, windowRect.width, 20));
+            GUI.DragWindow(new Rect(0, 0, _windowRect.width, 20));
 
             if (!SettingFieldDrawer.DrawCurrentDropdown())
-                DrawTooltip(windowRect);
+                DrawTooltip(_windowRect);
 
-            windowRect = Utilities.Utils.ResizeWindow(windowID, windowRect, out bool sizeChanged);
+            _windowRect = Utilities.Utils.ResizeWindow(windowID, _windowRect, out bool sizeChanged);
 
             if (sizeChanged)
                 SaveCurrentSizeAndPosition();
         }
 
-        private float GetFileListWidth() => windowRect.width * 0.3f;
+        private float GetFileListWidth() => _windowRect.width * 0.3f;
 
         private void DrawDirectory(string path)
         {
@@ -273,7 +258,7 @@ namespace ConfigurationManager
             _directoryDepth--;
         }
 
-        private int _directoryDepth = 0;
+        private int _directoryDepth;
 
         private void DrawDirectories(string[] directories)
         {
@@ -282,16 +267,16 @@ namespace ConfigurationManager
                 if (!_showEmptyFolders.Value && !DirectoryContainsValidFiles(directory))
                     continue;
 
-                if (!folderStates.ContainsKey(directory))
-                    folderStates[directory] = false;
+                if (!_folderStates.ContainsKey(directory))
+                    _folderStates[directory] = false;
 
-                if (folderStates[directory] != (folderStates[directory] = GUILayout.Toggle(folderStates[directory], Path.GetFileName(directory), GetDirectoryStyle(directory == _activeDirectory))) && folderStates[directory])
+                if (_folderStates[directory] != (_folderStates[directory] = GUILayout.Toggle(_folderStates[directory], Path.GetFileName(directory), GetDirectoryStyle(directory == _activeDirectory))) && _folderStates[directory])
                 {
                     _activeDirectory = directory;
                     SetFileEditState(FileEditState.None);
                 }
 
-                if (folderStates[directory])
+                if (_folderStates[directory])
                 {
                     GUILayout.BeginHorizontal();
                     GUILayout.Space(DirectoryOffset);
@@ -340,6 +325,10 @@ namespace ConfigurationManager
             }
 
             string directory = Path.GetDirectoryName(_activeFile);
+
+            if (directory == null)
+                return;
+
             string newPath = Path.Combine(directory, _newItemName);
 
             if (File.Exists(newPath))
@@ -365,15 +354,17 @@ namespace ConfigurationManager
             if (_activeFile.IsNullOrWhiteSpace())
                 return;
 
-            Directory.CreateDirectory(trashBinDirectory);
+            Directory.CreateDirectory(_trashBinDirectory);
 
-            string filename = Path.Combine(trashBinDirectory, Path.GetFileName(_activeFile));
+            string filename = Path.Combine(_trashBinDirectory, Path.GetFileName(_activeFile));
             if (File.Exists(filename))
-                filename = Path.Combine(trashBinDirectory, $"{Path.GetFileNameWithoutExtension(filename)}_{DateTime.Now:yyyyMMdd_HHmmss}{Path.GetExtension(filename)}");
+                filename = Path.Combine(_trashBinDirectory, $"{Path.GetFileNameWithoutExtension(filename)}_{DateTime.Now:yyyyMMdd_HHmmss}{Path.GetExtension(filename)}");
 
             try
             {
-                File.Move(_activeFile, filename);
+                if (_activeFile != null)
+                    File.Move(_activeFile, filename);
+
                 _activeFile = string.Empty;
                 _fileContent = string.Empty;
                 SetFileEditState(FileEditState.None);
@@ -386,8 +377,8 @@ namespace ConfigurationManager
 
         private void OpenTrashBin()
         {
-            if (Directory.Exists(trashBinDirectory))
-                Process.Start(new ProcessStartInfo(trashBinDirectory) { UseShellExecute = true });
+            if (Directory.Exists(_trashBinDirectory))
+                Process.Start(new ProcessStartInfo(_trashBinDirectory) { UseShellExecute = true });
         }
 
         private void DrawFiles(string path)
@@ -424,14 +415,13 @@ namespace ConfigurationManager
                 return false;
 
             string extension = Path.GetExtension(file).ToLower();
-            foreach (string validExtension in _editableExtensions.Value.Split(',').Select(GetNormalizedExtention))
-                if (extension == validExtension)
-                    return SearchString.IsNullOrWhiteSpace() || filename.IndexOf(SearchString, System.StringComparison.OrdinalIgnoreCase) > -1;
+            if (_editableExtensions.Value.Split(',').Select(GetNormalizedExtension).Any(validExtension => extension == validExtension))
+                return SearchString.IsNullOrWhiteSpace() || filename.IndexOf(SearchString, StringComparison.OrdinalIgnoreCase) > -1;
 
             return false;
         }
 
-        private string GetNormalizedExtention(string extension)
+        private static string GetNormalizedExtension(string extension)
         {
             if (extension.IsNullOrWhiteSpace())
                 return string.Empty;
@@ -442,17 +432,7 @@ namespace ConfigurationManager
 
         private bool DirectoryContainsValidFiles(string path)
         {
-            foreach (string file in Directory.GetFiles(path))
-            {
-                if (IsValidFile(file)) return true;
-            }
-
-            foreach (string directory in Directory.GetDirectories(path))
-            {
-                if (DirectoryContainsValidFiles(directory)) return true;
-            }
-
-            return false; 
+            return Directory.GetFiles(path).Any(IsValidFile) || Directory.GetDirectories(path).Any(DirectoryContainsValidFiles);
         }
 
         private void LoadFileToEditor(string filePath)
@@ -566,7 +546,7 @@ namespace ConfigurationManager
                     .WithNamingConvention(CamelCaseNamingConvention.Instance)
                     .Build();
 
-                var result = deserializer.Deserialize<object>(text);
+                deserializer.Deserialize<object>(text);
 
                 return "File is valid YAML";
             }

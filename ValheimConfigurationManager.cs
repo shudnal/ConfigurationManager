@@ -145,10 +145,10 @@ namespace ConfigurationManager
 
         private void ConfigurationManager_DisplayingWindowChanged(object sender, ValueChangedEventArgs<bool> e)
         {
-            if (FejdStartup.instance && FejdStartup.instance.m_mainMenu.activeSelf)
+            if (FejdStartup.instance && FejdStartup.instance.m_mainMenu && FejdStartup.instance.m_mainMenu.activeSelf)
             {
-                FejdStartup.instance?.m_mainMenu.SetActive(value: false);
-                FejdStartup.instance?.m_mainMenu.SetActive(value: true);
+                FejdStartup.instance.m_mainMenu.SetActive(value: false);
+                FejdStartup.instance.m_mainMenu.SetActive(value: true);
             }
 
             if (Menu.instance)

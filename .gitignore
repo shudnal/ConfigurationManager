@@ -363,3 +363,6 @@ MigrationBackup/
 FodyWeavers.xsd
 /package/thunderstore/ConfigurationManager/ConfigurationManager.dll
 /package/thunderstore/ConfigurationManager.zip
+
+# Idea
+.idea/

@@ -14,14 +14,6 @@ namespace ConfigurationManager
 {
     internal static class SettingSearcher
     {
-        private static readonly ICollection<string> _updateMethodNames = new[]
-        {
-            "Update",
-            "FixedUpdate",
-            "LateUpdate",
-            "OnGUI"
-        };
-
         /// <summary>
         /// Search for all instances of BaseUnityPlugin loaded by chainloader or other means.
         /// </summary>
@@ -66,7 +58,7 @@ namespace ConfigurationManager
 
                 var detected = new List<SettingEntryBase>();
 
-                detected.AddRange(GetPluginConfig(plugin).Cast<SettingEntryBase>());
+                detected.AddRange(GetPluginConfig(plugin));
 
                 detected.RemoveAll(x => x.Browsable == false);
 
@@ -87,7 +79,7 @@ namespace ConfigurationManager
             if (coreConfigProp == null) throw new ArgumentNullException(nameof(coreConfigProp));
 
             var coreConfig = (ConfigFile)coreConfigProp.GetValue(null, null);
-            var bepinMeta = new BepInPlugin("BepInEx", "BepInEx", typeof(BepInEx.Bootstrap.Chainloader).Assembly.GetName().Version.ToString());
+            var bepinMeta = new BepInPlugin("BepInEx", "BepInEx", typeof(Chainloader).Assembly.GetName().Version.ToString());
 
             return coreConfig.Select(kvp => (SettingEntryBase)new ConfigSettingEntry(kvp.Value, null) { IsAdvanced = true, PluginInfo = bepinMeta });
         }

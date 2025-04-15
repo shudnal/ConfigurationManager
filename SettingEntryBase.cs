@@ -144,9 +144,9 @@ namespace ConfigurationManager
         /// </summary>
         public Func<string, object> StrToObj { get; internal set; }
 
-        private static readonly PropertyInfo[] _myProperties = typeof(SettingEntryBase).GetProperties(BindingFlags.Instance | BindingFlags.Public);
+        private static readonly PropertyInfo[] MyProperties = typeof(SettingEntryBase).GetProperties(BindingFlags.Instance | BindingFlags.Public);
         
-        private static readonly FieldInfo[] _myFields = typeof(SettingEntryBase).GetFields(BindingFlags.Instance | BindingFlags.Public);
+        private static readonly FieldInfo[] MyFields = typeof(SettingEntryBase).GetFields(BindingFlags.Instance | BindingFlags.Public);
 
         internal void SetFromAttributes(object[] attribs, BaseUnityPlugin pluginInstance)
         {
@@ -200,7 +200,7 @@ namespace ConfigurationManager
                         if (attrType.Name == "ConfigurationManagerAttributes")
                         {
                             var otherProperties = attrType.GetProperties(BindingFlags.Instance | BindingFlags.Public);
-                            foreach (var propertyPair in _myProperties.Join(otherProperties, my => my.Name, other => other.Name, (my, other) => new { my, other }))
+                            foreach (var propertyPair in MyProperties.Join(otherProperties, my => my.Name, other => other.Name, (my, other) => new { my, other }))
                             {
                                 try
                                 {
@@ -214,7 +214,7 @@ namespace ConfigurationManager
                                 }
                             }
 
-                            foreach (var propertyPair in _myFields.Join(otherProperties, my => my.Name, other => other.Name, (my, other) => new { my, other }))
+                            foreach (var propertyPair in MyFields.Join(otherProperties, my => my.Name, other => other.Name, (my, other) => new { my, other }))
                             {
                                 try
                                 {
@@ -229,7 +229,7 @@ namespace ConfigurationManager
                             }
 
                             var otherFields = attrType.GetFields(BindingFlags.Instance | BindingFlags.Public);
-                            foreach (var fieldPair in _myFields.Join(otherFields, my => my.Name, other => other.Name, (my, other) => new { my, other }))
+                            foreach (var fieldPair in MyFields.Join(otherFields, my => my.Name, other => other.Name, (my, other) => new { my, other }))
                             {
                                 try
                                 {
@@ -243,7 +243,7 @@ namespace ConfigurationManager
                                 }
                             }
 
-                            foreach (var fieldPair in _myProperties.Join(otherFields, my => my.Name, other => other.Name, (my, other) => new { my, other }))
+                            foreach (var fieldPair in MyProperties.Join(otherFields, my => my.Name, other => other.Name, (my, other) => new { my, other }))
                             {
                                 try
                                 {

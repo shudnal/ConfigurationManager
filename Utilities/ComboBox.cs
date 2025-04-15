@@ -39,7 +39,7 @@ namespace ConfigurationManager.Utilities
 
             DefaultValue = listContent.Length == 0 ? null : listContent[0];
             buttonStyleDefault = GetButtonStyle();
-            buttonStyleChanged = GetButtonStyle(isDefaulValue: false);
+            buttonStyleChanged = GetButtonStyle(isDefaultValue: false);
             boxStyle = GetBoxStyle();
             this.listStyle = GetComboBoxStyle();
         }
