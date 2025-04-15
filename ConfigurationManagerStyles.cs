@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using static ConfigurationManager.ConfigurationManager;
 
 namespace ConfigurationManager
@@ -7,6 +8,7 @@ namespace ConfigurationManager
     {
         private static GUIStyle windowStyle;
         private static GUIStyle labelStyle;
+        private static GUIStyle labelStyleSettingName;
         private static GUIStyle labelStyleInfo;
         private static GUIStyle labelStyleValueDefault;
         private static GUIStyle labelStyleValueChanged;
@@ -25,12 +27,14 @@ namespace ConfigurationManager
         private static GUIStyle categoryHeaderStyleDefault;
         private static GUIStyle categoryHeaderStyleChanged;
         private static GUIStyle pluginHeaderStyle;
+        private static GUIStyle pluginHeaderStyleActive;
         private static GUIStyle pluginHeaderStyleSplitView;
         private static GUIStyle pluginHeaderStyleSplitViewActive;
         private static GUIStyle backgroundStyle;
         private static GUIStyle backgroundStyleWithHover;
         private static GUIStyle categoryBackgroundStyle;
         private static GUIStyle categoryHeaderBackgroundStyle;
+        private static GUIStyle categoryHeaderBackgroundStyleWithHover;
         private static GUIStyle tooltipStyle;
         private static GUIStyle fileEditorFileStyle;
         private static GUIStyle fileEditorFileStyleActive;
@@ -60,10 +64,14 @@ namespace ConfigurationManager
             labelStyle.normal.textColor = _fontColor.Value;
             labelStyle.fontSize = fontSize;
 
-            labelStyleInfo = new GUIStyle(labelStyle);
+            labelStyleSettingName = new GUIStyle(labelStyle);
+            labelStyleSettingName.wordWrap = false;
+            labelStyleSettingName.clipping = TextClipping.Clip;
+
+            labelStyleInfo = new GUIStyle(labelStyleSettingName);
             labelStyleInfo.hover.textColor = _fontColorValueChanged.Value;
             labelStyleInfo.hover.background = TooltipBackground;
-            labelStyleInfo.alignment = TextAnchor.UpperCenter;
+            labelStyleInfo.alignment = TextAnchor.MiddleCenter;
             labelStyleInfo.margin.right = 10;
             labelStyleInfo.margin.top = 6;
             labelStyleInfo.padding = new RectOffset(0, 0, 0, 0);
@@ -113,6 +121,9 @@ namespace ConfigurationManager
             categoryHeaderStyleChanged.onNormal.textColor = _fontColorValueChanged.Value;
 
             pluginHeaderStyle = new GUIStyle(categoryHeaderStyleDefault);
+            
+            pluginHeaderStyleActive = new GUIStyle(pluginHeaderStyle);
+            pluginHeaderStyleActive.normal.textColor = _fontColorValueChanged.Value;
 
             pluginHeaderStyleSplitView = new GUIStyle(labelStyle)
             {
@@ -178,10 +189,13 @@ namespace ConfigurationManager
             categoryHeaderBackgroundStyle.padding.bottom = 0;
             categoryHeaderBackgroundStyle.padding.top = 0;
 
+            categoryHeaderBackgroundStyleWithHover = new GUIStyle(categoryHeaderBackgroundStyle);
+            categoryHeaderBackgroundStyleWithHover.hover.background = HeaderBackgroundHover;
+
             tooltipStyle = new GUIStyle(GUI.skin.box);
             tooltipStyle.normal.textColor = _fontColor.Value;
             tooltipStyle.fontSize = fontSize;
-            tooltipStyle.wordWrap = true;
+            tooltipStyle.wordWrap = false;
             tooltipStyle.alignment = TextAnchor.MiddleLeft;
             tooltipStyle.normal.background = TooltipBackground;
             tooltipStyle.padding.left = 10;
@@ -225,7 +239,7 @@ namespace ConfigurationManager
 
         public static GUIStyle GetWindowStyle() => windowStyle;
         public static GUIStyle GetCategoryStyle(bool isDefaultStyle = true) => isDefaultStyle ? categoryHeaderStyleDefault : categoryHeaderStyleChanged;
-        public static GUIStyle GetHeaderStyle() => pluginHeaderStyle;
+        public static GUIStyle GetHeaderStyle(bool isActive) => isActive ? pluginHeaderStyleActive : pluginHeaderStyle;
         public static GUIStyle GetHeaderStyleSplitView(bool isActivePlugin = false) => isActivePlugin ? pluginHeaderStyleSplitViewActive : pluginHeaderStyleSplitView;
         public static GUIStyle GetSliderStyle() => sliderStyle;
         public static GUIStyle GetThumbStyle() => thumbStyle;
@@ -233,7 +247,7 @@ namespace ConfigurationManager
         public static GUIStyle GetTooltipStyle() => tooltipStyle;
         public static GUIStyle GetBackgroundStyle(bool withHover = false) => withHover ? backgroundStyleWithHover : backgroundStyle;
         public static GUIStyle GetCategoryBackgroundStyle() => categoryBackgroundStyle;
-        public static GUIStyle GetCategoryHeaderBackgroundStyle() => categoryHeaderBackgroundStyle;
+        public static GUIStyle GetCategoryHeaderBackgroundStyle(bool withHover = false) => withHover ? categoryHeaderBackgroundStyleWithHover : categoryHeaderBackgroundStyle;
         public static GUIStyle GetComboBoxStyle() => comboBoxStyle;
         public static GUIStyle GetToggleStyle() => toggleStyle;
         public static GUIStyle GetToggleStyle(bool isDefaulValue = true) => isDefaulValue ? toggleStyleValueDefault : toggleStyleValueChanged;
@@ -242,6 +256,7 @@ namespace ConfigurationManager
         public static GUIStyle GetLabelStyle(bool isDefaulValue = true) => isDefaulValue ? labelStyleValueDefault : labelStyleValueChanged;
         public static GUIStyle GetLabelStyle(SettingEntryBase setting) => GetLabelStyle(IsDefaultValue(setting));
         public static GUIStyle GetLabelStyleInfo() => labelStyleInfo;
+        public static GUIStyle GetLabelStyleSettingName() => labelStyleSettingName;
         public static GUIStyle GetButtonStyle() => buttonStyle;
         public static GUIStyle GetButtonStyle(bool isDefaulValue = true) => isDefaulValue ? buttonStyleValueDefault : buttonStyleValueChanged;
         public static GUIStyle GetButtonStyle(SettingEntryBase setting) => GetButtonStyle(IsDefaultValue(setting));
@@ -262,7 +277,7 @@ namespace ConfigurationManager
 
             try
             {
-                return setting.SettingType == typeof(Color) ? IsEqualColorConfig((Color)setting.Get(), (Color)setting.DefaultValue) : setting.Get().ToString() == setting.DefaultValue.ToString();
+                return setting.SettingType == typeof(Color) ? IsEqualColorConfig((Color)setting.Get(), (Color)setting.DefaultValue) : setting.Get().ToString().Equals(setting.DefaultValue.ToString(), StringComparison.OrdinalIgnoreCase);
             }
             catch
             {

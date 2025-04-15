@@ -83,9 +83,20 @@ namespace ConfigurationManager
             var color = GUI.contentColor;
 
             bool result = true;
+
+            var textFieldFontSize = GUI.skin.textField.fontSize;
+            var textAreaFontSize = GUI.skin.textArea.fontSize;
+            var labelFontSize = GUI.skin.label.fontSize;
+            var buttonFontSize = GUI.skin.button.fontSize;
+
+            GUI.skin.textArea.fontSize = fontSize;
+            GUI.skin.textField.fontSize = fontSize;
+            GUI.skin.label.fontSize = fontSize;
+            GUI.skin.button.fontSize = fontSize;
+
             try
             {
-                GUI.contentColor = setting.Get().ToString().Equals(setting.DefaultValue.ToString(), StringComparison.OrdinalIgnoreCase) ? _fontColorValueDefault.Value : _fontColorValueChanged.Value;
+                GUI.contentColor = IsDefaultValue(setting) ? _fontColorValueDefault.Value : _fontColorValueChanged.Value;
 
                 if (setting.CustomDrawer != null)
                     setting.CustomDrawer(setting is ConfigSettingEntry newSetting ? newSetting.Entry : null);
@@ -108,6 +119,11 @@ namespace ConfigurationManager
             }
 
             GUI.contentColor = color;
+            GUI.skin.textField.fontSize = textFieldFontSize;
+            GUI.skin.textArea.fontSize = textAreaFontSize;
+            GUI.skin.label.fontSize = labelFontSize;
+            GUI.skin.button.fontSize = buttonFontSize;
+
             return result;
         }
 
@@ -170,21 +186,20 @@ namespace ConfigurationManager
             return GUILayout.Button($"> {text} <", GetCategoryStyle(isDefaultStyle), GUILayout.ExpandWidth(true));
         }
 
-        public static bool DrawPluginHeader(GUIContent content, bool isCollapsed, bool hasCollapsedCategories, out bool toggleCollapseAll)
+        public static bool DrawPluginHeader(GUIContent content, bool isCollapsed, bool hasCollapsedCategories, bool withHover, out bool toggleCollapseAll)
         {
+            GUILayout.BeginHorizontal(GetBackgroundStyle(withHover));
+            
             toggleCollapseAll = false;
-            if (!_categoriesCollapseable.Value)
-                return DrawPluginHeaderLabel(content);
+            bool state = GUILayout.Button(content, GetHeaderStyle(withHover && !isCollapsed), GUILayout.ExpandWidth(true));
 
-            GUILayout.BeginHorizontal();
-            bool state = DrawPluginHeaderLabel(content);
-            toggleCollapseAll = !isCollapsed && GUILayout.Button(hasCollapsedCategories ? "v" : "<", GetButtonStyle(), GUILayout.ExpandWidth(false));
+            if (_categoriesCollapseable.Value)
+                toggleCollapseAll = !isCollapsed && GUILayout.Button(hasCollapsedCategories ? "v" : "<", GetButtonStyle(), GUILayout.ExpandWidth(false));
+            
             GUILayout.EndHorizontal();
 
             return state;
         }
-
-        public static bool DrawPluginHeaderLabel(GUIContent content) => GUILayout.Button(content, GetHeaderStyle(), GUILayout.ExpandWidth(true));
         
         public static bool DrawPluginHeaderSplitViewList(GUIContent content, bool isActivePlugin) => GUILayout.Button(content, GetHeaderStyleSplitView(isActivePlugin), GUILayout.ExpandWidth(true));
 
@@ -271,17 +286,20 @@ namespace ConfigurationManager
                             // Skip the 0 / none enum value, just uncheck everything to get 0
                             if (value.val != 0)
                             {
+                                bool curr = (currentValue & value.val) == value.val;
+                                bool defValue = (defaultValue & value.val) == value.val;
+
+                                GUIStyle style = GetToggleStyle(curr == defValue);
+                                
                                 // Make sure this horizontal group doesn't extend over window width, if it does then start a new horiz group below
-                                var textDimension = (int)GUI.skin.toggle.CalcSize(new GUIContent(value.name)).x;
+                                var textDimension = (int)style.CalcSize(new GUIContent(value.name)).x;
                                 currentWidth += textDimension;
                                 if (currentWidth > maxWidth)
                                     break;
 
                                 GUI.changed = false;
 
-                                bool curr = (currentValue & value.val) == value.val;
-                                bool defValue = (defaultValue & value.val) == value.val;
-                                var newVal = GUILayout.Toggle(curr, value.name, GetToggleStyle(curr == defValue), GUILayout.ExpandWidth(false));
+                                var newVal = GUILayout.Toggle(curr, value.name, style, GUILayout.ExpandWidth(false));
                                 if (GUI.changed)
                                 {
                                     var newValue = newVal ? currentValue | value.val : currentValue & ~value.val;

@@ -97,6 +97,7 @@ namespace ConfigurationManager
         internal static Texture2D EntryBackground { get; private set; }
         internal static Texture2D TooltipBackground { get; private set; }
         internal static Texture2D HeaderBackground { get; private set; }
+        internal static Texture2D HeaderBackgroundHover { get; private set; }
 
         internal int LeftColumnWidth { get; private set; }
         internal int RightColumnWidth { get; private set; }
@@ -112,13 +113,12 @@ namespace ConfigurationManager
         }
 
         public static ConfigEntry<bool> _showAdvanced;
-        public static ConfigEntry<bool> _showKeybinds;
-        public static ConfigEntry<bool> _showSettings;
         public static ConfigEntry<bool> _loggingEnabled;
         public static ConfigEntry<ReadOnlyStyle> _readOnlyStyle;
 
         public static ConfigEntry<KeyboardShortcut> _keybind;
         public static ConfigEntry<KeyboardShortcut> _keybindResetPosition;
+        public static ConfigEntry<KeyboardShortcut> _keybindResetScale;
         public static ConfigEntry<bool> _hideSingleSection;
         public static ConfigEntry<bool> _pluginConfigCollapsedDefault;
         public static ConfigEntry<int> _textSize;
@@ -143,6 +143,7 @@ namespace ConfigurationManager
         public static ConfigEntry<string> _normalText;
         public static ConfigEntry<string> _shortcutsText;
         public static ConfigEntry<string> _advancedText;
+        public static ConfigEntry<string> _advancedTextTooltip;
         public static ConfigEntry<string> _closeText;
 
         public static ConfigEntry<Vector2> _windowPositionTextEditor;
@@ -155,10 +156,7 @@ namespace ConfigurationManager
         public static ConfigEntry<bool> _hideModConfigs;
 
         public static ConfigEntry<string> _searchText;
-        public static ConfigEntry<string> _searchTextSplitView;
         public static ConfigEntry<string> _resetSettingText;
-        public static ConfigEntry<string> _expandText;
-        public static ConfigEntry<string> _collapseText;
         public static ConfigEntry<string> _clearText;
         public static ConfigEntry<string> _cancelText;
         public static ConfigEntry<string> _enabledText; 
@@ -167,12 +165,13 @@ namespace ConfigurationManager
         public static ConfigEntry<string> _shortcutKeysText;
         public static ConfigEntry<string> _noOptionsPluginsText;
         public static ConfigEntry<string> _toggleTextEditorText;
-        public static ConfigEntry<string> _viewModeSingleColumnText;
+        public static ConfigEntry<string> _viewModeListViewText;
         public static ConfigEntry<string> _viewModeSplitViewText;
 
         public static ConfigEntry<Color> _windowBackgroundColor;
         public static ConfigEntry<Color> _tooltipBackgroundColor;
         public static ConfigEntry<Color> _headerBackgroundColor;
+        public static ConfigEntry<Color> _headerBackgroundHoverColor;
         public static ConfigEntry<Color> _entryBackgroundColor;
         public static ConfigEntry<Color> _fontColor;
         public static ConfigEntry<Color> _fontColorValueChanged;
@@ -206,40 +205,40 @@ namespace ConfigurationManager
             _fieldDrawer = new SettingFieldDrawer(this);
 
             _keybind = Config.Bind("General", "Show config manager", new KeyboardShortcut(KeyCode.F1),
-                new ConfigDescription("The shortcut used to toggle the config manager window on and off.\n" +
-                                      "The key can be overridden by a game-specific plugin if necessary, in that case this setting is ignored."));
+                "The shortcut used to toggle the config manager window on and off.\n" +
+                                      "The key can be overridden by a game-specific plugin if necessary, in that case this setting is ignored.");
 
-            _hideSingleSection = Config.Bind("General", "Hide single sections", false, new ConfigDescription("Show section title for plugins with only one section"));
-            _loggingEnabled = Config.Bind("General", "Logging enabled", false, new ConfigDescription("Enable logging"));
-            _pluginConfigCollapsedDefault = Config.Bind("General", "Plugin collapsed default", true, new ConfigDescription("If set to true plugins will be collapsed when opening the configuration manager window"));
+            _hideSingleSection = Config.Bind("General", "Hide single sections", false, "Show section title for plugins with only one section");
+            _loggingEnabled = Config.Bind("General", "Logging enabled", false, "Enable logging");
+            _pluginConfigCollapsedDefault = Config.Bind("General", "Plugin collapsed default", true, "If set to true plugins will be collapsed when opening the configuration manager window");
             _textSize = Config.Bind("General", "Font size", 14, "Font size");
             _orderPluginByGuid = Config.Bind("General", "Order plugins by GUID", false, "Default order is by plugin name");
             _rangePrecision = Config.Bind("General", "Range field precision", 3, "Number of symbols after comma in floating-point numbers");
             _vectorPrecision = Config.Bind("General", "Vector field precision", 2, "Number of symbols after comma in vectors");
             _vectorDynamicPrecision = Config.Bind("General", "Vector field dynamic precision", true, "If every value in vector is integer .0 part will be omitted. Type \",\" or \".\" in vector field to enable precision back.");
-            _keybindResetPosition = Config.Bind("General", "Reset position and size", new KeyboardShortcut(KeyCode.F1, KeyCode.LeftControl), "Set configuration manager window size and position to default values." +
-                                                                                                                                             "\nWARNING!!! If custom config drawer uses mouse position it could break.");
+            _keybindResetPosition = Config.Bind("General", "Reset position and size", new KeyboardShortcut(KeyCode.F1, KeyCode.LeftControl), "Set configuration manager window size and position to default values.");
+            _keybindResetScale = Config.Bind("General", "Reset position and size", new KeyboardShortcut(KeyCode.F1, KeyCode.LeftShift), "Set configuration manager window scale to default value.");
 
             _orderPluginByGuid.SettingChanged += (sender, args) => BuildSettingList();
 
             _splitView = Config.Bind("General - Window", "Split View", true, "If enabled - plugins will be shown in the left column and plugin settings will be shown in the right column.");
-            _scaleFactor = Config.Bind("General - Window", "Scale factor", 1f, new ConfigDescription("Scale factor of configuration manager window", new AcceptableValueRange<float>(0.5f, 2.5f)));
+            _scaleFactor = Config.Bind("General - Window", "Scale factor", 1f, new ConfigDescription("Scale factor of configuration manager window. Triple click on configuration manager window title to reset scale.", new AcceptableValueRange<float>(0.5f, 2.5f)));
             _splitViewListSize = Config.Bind("General - Window", "Split View list relative size", 0.3f, new ConfigDescription("Relative size (percentage of window width) of split view plugin names list", new AcceptableValueRange<float>(0.1f, 0.5f)));
             _columnSeparatorPosition = Config.Bind("General - Window", "Setting name relative size", 0.4f, new ConfigDescription("Relative position of virtual line separating setting name from value", new AcceptableValueRange<float>(0.2f, 0.6f)));
 
             CalculateDefaultWindowRect();
 
-            _windowPosition = Config.Bind("General - Window", "Window position", GetDefaultManagerWindowPosition(), "Window position");
-            _windowSize = Config.Bind("General - Window", "Window size", GetDefaultManagerWindowSize(), "Window size");
+            _windowPosition = Config.Bind("General - Window", "Window position", GetDefaultManagerWindowPosition(), "Window position. Double click on window title to reset position.");
+            _windowSize = Config.Bind("General - Window", "Window size", GetDefaultManagerWindowSize(), "Window size. Double click on window title to reset size.");
             _showTooltipBlock = Config.Bind("General - Window", "Show ? next to config values", true, "Show hoverable block to get tooltip.");
 
-            _editableExtensions = Config.Bind("General - File Editor", "Editable files", "json,yaml,yml,cfg", new ConfigDescription("Comma separated list of extensions"));
-            _hideModConfigs = Config.Bind("General - File Editor", "Hide mod configs", true, new ConfigDescription("Hide .cfg files with mod configurations generated by BepInEx" +
+            _editableExtensions = Config.Bind("General - File Editor", "Editable files", "json,yaml,yml,cfg", "Comma separated list of extensions");
+            _hideModConfigs = Config.Bind("General - File Editor", "Hide mod configs", true, "Hide .cfg files with mod configurations generated by BepInEx" +
                                                                                                                 "\nIt is meant to be edited in configuration manager main window." +
-                                                                                                                "\nConfigurations from inactive mod will be loaded anyway"));
-            _showEmptyFolders = Config.Bind("General - File Editor", "Show empty folders", false, new ConfigDescription("Hide or show directories with no files"));
-            _windowPositionTextEditor = Config.Bind("General - File Editor", "Window position", GetDefaultTextEditorWindowPosition(), "Window position");
-            _windowSizeTextEditor = Config.Bind("General - File Editor", "Window size", GetDefaultTextEditorWindowSize(), "Window size");
+                                                                                                                "\nConfigurations from inactive mod will be loaded anyway");
+            _showEmptyFolders = Config.Bind("General - File Editor", "Show empty folders", false, "Hide or show directories with no files");
+            _windowPositionTextEditor = Config.Bind("General - File Editor", "Window position", GetDefaultTextEditorWindowPosition(), "Window position. Double click on window title to reset position.");
+            _windowSizeTextEditor = Config.Bind("General - File Editor", "Window size", GetDefaultTextEditorWindowSize(), "Window size. Double click on window title to reset size.");
 
             _sortCategoriesByName = Config.Bind("General - Categories", "Sort by name", false, "If disabled, categories will be sorted in the order in which they were declared by the mod author.");
             _categoriesCollapseable = Config.Bind("General - Categories", "Collapsable categories", true, "Categories can be collapsed to reduce lagging and to ease scrolling.");
@@ -251,42 +250,40 @@ namespace ConfigurationManager
             _categoriesCollapsedDefault.SettingChanged += (sender, args) => BuildSettingList();
 
             _showAdvanced = Config.Bind("Filtering", "Show advanced", false);
-            _showKeybinds = Config.Bind("Filtering", "Show keybinds", true);
-            _showSettings = Config.Bind("Filtering", "Show settings", true);
-            _readOnlyStyle = Config.Bind("Filtering", "Style readonly entries", ReadOnlyStyle.Colored, new ConfigDescription("Entries marked as readonly are not available for change."));
+            _readOnlyStyle = Config.Bind("Filtering", "Style readonly entries", ReadOnlyStyle.Colored, "Entries marked as readonly are not available for change.");
 
             _readOnlyStyle.SettingChanged += (sender, args) => BuildSettingList();
 
-            _windowTitle = Config.Bind("Text - Menu", "Window Title", "Configuration Manager", new ConfigDescription("Window title text"));
-            _normalText = Config.Bind("Text - Menu", "Normal", "Normal", new ConfigDescription("Normal settings toggle text"));
-            _shortcutsText = Config.Bind("Text - Menu", "Shortcuts", "Keybinds", new ConfigDescription("Shortcut key settings toggle text"));
-            _advancedText = Config.Bind("Text - Menu", "Advanced", "Advanced", new ConfigDescription("Advanced settings toggle text"));
-            _closeText = Config.Bind("Text - Menu", "Close", "Close", new ConfigDescription("Advanced settings toggle text"));
-            _searchText = Config.Bind("Text - Menu", "Search", "Search Settings:", new ConfigDescription("Search label text"));
-            _searchTextSplitView = Config.Bind("Text - Menu", "Search in Split View", "Search:", new ConfigDescription("Search label text"));
-            _expandText = Config.Bind("Text - Menu", "List Expand", "Expand", new ConfigDescription("Expand button text"));
-            _collapseText = Config.Bind("Text - Menu", "List Collapse", "Collapse", new ConfigDescription("Collapse button text"));
-            _noOptionsPluginsText = Config.Bind("Text - Menu", "Plugins without options", "Plugins with no options available", new ConfigDescription("Text in footer"));
-            _viewModeSingleColumnText = Config.Bind("Text - Menu", "Single Column", "Single Column", new ConfigDescription("Text for button to change to single column view mode"));
-            _viewModeSplitViewText = Config.Bind("Text - Menu", "Split View", "Split View", new ConfigDescription("Text for button to change to split view mode"));
+            _windowTitle = Config.Bind("Text - Menu", "Window Title", "Configuration Manager", "Window title text");
+            _normalText = Config.Bind("Text - Menu", "Normal", "Normal", "Normal settings toggle text");
+            _shortcutsText = Config.Bind("Text - Menu", "Shortcuts", "Keybinds", "Shortcut key settings toggle text");
+            _advancedText = Config.Bind("Text - Menu", "Advanced", "Advanced", "Advanced settings toggle text");
+            _advancedTextTooltip = Config.Bind("Text - Menu", "Advanced tooltip", "Show plugins and settings marked by author as advanced." +
+                "\nFor example BepInEx settings are marked as advanced.", "Advanced settings toggle tooltip");
+            _closeText = Config.Bind("Text - Menu", "Close", "Close", "Close button text");
+            _searchText = Config.Bind("Text - Menu", "Search placeholder", "Search settings", "Search placeholder text");
+            _noOptionsPluginsText = Config.Bind("Text - Menu", "Plugins without options", "Plugins with no options available", "Text in footer");
+            _viewModeListViewText = Config.Bind("Text - Menu", "List View", "List View", "Text for button to change to single column legacy view mode");
+            _viewModeSplitViewText = Config.Bind("Text - Menu", "Split View", "Split View", "Text for button to change to split view mode");
 
-            _toggleTextEditorText = Config.Bind("File Editor - Text", "Open button", "Show File Editor", new ConfigDescription("Open file editor label text"));
-            _searchTextEditor = Config.Bind("File Editor - Text", "Search", "Search:", new ConfigDescription("Search label text"));
-            _saveFileTextEditor = Config.Bind("File Editor - Text", "Save", "Save", new ConfigDescription("Save changes in file"));
-            _windowTitleTextEditor = Config.Bind("File Editor - Text", "Title", "Configuration Files Editor", new ConfigDescription("Window title"));
+            _toggleTextEditorText = Config.Bind("File Editor - Text", "Open button", "Show File Editor", "Open file editor label text");
+            _searchTextEditor = Config.Bind("File Editor - Text", "Search", "Search:", "Search label text");
+            _saveFileTextEditor = Config.Bind("File Editor - Text", "Save", "Save", "Save changes in file");
+            _windowTitleTextEditor = Config.Bind("File Editor - Text", "Title", "Configuration Files Editor", "Window title");
 
-            _resetSettingText = Config.Bind("Text - Config", "Setting Reset", "Reset", new ConfigDescription("Reset setting text"));
-            _clearText = Config.Bind("Text - Config", "Setting Clear", "Clear", new ConfigDescription("Clear search text"));
-            _cancelText = Config.Bind("Text - Config", "Setting Cancel", "Cancel", new ConfigDescription("Cancel button text"));
-            _enabledText = Config.Bind("Text - Config", "Toggle True", "Enabled", new ConfigDescription("Text on enabled toggle"));
-            _disabledText = Config.Bind("Text - Config", "Toggle False", "Disabled", new ConfigDescription("Text on disabled toggle"));
-            _shortcutKeyText = Config.Bind("Text - Config", "Shortcut key single", "Set", new ConfigDescription("Text when waiting for key press"));
-            _shortcutKeysText = Config.Bind("Text - Config", "Shortcut keys combination", "Press any key", new ConfigDescription("Text when waiting for key combination"));
+            _resetSettingText = Config.Bind("Text - Config", "Setting Reset", "Reset", "Reset setting text");
+            _clearText = Config.Bind("Text - Config", "Setting Clear", "Clear", "Clear search text");
+            _cancelText = Config.Bind("Text - Config", "Setting Cancel", "Cancel", "Cancel button text");
+            _enabledText = Config.Bind("Text - Config", "Toggle True", "Enabled", "Text on enabled toggle");
+            _disabledText = Config.Bind("Text - Config", "Toggle False", "Disabled", "Text on disabled toggle");
+            _shortcutKeyText = Config.Bind("Text - Config", "Shortcut key single", "Set", "Text when waiting for key press");
+            _shortcutKeysText = Config.Bind("Text - Config", "Shortcut keys combination", "Press any key", "Text when waiting for key combination");
 
             _windowBackgroundColor = Config.Bind("Colors", "Window background color", new Color(0, 0, 0, 1), "Window background color");
             _entryBackgroundColor = Config.Bind("Colors", "Entry background color", new Color(0.55f, 0.5f, 0.5f, 0.84f), "Entry background color");
             _tooltipBackgroundColor = Config.Bind("Colors", "Tooltip background color", new Color(0.55f, 0.5f, 0.45f, 0.95f), "Tooltip background color");
             _headerBackgroundColor = Config.Bind("Colors", "Header background color", new Color(0.74f, 0.54f, 0.37f, 0.8f), "Header background color");
+            _headerBackgroundHoverColor = Config.Bind("Colors", "Header hover background color", new Color(0.88f, 0.46f, 0f, 0.8f), "Header hover background color");
             _widgetBackgroundColor = Config.Bind("Colors", "Widget color", new Color(0.88f, 0.46f, 0, 0.8f), "Widget color");
             _enabledBackgroundColor = Config.Bind("Colors", "Enabled toggle color", new Color(0.88f, 0.46f, 0f, 1f), "Color of enabled toggle");
             _readOnlyColor = Config.Bind("Colors", "Readonly color", Color.gray, "Color of readonly setting");
@@ -295,6 +292,7 @@ namespace ConfigurationManager
             _entryBackgroundColor.SettingChanged += (s, e) => UpdateBackgrounds();
             _tooltipBackgroundColor.SettingChanged += (s, e) => UpdateBackgrounds();
             _headerBackgroundColor.SettingChanged += (s, e) => UpdateBackgrounds();
+            _headerBackgroundHoverColor.SettingChanged += (s, e) => UpdateBackgrounds();
 
             _fontColor = Config.Bind("Colors - Font", "Main font", new Color(1f, 0.71f, 0.36f, 1f), "Font color");
             _fontColorValueDefault = Config.Bind("Colors - Font", "Default value", new Color(1f, 0.71f, 0.36f, 1f), "Font color");
@@ -345,6 +343,9 @@ namespace ConfigurationManager
 
             if (_keybindResetPosition.Value.IsDown())
                 ResetWindowSizeAndPosition();
+
+            if (_keybindResetScale.Value.IsDown())
+                ResetWindowScale();
 
             if (!DisplayingWindow && _keybind.Value.IsDown())
                 DisplayingWindow = true;

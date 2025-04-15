@@ -18,6 +18,7 @@ namespace ConfigurationManager
         internal Matrix4x4 guiMatrix;
 
         private float lastClickTime;
+        private float lastDoubleClickTime;
         private Vector2 lastClickPosition;
         private const float doubleClickThreshold = 0.3f;
 
@@ -84,7 +85,7 @@ namespace ConfigurationManager
             SettingsListColumnWidth = Mathf.RoundToInt(SplitView ? width - PluginListColumnWidth : width);
 
             LeftColumnWidth = Mathf.RoundToInt(Mathf.Clamp(SettingsListColumnWidth * _columnSeparatorPosition.Value, width * 0.1f, width * 0.8f)) - 18;
-            RightColumnWidth = Mathf.RoundToInt(Mathf.Clamp(SettingsListColumnWidth - LeftColumnWidth - 100, width * 0.2f, width * 0.8f));
+            RightColumnWidth = Mathf.RoundToInt(Mathf.Clamp(SettingsListColumnWidth - LeftColumnWidth - 136, width * 0.2f, width * 0.8f));
         }
 
         internal void SaveCurrentSizeAndPosition()
@@ -95,9 +96,13 @@ namespace ConfigurationManager
             SettingFieldDrawer.ClearComboboxCache();
         }
 
-        internal void ResetWindowSizeAndPosition()
+        internal void ResetWindowScale()
         {
             _scaleFactor.Value = (float)_scaleFactor.DefaultValue;
+        }
+
+        internal void ResetWindowSizeAndPosition()
+        {
             _splitViewListSize.Value = (float)_splitViewListSize.DefaultValue;
             _columnSeparatorPosition.Value = (float)_columnSeparatorPosition.DefaultValue;
 
@@ -116,7 +121,14 @@ namespace ConfigurationManager
             if (UnityInput.Current.GetMouseButtonDown(0) && titleBarRect.Contains(Event.current.mousePosition))
             {
                 if (lastClickPosition == Event.current.mousePosition && Time.fixedTime != lastClickTime && Time.fixedTime - lastClickTime < doubleClickThreshold)
+                {
                     ResetWindowSizeAndPosition();
+
+                    if (Time.fixedTime != lastDoubleClickTime && Time.fixedTime - lastDoubleClickTime < doubleClickThreshold)
+                        ResetWindowScale();
+
+                    lastDoubleClickTime = Time.fixedTime;
+                }
 
                 lastClickTime = Time.fixedTime;
                 lastClickPosition = Event.current.mousePosition;
@@ -131,10 +143,15 @@ namespace ConfigurationManager
             GUI.DragWindow(headerRect);
             DrawWindowHeader();
 
+            var backgroundColor = GUI.backgroundColor;
+            GUI.backgroundColor = _entryBackgroundColor.Value;
+            
             if (SplitView)
                 DrawSplitView();
             else
-                DrawSingleColumn();
+                DrawListView();
+
+            GUI.backgroundColor = backgroundColor;
 
             if (!SettingFieldDrawer.DrawCurrentDropdown())
                 DrawTooltip(currentWindowRect);
@@ -151,10 +168,6 @@ namespace ConfigurationManager
             {
                 GUILayout.BeginVertical(GUILayout.Width(PluginListColumnWidth));
 
-                GUILayout.BeginHorizontal();
-                DrawSearchBox();
-                GUILayout.EndHorizontal();
-
                 _settingWindowScrollPos = GUILayout.BeginScrollView(_settingWindowScrollPos, false, true);
 
                 try
@@ -168,8 +181,9 @@ namespace ConfigurationManager
                 finally
                 {
                     GUILayout.EndScrollView();
-                    GUILayout.EndVertical();
                 }
+
+                GUILayout.EndVertical();
 
                 GUILayout.Space(5f);
 
@@ -183,20 +197,19 @@ namespace ConfigurationManager
 
                     bool hasCollapsedCategories = plugin.Categories.Any(cat => cat.Collapsed);
 
-                    GUILayout.BeginHorizontal(GetBackgroundStyle());
-                    SettingFieldDrawer.DrawPluginHeader(GetPluginHeaderName(plugin, showGUID: true), plugin.Collapsed, hasCollapsedCategories, out bool toggleCollapseAll);
-                    GUILayout.EndHorizontal();
+                    SettingFieldDrawer.DrawPluginHeader(GetPluginHeaderName(plugin, showGUID: true), plugin.Collapsed, hasCollapsedCategories, withHover:false, out bool toggleCollapseAll);
 
                     _settingWindowCategoriesScrollPos = GUILayout.BeginScrollView(_settingWindowCategoriesScrollPos, false, true);
                     try
                     {
-                        DrawPluginCategoriesSplitView(plugin, hasCollapsedCategories, toggleCollapseAll);
+                        DrawPluginCategories(plugin, hasCollapsedCategories, toggleCollapseAll);
                     }
                     finally
                     {
                         GUILayout.EndScrollView();
-                        GUILayout.EndVertical();
                     }
+                    
+                    GUILayout.EndVertical();
                 }
                 else
                 {
@@ -206,7 +219,7 @@ namespace ConfigurationManager
             GUILayout.EndHorizontal();
         }
 
-        private void DrawSingleColumn()
+        private void DrawListView()
         {
             _settingWindowScrollPos = GUILayout.BeginScrollView(_settingWindowScrollPos, false, true);
 
@@ -265,26 +278,14 @@ namespace ConfigurationManager
 
         private void DrawWindowHeader()
         {
+            var backgroundColor = GUI.backgroundColor;
             GUI.backgroundColor = _entryBackgroundColor.Value;
+
             GUILayout.BeginHorizontal();
             {
                 GUI.enabled = !IsSearching;
 
-                var newVal = GUILayout.Toggle(_showSettings.Value, _normalText.Value, GetToggleStyle());
-                if (_showSettings.Value != newVal)
-                {
-                    _showSettings.Value = newVal;
-                    BuildFilteredSettingList();
-                }
-
-                newVal = GUILayout.Toggle(_showKeybinds.Value, _shortcutsText.Value, GetToggleStyle());
-                if (_showKeybinds.Value != newVal)
-                {
-                    _showKeybinds.Value = newVal;
-                    BuildFilteredSettingList();
-                }
-
-                newVal = GUILayout.Toggle(_showAdvanced.Value, _advancedText.Value, GetToggleStyle());
+                var newVal = GUILayout.Toggle(_showAdvanced.Value, new GUIContent(_advancedText.Value, _advancedTextTooltip.Value), GetToggleStyle(), GUILayout.ExpandWidth(false));
                 if (_showAdvanced.Value != newVal)
                 {
                     _showAdvanced.Value = newVal;
@@ -293,12 +294,19 @@ namespace ConfigurationManager
 
                 GUI.enabled = true;
 
+                GUILayout.Space(15f);
+
+                DrawSearchBox();
+
+                GUILayout.Space(15f);
+
                 if (GUILayout.Button(_toggleTextEditorText.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
                     configFilesEditor.IsOpen = !configFilesEditor.IsOpen;
 
-                GUILayout.Space(10);
+                GUILayout.Space(15f);
 
-                if (GUILayout.Button(SplitView ? _viewModeSingleColumnText.Value : _viewModeSplitViewText.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
+                string maxString = _viewModeListViewText.Value.Length > _viewModeSplitViewText.Value.Length ? _viewModeListViewText.Value : _viewModeSplitViewText.Value;
+                if (GUILayout.Button(SplitView ? _viewModeListViewText.Value : _viewModeSplitViewText.Value, GetButtonStyle(), GUILayout.ExpandWidth(false), GUILayout.Width(GetButtonStyle().CalcSize(new GUIContent(maxString)).x)))
                     SplitView = !SplitView;
 
                 if (GUILayout.Button(_closeText.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
@@ -306,33 +314,24 @@ namespace ConfigurationManager
             }
             GUILayout.EndHorizontal();
 
-            if (!SplitView)
-            {
-                GUILayout.BeginHorizontal();
-                {
-                    DrawSearchBox();
-
-                    GUILayout.Space(8);
-
-                    if (GUILayout.Button(_pluginConfigCollapsedDefault.Value ? _expandText.Value : _collapseText.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
-                    {
-                        var newValue = !_pluginConfigCollapsedDefault.Value;
-                        _pluginConfigCollapsedDefault.Value = newValue;
-                        foreach (var plugin in _filteredSetings)
-                            plugin.Collapsed = newValue;
-                    }
-                }
-                GUILayout.EndHorizontal();
-            }
+            GUI.backgroundColor = backgroundColor;
         }
 
         private void DrawSearchBox()
         {
-            string label = SplitView ? _searchTextSplitView.Value : _searchText.Value;
-            GUILayout.Label(label, GetLabelStyle(), GUILayout.Width(GetLabelStyle().CalcSize(new GUIContent(label)).x + 4));
+            var backgroundColor = GUI.backgroundColor;
+            GUI.backgroundColor = _entryBackgroundColor.Value;
 
             GUI.SetNextControlName(SearchBoxName);
             SearchString = GUILayout.TextField(SearchString, GetTextStyle(), GUILayout.ExpandWidth(true));
+
+            if (string.IsNullOrEmpty(SearchString) && Event.current.type == EventType.Repaint)
+            {
+                GUIStyle placeholderStyle = new GUIStyle(GetTextStyle());
+                placeholderStyle.normal.textColor = Color.gray;
+
+                GUI.Label(GUILayoutUtility.GetLastRect(), _searchText.Value, placeholderStyle);
+            }
 
             if (_focusSearchBox)
             {
@@ -340,36 +339,33 @@ namespace ConfigurationManager
                 GUI.FocusControl(SearchBoxName);
                 _focusSearchBox = false;
             }
-            Color color = GUI.backgroundColor;
+
             GUI.backgroundColor = _widgetBackgroundColor.Value;
+
             if (GUILayout.Button(_clearText.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
                 SearchString = string.Empty;
-            GUI.backgroundColor = color;
+
+            GUI.backgroundColor = backgroundColor;
         }
 
         private void DrawSinglePlugin(PluginSettingsData plugin)
         {
-            var backgroundColor = GUI.backgroundColor;
-            GUI.backgroundColor = _entryBackgroundColor.Value;
+            GUILayout.BeginVertical();
 
-            GUILayout.BeginVertical(GetBackgroundStyle(withHover: plugin.Collapsed));
-
-            bool hasCollapsedCategories = plugin.Categories.Any(cat => cat.Collapsed);
-
-            if (SettingFieldDrawer.DrawPluginHeader(GetPluginHeaderName(plugin), plugin.Collapsed, hasCollapsedCategories, out bool toggleCollapseAll) && !IsSearching)
-                plugin.Collapsed = !plugin.Collapsed;
-
-            if (IsSearching || !plugin.Collapsed)
+            try
             {
-                foreach (var category in plugin.Categories)
-                    DrawSingleCategory(plugin, hasCollapsedCategories, toggleCollapseAll, category);
+                bool hasCollapsedCategories = plugin.Categories.Any(cat => cat.Collapsed);
 
-                DrawFooterButtons(plugin);
+                if (SettingFieldDrawer.DrawPluginHeader(GetPluginHeaderName(plugin), plugin.Collapsed, hasCollapsedCategories, withHover:true, out bool toggleCollapseAll) && !IsSearching)
+                    plugin.Collapsed = !plugin.Collapsed;
+
+                if (IsSearching || !plugin.Collapsed)
+                    DrawPluginCategories(plugin, hasCollapsedCategories, toggleCollapseAll);
             }
-
-            GUILayout.EndVertical();
-
-            GUI.backgroundColor = backgroundColor;
+            finally
+            {
+                GUILayout.EndVertical();
+            }
         }
 
         private GUIContent GetPluginHeaderName(PluginSettingsData plugin, bool showGUID = false) => new GUIContent($"{plugin.Info.Name.TrimStart('!')} {plugin.Info.Version}{(showGUID ? $" ({plugin.Info.GUID})" : "")}");
@@ -394,39 +390,16 @@ namespace ConfigurationManager
             GUI.backgroundColor = backgroundColor;
         }
 
-        private void DrawPluginCategoriesSplitView(PluginSettingsData plugin, bool hasCollapsedCategories, bool toggleCollapseAll = false)
+        private void DrawPluginCategories(PluginSettingsData plugin, bool hasCollapsedCategories, bool toggleCollapseAll = false)
         {
-            foreach (var category in plugin.Categories)
-            {
-                Color backgroundColor = GUI.backgroundColor;
-                GUI.backgroundColor = _entryBackgroundColor.Value;
-
-                DrawSingleCategory(plugin, hasCollapsedCategories, toggleCollapseAll, category);
-
-                GUI.backgroundColor = backgroundColor;
-            }
-
-            GUILayout.FlexibleSpace();
-
-            DrawFooterButtons(plugin);
-        }
-
-        private void DrawFooterButtons(PluginSettingsData plugin)
-        {
-            GUILayout.BeginHorizontal();
-
-            var color = GUI.backgroundColor;
-            GUI.backgroundColor = _widgetBackgroundColor.Value;
-
-            if (!SplitView && GUILayout.Button(_collapseText.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
-                plugin.Collapsed = !plugin.Collapsed;
-
-            GUI.backgroundColor = color;
-            GUILayout.EndHorizontal();
+            plugin.Categories.Do(category => DrawSingleCategory(plugin, hasCollapsedCategories, toggleCollapseAll, category));
         }
 
         private void DrawSingleCategory(PluginSettingsData plugin, bool hasCollapsedCategories, bool toggleCollapseAll, PluginSettingsData.PluginSettingsGroupData category)
         {
+            Color backgroundColor = GUI.backgroundColor;
+            GUI.backgroundColor = _entryBackgroundColor.Value;
+
             if (!string.IsNullOrEmpty(category.Name))
             {
                 if (!_categoriesCollapseable.Value)
@@ -436,7 +409,7 @@ namespace ConfigurationManager
 
                 if (plugin.Categories.Count > 1 || !_hideSingleSection.Value)
                 {
-                    GUILayout.BeginVertical(GetCategoryHeaderBackgroundStyle(), GUILayout.ExpandHeight(false));
+                    GUILayout.BeginVertical(GetCategoryHeaderBackgroundStyle(withHover: _categoriesCollapseable.Value), GUILayout.ExpandHeight(false));
                     if (category.Collapsed && !IsSearching ? SettingFieldDrawer.DrawCollapsedCategoryHeader(category.Name, category.Settings.All(IsDefaultValue)) : SettingFieldDrawer.DrawCategoryHeader(category.Name) && !IsSearching)
                         category.Collapsed = !category.Collapsed;
                     GUILayout.EndVertical();
@@ -449,6 +422,8 @@ namespace ConfigurationManager
                 category.Settings.Do(DrawSingleSetting);
                 GUILayout.EndVertical();
             }
+
+            GUI.backgroundColor = backgroundColor;
         }
 
         private void DrawSingleSetting(SettingEntryBase setting)
@@ -465,7 +440,7 @@ namespace ConfigurationManager
                     GUI.contentColor = _readOnlyColor.Value;
             }
 
-            GUILayout.BeginHorizontal();
+            GUILayout.BeginHorizontal(GUILayout.MaxWidth(SettingsListColumnWidth));
             
             try
             {
@@ -499,10 +474,14 @@ namespace ConfigurationManager
             GUI.backgroundColor = _widgetBackgroundColor.Value;
 
             GUILayout.BeginHorizontal(GUILayout.Width(LeftColumnWidth), GUILayout.MaxWidth(LeftColumnWidth));
-            GUILayout.Label(new GUIContent(setting.DispName.TrimStart('!'), setting.Description), GetLabelStyle());
+            GUILayout.Label(new GUIContent(setting.DispName.TrimStart('!'), setting.Description), GetLabelStyleSettingName());
             GUILayout.FlexibleSpace();
             if (_showTooltipBlock.Value)
-                GUILayout.Label(new GUIContent("[?]", setting.Description), GetLabelStyleInfo(), GUILayout.Width(18f));
+            {
+                GUIContent content = new GUIContent("[?]", setting.Description);
+                GUILayout.Label(content, GetLabelStyleInfo(), GUILayout.Width(GetLabelStyleInfo().CalcSize(content).x));
+            }
+
             GUILayout.EndHorizontal();
 
             GUI.backgroundColor = color;
@@ -564,10 +543,6 @@ namespace ConfigurationManager
             {
                 if (!_showAdvanced.Value)
                     results = results.Where(x => x.IsAdvanced != true);
-                if (!_showKeybinds.Value)
-                    results = results.Where(x => !IsKeyboardShortcut(x));
-                if (!_showSettings.Value)
-                    results = results.Where(x => x.IsAdvanced == true || IsKeyboardShortcut(x));
             }
 
             var settingsAreCollapsed = _pluginConfigCollapsedDefault.Value;
@@ -683,7 +658,7 @@ namespace ConfigurationManager
 
         private void CreateBackgrounds()
         {
-            if (WindowBackground == null || EntryBackground == null || TooltipBackground == null)
+            if (WindowBackground == null || EntryBackground == null || TooltipBackground == null || HeaderBackground == null || HeaderBackgroundHover == null)
             {
                 var background = new Texture2D(1, 1, TextureFormat.ARGB32, false);
                 background.SetPixel(0, 0, _windowBackgroundColor.Value);
@@ -704,6 +679,11 @@ namespace ConfigurationManager
                 headerBackground.SetPixel(0, 0, _headerBackgroundColor.Value);
                 headerBackground.Apply();
                 HeaderBackground = headerBackground;
+
+                var headerBackgroundHover = new Texture2D(1, 1, TextureFormat.ARGB32, false);
+                headerBackgroundHover.SetPixel(0, 0, _headerBackgroundHoverColor.Value);
+                headerBackgroundHover.Apply();
+                HeaderBackgroundHover = headerBackgroundHover;
             }
         }
 
@@ -713,11 +693,13 @@ namespace ConfigurationManager
             Destroy(EntryBackground);
             Destroy(TooltipBackground);
             Destroy(HeaderBackground);
+            Destroy(HeaderBackgroundHover);
 
             WindowBackground = null;
             EntryBackground = null;
             TooltipBackground = null;
             HeaderBackground = null;
+            HeaderBackgroundHover = null;
 
             CreateBackgrounds();
         }
