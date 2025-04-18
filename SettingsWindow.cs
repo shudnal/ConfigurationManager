@@ -201,7 +201,7 @@ namespace ConfigurationManager
 
                     SettingFieldDrawer.DrawPluginHeader(GetPluginHeaderName(plugin, showGuid: true), plugin.Collapsed, hasCollapsedCategories, withHover:false, out var toggleCollapseAll);
 
-                    _settingWindowCategoriesScrollPos = GUILayout.BeginScrollView(_settingWindowCategoriesScrollPos, false, true);
+                    _settingWindowCategoriesScrollPos[plugin.Info.GUID] = GUILayout.BeginScrollView(_settingWindowCategoriesScrollPos.TryGetValue(plugin.Info.GUID, out Vector2 scrollPos) ? scrollPos : Vector2.zero, false, true);
                     try
                     {
                         DrawPluginCategories(plugin, hasCollapsedCategories, toggleCollapseAll);
@@ -474,8 +474,7 @@ namespace ConfigurationManager
             GUI.backgroundColor = _widgetBackgroundColor.Value;
 
             GUILayout.BeginHorizontal(GUILayout.Width(LeftColumnWidth), GUILayout.MaxWidth(LeftColumnWidth));
-            GUILayout.Label(new GUIContent(setting.DispName.TrimStart('!'), setting.Description), GetLabelStyleSettingName());
-            GUILayout.FlexibleSpace();
+            GUILayout.Label(new GUIContent(setting.DispName.TrimStart('!'), setting.Description), GetLabelStyleSettingName(), GUILayout.ExpandWidth(true));
             if (_showTooltipBlock.Value)
             {
                 var content = new GUIContent("[?]", setting.Description);

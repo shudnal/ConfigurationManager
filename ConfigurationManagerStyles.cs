@@ -65,7 +65,7 @@ namespace ConfigurationManager
             labelStyle.fontSize = fontSize;
 
             labelStyleSettingName = new GUIStyle(labelStyle);
-            labelStyleSettingName.wordWrap = false;
+            labelStyleSettingName.wordWrap = true;
             labelStyleSettingName.clipping = TextClipping.Clip;
 
             labelStyleInfo = new GUIStyle(labelStyleSettingName);

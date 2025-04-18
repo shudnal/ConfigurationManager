@@ -52,7 +52,7 @@ namespace ConfigurationManager
         public Rect DefaultWindowRect { get; private set; }
         public Rect currentWindowRect; 
         private Vector2 _settingWindowScrollPos;
-        private Vector2 _settingWindowCategoriesScrollPos;
+        private readonly Dictionary<string, Vector2> _settingWindowCategoriesScrollPos = new Dictionary<string, Vector2>();
 
         #region Compat
         internal Rect SettingWindowRect
