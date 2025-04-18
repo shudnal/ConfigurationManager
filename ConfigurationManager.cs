@@ -155,6 +155,9 @@ namespace ConfigurationManager
         public static ConfigEntry<bool> _showEmptyFolders;
         public static ConfigEntry<bool> _hideModConfigs;
 
+        public static ConfigEntry<Vector2> _windowPositionEditSetting;
+        public static ConfigEntry<Vector2> _windowSizeEditSetting;
+
         public static ConfigEntry<string> _searchText;
         public static ConfigEntry<string> _resetSettingText;
         public static ConfigEntry<string> _clearText;
@@ -241,6 +244,9 @@ namespace ConfigurationManager
             _windowPositionTextEditor = Config.Bind("General - File Editor", "Window position", GetDefaultTextEditorWindowPosition(), "Window position. Double click on window title to reset position.");
             _windowSizeTextEditor = Config.Bind("General - File Editor", "Window size", GetDefaultTextEditorWindowSize(), "Window size. Double click on window title to reset size.");
 
+            _windowPositionEditSetting = Config.Bind("General - Setting Edit Window", "Window position", GetDefaultTextEditorWindowPosition(), "Window position. Double click on window title to reset position.");
+            _windowSizeEditSetting = Config.Bind("General - Setting Edit Window", "Window size", GetDefaultTextEditorWindowSize(), "Window size. Double click on window title to reset size.");
+
             _sortCategoriesByName = Config.Bind("General - Categories", "Sort by name", false, "If disabled, categories will be sorted in the order in which they were declared by the mod author.");
             _categoriesCollapseable = Config.Bind("General - Categories", "Collapsable categories", true, "Categories can be collapsed to reduce lagging and to ease scrolling.");
             _categoriesCollapsedDefault = Config.Bind("General - Categories", "Collapsed by default", true, "If set to true plugin categories will be collapsed by default if plugin has more than 20 categories." +
@@ -303,6 +309,7 @@ namespace ConfigurationManager
             currentWindowRect = new Rect(_windowPosition.Value, _windowSize.Value);
 
             _configFilesEditor = new ConfigFilesEditor();
+            _configSettingWindow = new SettingEditWindow();
         }
 
         private Vector2 GetDefaultManagerWindowPosition() => DefaultWindowRect.position;
@@ -310,7 +317,7 @@ namespace ConfigurationManager
 
         private Vector2 GetDefaultTextEditorWindowPosition() => new Vector2(GetDefaultManagerWindowPosition().x + GetDefaultManagerWindowSize().x + 35f, GetDefaultManagerWindowPosition().y);
         private Vector2 GetDefaultTextEditorWindowSize() => new Vector2(Screen.width - GetDefaultTextEditorWindowPosition().x - GetDefaultManagerWindowPosition().x, GetDefaultManagerWindowSize().y + GetDefaultManagerWindowPosition().y);
-        
+
         void OnDestroy()
         {
             instance = null;
@@ -354,7 +361,10 @@ namespace ConfigurationManager
             if (!DisplayingWindow && _keybind.Value.IsDown())
                 DisplayingWindow = true;
             else if (DisplayingWindow && (UnityInput.Current.GetKeyDown(KeyCode.Escape) || _keybind.Value.IsDown()))
-                DisplayingWindow = false;
+                if (_configSettingWindow.IsOpen)
+                    _configSettingWindow.IsOpen = false;
+                else
+                    DisplayingWindow = false;
         }
 
         void LateUpdate()

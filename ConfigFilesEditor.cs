@@ -96,7 +96,7 @@ namespace ConfigurationManager
 
         internal void SaveCurrentSizeAndPosition()
         {
-            _windowSizeTextEditor.Value = new Vector2(Mathf.Clamp(_windowRect.size.x, 1000f, instance.ScreenWidth), Mathf.Clamp(_windowRect.size.y, 600f, instance.ScreenHeight));
+            _windowSizeTextEditor.Value = new Vector2(Mathf.Clamp(_windowRect.size.x, 1000f / instance.ScaleFactor, instance.ScreenWidth), Mathf.Clamp(_windowRect.size.y, 600f / instance.ScaleFactor, instance.ScreenHeight));
             _windowPositionTextEditor.Value = new Vector2(Mathf.Clamp(_windowRect.position.x, 0f, instance.ScreenWidth - _windowSize.Value.x / 4f), Mathf.Clamp(_windowRect.position.y, 0f, instance.ScreenHeight - HeaderSize * 2));
             instance.Config.Save();
         }
@@ -231,7 +231,7 @@ namespace ConfigurationManager
             }
             GUILayout.EndHorizontal();
 
-            GUI.DragWindow(new Rect(0, 0, _windowRect.width, 20));
+            GUI.DragWindow(new Rect(0, 0, _windowRect.width, HeaderSize));
 
             if (!SettingFieldDrawer.DrawCurrentDropdown())
                 DrawTooltip(_windowRect);

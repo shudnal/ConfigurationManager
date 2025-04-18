@@ -25,6 +25,7 @@ namespace ConfigurationManager
         private const float DoubleClickThreshold = 0.3f;
 
         private ConfigFilesEditor _configFilesEditor;
+        private SettingEditWindow _configSettingWindow;
 
         public bool SplitView
         {
@@ -65,7 +66,12 @@ namespace ConfigurationManager
 
                 CalculateSettingsColumnsWidth(currentWindowRect.width);
 
+                var enabled = GUI.enabled;
+                GUI.enabled = !_configSettingWindow.IsOpen;
+
                 currentWindowRect = GUILayout.Window(WindowId, currentWindowRect, SettingsWindow, _windowTitle.Value, GetWindowStyle());
+
+                GUI.enabled = enabled;
 
                 if (!UnityInput.Current.GetKeyDown(KeyCode.Mouse0) && (currentWindowRect.position != _windowPosition.Value))
                     SaveCurrentSizeAndPosition();
@@ -73,6 +79,8 @@ namespace ConfigurationManager
                 GUI.backgroundColor = color;
 
                 _configFilesEditor.OnGUI();
+
+                _configSettingWindow.OnGUI();
 
                 GUI.matrix = originalMatrix;
             }
@@ -282,6 +290,7 @@ namespace ConfigurationManager
 
             GUILayout.BeginHorizontal();
             {
+                var enabled = GUI.enabled;
                 GUI.enabled = !IsSearching;
 
                 var newVal = GUILayout.Toggle(_showAdvanced.Value, new GUIContent(_advancedText.Value, _advancedTextTooltip.Value), GetToggleStyle(), GUILayout.ExpandWidth(false));
@@ -291,7 +300,7 @@ namespace ConfigurationManager
                     BuildFilteredSettingList();
                 }
 
-                GUI.enabled = true;
+                GUI.enabled = enabled;
 
                 GUILayout.Space(15f);
 
@@ -457,8 +466,8 @@ namespace ConfigurationManager
 
             GUILayout.EndHorizontal();
 
-            if (guiEnabled && !Utilities.ComboBox.IsShown())
-                GUI.enabled = true;
+            if (!Utilities.ComboBox.IsShown())
+                GUI.enabled = guiEnabled;
 
             GUI.contentColor = contentColor;
         }
@@ -474,8 +483,8 @@ namespace ConfigurationManager
             GUILayout.Label(new GUIContent(setting.DispName.TrimStart('!'), setting.Description), GetLabelStyleSettingName(), GUILayout.ExpandWidth(true));
             if (_showTooltipBlock.Value)
             {
-                var content = new GUIContent(_editText.Value, setting.Description);
-                GUILayout.Button(content, GetButtonStyle(), GUILayout.ExpandWidth(false));
+                if (GUILayout.Button(new GUIContent(_editText.Value, setting.Description), GetButtonStyle(), GUILayout.ExpandWidth(false)))
+                    _configSettingWindow.OpenSetting(setting);
             }
 
             GUILayout.EndHorizontal();
@@ -483,7 +492,7 @@ namespace ConfigurationManager
             GUI.backgroundColor = color;
         }
 
-        private static void DrawDefaultButton(SettingEntryBase setting)
+        internal static void DrawDefaultButton(SettingEntryBase setting)
         {
             if (setting.HideDefaultButton) return;
 

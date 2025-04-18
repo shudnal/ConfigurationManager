@@ -34,6 +34,7 @@
   <ItemGroup>
     <Compile Include="ConfigFilesEditor.cs" />
     <Compile Include="ConfigSettingEntry.cs" />
+    <Compile Include="SettingEditWindow.cs" />
     <Compile Include="LegacySettingEntry.cs" />
     <Compile Include="PropertySettingEntry.cs" />
     <Compile Include="SettingEntryBase.cs" />

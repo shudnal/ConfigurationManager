@@ -276,12 +276,13 @@ namespace ConfigurationManager
 
             try
             {
-                return setting.SettingType == typeof(Color) ? IsEqualColorConfig((Color)setting.Get(), (Color)setting.DefaultValue) : setting.Get().ToString().Equals(setting.DefaultValue.ToString(), StringComparison.OrdinalIgnoreCase);
+                return IsEqualConfigValues(setting.SettingType, setting.Get(), setting.DefaultValue);
             }
             catch
             {
                 return true;
             }
         }
+        internal static bool IsEqualConfigValues(Type type, object value1, object value2) => type == typeof(Color) ? IsEqualColorConfig((Color)value1, (Color)value2) : value1.ToString().Equals(value2.ToString(), StringComparison.OrdinalIgnoreCase);
     }
 }

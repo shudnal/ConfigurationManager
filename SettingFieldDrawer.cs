@@ -135,16 +135,15 @@ namespace ConfigurationManager
             if (setting == null)
                 return false;
 
-            return CustomFieldDrawerFailed.Contains(GetSettingID(setting));
+            return CustomFieldDrawerFailed.Contains(setting.SettingID);
         }
 
         public static void SetSettingFailedToCustomDraw(SettingEntryBase setting, Exception e = null)
         {
-            string settingID = GetSettingID(setting);
-            CustomFieldDrawerFailed.Add(settingID);
+            CustomFieldDrawerFailed.Add(setting.SettingID);
 
             if (e != null)
-                LogWarning(settingID + "\n" + e);
+                LogWarning(setting.SettingID + "\n" + e);
         }
 
         public static bool IsSettingFailedToStringListDraw(SettingEntryBase setting)
@@ -152,21 +151,15 @@ namespace ConfigurationManager
             if (setting == null)
                 return false;
 
-            return StringListDrawerFailed.Contains(GetSettingID(setting));
+            return StringListDrawerFailed.Contains(setting.SettingID);
         }
 
         public static void SetSettingFailedToStringListDraw(SettingEntryBase setting, string log)
         {
-            string settingID = GetSettingID(setting);
-            StringListDrawerFailed.Add(settingID);
+            StringListDrawerFailed.Add(setting.SettingID);
 
             if (log != null)
-                LogWarning(settingID + "\n" + log);
-        }
-
-        public static string GetSettingID(SettingEntryBase setting)
-        {
-            return $"{setting.PluginInfo.GUID}-{setting.Category}-{setting.DispName}";
+                LogWarning(setting.SettingID + "\n" + log);
         }
 
         public static void ClearCache()

@@ -124,6 +124,7 @@ namespace ConfigurationManager.Utilities
 
                 CurrentDropdownDrawer = () =>
                 {
+                    var enabled = GUI.enabled;
                     GUI.enabled = true;
 
                     var scrpos = GUIUtility.ScreenToGUIPoint(location);
@@ -146,6 +147,8 @@ namespace ConfigurationManager.Utilities
                     {
                         GUI.EndScrollView();
                     }
+
+                    GUI.enabled = enabled;
                 };
             }
 
