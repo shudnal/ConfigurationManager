@@ -32,7 +32,8 @@ namespace ConfigurationManager
         public static bool SettingKeyboardShortcut => _currentKeyboardShortcutToSet != null;
 
         public static readonly HashSet<string> CustomFieldDrawerFailed = new HashSet<string>();
-        
+        public static readonly HashSet<string> StringListDrawerFailed = new HashSet<string>();
+
         static SettingFieldDrawer()
         {
             SettingDrawHandlers = new Dictionary<Type, Action<SettingEntryBase>>
@@ -66,6 +67,8 @@ namespace ConfigurationManager
             else if (setting.AcceptableValues != null)
                 DrawListField(setting);
             else if (DrawFieldBasedOnValueType(setting))
+                return;
+            else if (typeof(IList<string>).IsAssignableFrom(setting.SettingType) && DrawStringListField(setting))
                 return;
             else if (setting.SettingType.IsEnum)
                 DrawEnumField(setting);
@@ -139,6 +142,23 @@ namespace ConfigurationManager
         {
             string settingID = GetSettingID(setting);
             CustomFieldDrawerFailed.Add(settingID);
+
+            if (e != null)
+                LogWarning(settingID + "\n" + e);
+        }
+
+        public static bool IsSettingFailedToStringListDraw(SettingEntryBase setting)
+        {
+            if (setting == null)
+                return false;
+
+            return StringListDrawerFailed.Contains(GetSettingID(setting));
+        }
+
+        public static void SetSettingFailedToStringListDraw(SettingEntryBase setting, Exception e = null)
+        {
+            string settingID = GetSettingID(setting);
+            StringListDrawerFailed.Add(settingID);
 
             if (e != null)
                 LogWarning(settingID + "\n" + e);
@@ -237,6 +257,92 @@ namespace ConfigurationManager
                 return true;
             }
             return false;
+        }
+
+        private static bool DrawStringListField(SettingEntryBase setting)
+        {
+            if (IsSettingFailedToStringListDraw(setting))
+                return false;
+
+            Color color = GUI.backgroundColor;
+            GUI.backgroundColor = _widgetBackgroundColor.Value;
+
+            bool wasUpdated = false;
+            bool locked = setting.ReadOnly is true;
+
+            float buttonWidth = GetButtonStyle().CalcSize(new GUIContent("x")).y;
+
+            GUILayout.BeginVertical();
+
+            List<string> stringList = setting.Get() as List<string>;
+            List<string> newList = new List<string>();
+            
+            for (int i = 0; i < stringList.Count; i++)
+            {
+                GUILayout.BeginHorizontal();
+
+                string val = stringList[i];
+
+                string newVal = GUILayout.TextField(val, GetTextStyle(setting), GUILayout.ExpandWidth(true));
+
+                if (newVal != val && !locked)
+                    wasUpdated = true;
+
+                if (GUILayout.Button("x", GetButtonStyle(), GUILayout.Width(buttonWidth)) && !locked)
+                    wasUpdated = true;
+                else
+                    newList.Add(newVal);
+
+                if (GUILayout.Button("+", GetButtonStyle(), GUILayout.Width(buttonWidth)) && !locked)
+                {
+                    wasUpdated = true;
+                    newList.Add("");
+                }
+
+                GUILayout.EndHorizontal();
+            }
+
+            GUILayout.Space(5);
+
+            GUILayout.EndVertical();
+
+            GUI.backgroundColor = color;
+
+            return !wasUpdated || trySettingList();
+
+            bool trySettingList()
+            {
+                Exception exception;
+                try
+                {
+                    setting.Set(Activator.CreateInstance(setting.SettingType, new object[] { newList }));
+                    return true;
+                }
+                catch (Exception e)
+                {
+                    exception = e;
+                }
+
+                try
+                {
+                    object list = Activator.CreateInstance(setting.SettingType);
+                    if (list is IList<string> ilist)
+                    {
+                        foreach (var item in newList)
+                            ilist.Add(item);
+
+                        setting.Set(ilist);
+                    }
+                    return true;
+                }
+                catch (Exception e)
+                {
+                    exception = e;
+                }
+
+                SetSettingFailedToStringListDraw(setting, exception);
+                return false;
+            }
         }
 
         private static void DrawBoolField(SettingEntryBase setting)
