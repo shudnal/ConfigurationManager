@@ -72,9 +72,6 @@ namespace ConfigurationManager
 
                 GUI.backgroundColor = color;
 
-                if (_configFilesEditor == null)
-                    _configFilesEditor = new ConfigFilesEditor();
-
                 _configFilesEditor.OnGUI();
 
                 GUI.matrix = originalMatrix;
@@ -86,8 +83,8 @@ namespace ConfigurationManager
             PluginListColumnWidth = Mathf.RoundToInt(width * _splitViewListSize.Value);
             SettingsListColumnWidth = Mathf.RoundToInt(SplitView ? width - PluginListColumnWidth : width);
 
-            LeftColumnWidth = Mathf.RoundToInt(Mathf.Clamp(SettingsListColumnWidth * _columnSeparatorPosition.Value, width * 0.1f, width * 0.8f)) - 18;
-            RightColumnWidth = Mathf.RoundToInt(Mathf.Clamp(SettingsListColumnWidth - LeftColumnWidth - 136, width * 0.2f, width * 0.8f));
+            LeftColumnWidth = Mathf.RoundToInt(Mathf.Clamp(SettingsListColumnWidth * _columnSeparatorPosition.Value, width * 0.1f, width * 0.6f)) - fontSize / 2;
+            RightColumnWidth = Mathf.RoundToInt(SettingsListColumnWidth - LeftColumnWidth - fontSize - 90 - fontSize);
         }
 
         internal void SaveCurrentSizeAndPosition()

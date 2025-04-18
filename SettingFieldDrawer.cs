@@ -155,13 +155,13 @@ namespace ConfigurationManager
             return StringListDrawerFailed.Contains(GetSettingID(setting));
         }
 
-        public static void SetSettingFailedToStringListDraw(SettingEntryBase setting, Exception e = null)
+        public static void SetSettingFailedToStringListDraw(SettingEntryBase setting, string log)
         {
             string settingID = GetSettingID(setting);
             StringListDrawerFailed.Add(settingID);
 
-            if (e != null)
-                LogWarning(settingID + "\n" + e);
+            if (log != null)
+                LogWarning(settingID + "\n" + log);
         }
 
         public static string GetSettingID(SettingEntryBase setting)
@@ -312,7 +312,7 @@ namespace ConfigurationManager
 
             bool trySettingList()
             {
-                Exception exception;
+                string log = string.Empty;
                 try
                 {
                     setting.Set(Activator.CreateInstance(setting.SettingType, new object[] { newList }));
@@ -320,7 +320,7 @@ namespace ConfigurationManager
                 }
                 catch (Exception e)
                 {
-                    exception = e;
+                    log += e.ToString();
                 }
 
                 try
@@ -337,10 +337,10 @@ namespace ConfigurationManager
                 }
                 catch (Exception e)
                 {
-                    exception = e;
+                    log += "\n" + e.ToString();
                 }
 
-                SetSettingFailedToStringListDraw(setting, exception);
+                SetSettingFailedToStringListDraw(setting, log);
                 return false;
             }
         }

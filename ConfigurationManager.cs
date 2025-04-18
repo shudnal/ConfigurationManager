@@ -299,6 +299,8 @@ namespace ConfigurationManager
             _fontColorValueChanged = Config.Bind("Colors - Font", "Changed value", new Color(0.9f, 0.9f, 0.9f, 1f), "Font color when value is not default");
 
             currentWindowRect = new Rect(_windowPosition.Value, _windowSize.Value);
+
+            _configFilesEditor = new ConfigFilesEditor();
         }
 
         private Vector2 GetDefaultManagerWindowPosition() => DefaultWindowRect.position;
