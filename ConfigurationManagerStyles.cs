@@ -12,6 +12,7 @@ namespace ConfigurationManager
         private static GUIStyle labelStyleInfo;
         private static GUIStyle labelStyleValueDefault;
         private static GUIStyle labelStyleValueChanged;
+        private static GUIStyle textStyle;
         private static GUIStyle textStyleValueDefault;
         private static GUIStyle textStyleValueChanged;
         private static GUIStyle toggleStyle;
@@ -76,36 +77,34 @@ namespace ConfigurationManager
             labelStyleInfo.margin.top = 6;
             labelStyleInfo.padding = new RectOffset(0, 0, 0, 0);
 
-            labelStyleValueDefault = new GUIStyle(GUI.skin.label);
+            labelStyleValueDefault = new GUIStyle(labelStyle);
             labelStyleValueDefault.normal.textColor = _fontColorValueDefault.Value;
-            labelStyleValueDefault.fontSize = fontSize;
 
-            labelStyleValueChanged = new GUIStyle(GUI.skin.label);
+            labelStyleValueChanged = new GUIStyle(labelStyle);
             labelStyleValueChanged.normal.textColor = _fontColorValueChanged.Value;
-            labelStyleValueChanged.fontSize = fontSize;
 
-            textStyleValueDefault = new GUIStyle(GUI.skin.textArea);
+            textStyle = new GUIStyle(GUI.skin.textArea);
+            textStyle.normal.textColor = _fontColor.Value;
+            textStyle.fontSize = fontSize;
+
+            textStyleValueDefault = new GUIStyle(textStyle);
             textStyleValueDefault.normal.textColor = _fontColorValueDefault.Value;
-            textStyleValueDefault.fontSize = fontSize;
 
-            textStyleValueChanged = new GUIStyle(GUI.skin.textArea);
+            textStyleValueChanged = new GUIStyle(textStyle);
             textStyleValueChanged.normal.textColor = _fontColorValueChanged.Value;
-            textStyleValueChanged.fontSize = fontSize;
 
             buttonStyle = new GUIStyle(GUI.skin.button);
             buttonStyle.normal.textColor = _fontColor.Value;
             buttonStyle.onNormal.textColor = _fontColor.Value;
             buttonStyle.fontSize = fontSize;
 
-            buttonStyleValueDefault = new GUIStyle(GUI.skin.button);
+            buttonStyleValueDefault = new GUIStyle(buttonStyle);
             buttonStyleValueDefault.normal.textColor = _fontColorValueDefault.Value;
             buttonStyleValueDefault.onNormal.textColor = _fontColorValueDefault.Value;
-            buttonStyleValueDefault.fontSize = fontSize;
 
-            buttonStyleValueChanged = new GUIStyle(GUI.skin.button);
+            buttonStyleValueChanged = new GUIStyle(buttonStyle);
             buttonStyleValueChanged.normal.textColor = _fontColorValueChanged.Value;
             buttonStyleValueChanged.onNormal.textColor = _fontColorValueChanged.Value;
-            buttonStyleValueChanged.fontSize = fontSize;
 
             categoryHeaderStyleDefault = new GUIStyle(labelStyle)
             {

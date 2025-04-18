@@ -167,6 +167,7 @@ namespace ConfigurationManager
         public static ConfigEntry<string> _toggleTextEditorText;
         public static ConfigEntry<string> _viewModeListViewText;
         public static ConfigEntry<string> _viewModeSplitViewText;
+        public static ConfigEntry<string> _editText;
 
         public static ConfigEntry<Color> _windowBackgroundColor;
         public static ConfigEntry<Color> _tooltipBackgroundColor;
@@ -265,6 +266,7 @@ namespace ConfigurationManager
             _noOptionsPluginsText = Config.Bind("Text - Menu", "Plugins without options", "Plugins with no options available", "Text in footer");
             _viewModeListViewText = Config.Bind("Text - Menu", "List View", "List View", "Text for button to change to single column legacy view mode");
             _viewModeSplitViewText = Config.Bind("Text - Menu", "Split View", "Split View", "Text for button to change to split view mode");
+            _editText = Config.Bind("Text - Menu", "Edit", "Edit", "Text for button to open edit setting window");
 
             _toggleTextEditorText = Config.Bind("File Editor - Text", "Open button", "Show File Editor", "Open file editor label text");
             _searchTextEditor = Config.Bind("File Editor - Text", "Search", "Search:", "Search label text");

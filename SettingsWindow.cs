@@ -474,8 +474,8 @@ namespace ConfigurationManager
             GUILayout.Label(new GUIContent(setting.DispName.TrimStart('!'), setting.Description), GetLabelStyleSettingName(), GUILayout.ExpandWidth(true));
             if (_showTooltipBlock.Value)
             {
-                var content = new GUIContent("[?]", setting.Description);
-                GUILayout.Label(content, GetLabelStyleInfo(), GUILayout.Width(GetLabelStyleInfo().CalcSize(content).x));
+                var content = new GUIContent(_editText.Value, setting.Description);
+                GUILayout.Button(content, GetButtonStyle(), GUILayout.ExpandWidth(false));
             }
 
             GUILayout.EndHorizontal();

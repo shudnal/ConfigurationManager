@@ -58,7 +58,7 @@ namespace ConfigurationManager
         {
             var color = GUI.backgroundColor;
             GUI.backgroundColor = _widgetBackgroundColor.Value;
-
+            
             if (DrawCustomField(setting))
                 return;
 
@@ -519,6 +519,9 @@ namespace ConfigurationManager
 
         private void DrawUnknownField(SettingEntryBase setting, int rightColumnWidth)
         {
+            GUILayout.BeginVertical();
+            GUILayout.Space(4f);
+
             // Try to use user-supplied converters
             if (setting.ObjToStr != null && setting.StrToObj != null)
             {
@@ -526,7 +529,7 @@ namespace ConfigurationManager
                 if (text.IsNullOrWhiteSpace() && setting.DefaultValue.ToString() != "")
                     GUI.backgroundColor = _fontColorValueChanged.Value;
 
-                var result = GUILayout.TextField(text, GetTextStyle(setting), GUILayout.MaxWidth(rightColumnWidth));
+                var result = GUILayout.TextArea(text, GetTextStyle(setting), GUILayout.MaxWidth(rightColumnWidth));
                 if (result != text)
                     setting.Set(setting.StrToObj(result));
             }
@@ -557,6 +560,8 @@ namespace ConfigurationManager
                     GUILayout.TextArea(value, GetTextStyle(setting), GUILayout.MaxWidth(rightColumnWidth));
                 }
             }
+
+            GUILayout.EndVertical();
 
             // When using MaxWidth the width will always be less than full window size, use this to fill this gap and push the Reset button to the right edge
             GUILayout.FlexibleSpace();
@@ -709,6 +714,7 @@ namespace ConfigurationManager
         {
             Color setting = (Color)obj.Get();
 
+            GUILayout.BeginVertical();
             GUILayout.BeginVertical(GetBoxStyle());
             GUILayout.BeginHorizontal();
             bool isDefaultValue = DrawHexField(ref setting, (Color)obj.DefaultValue);
@@ -754,6 +760,8 @@ namespace ConfigurationManager
 
             GUILayout.EndHorizontal();
 
+            GUILayout.EndVertical();
+            GUILayout.Space(2f);
             GUILayout.EndVertical();
         }
 
