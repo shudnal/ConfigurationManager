@@ -66,12 +66,7 @@ namespace ConfigurationManager
 
                 CalculateSettingsColumnsWidth(currentWindowRect.width);
 
-                var enabled = GUI.enabled;
-                GUI.enabled = !_configSettingWindow.IsOpen;
-
                 currentWindowRect = GUILayout.Window(WindowId, currentWindowRect, SettingsWindow, _windowTitle.Value, GetWindowStyle());
-
-                GUI.enabled = enabled;
 
                 if (!UnityInput.Current.GetKeyDown(KeyCode.Mouse0) && (currentWindowRect.position != _windowPosition.Value))
                     SaveCurrentSizeAndPosition();
@@ -484,7 +479,7 @@ namespace ConfigurationManager
             if (_showTooltipBlock.Value)
             {
                 if (GUILayout.Button(new GUIContent(_editText.Value, setting.Description), GetButtonStyle(), GUILayout.ExpandWidth(false)))
-                    _configSettingWindow.OpenSetting(setting);
+                    _configSettingWindow.EditSetting(setting);
             }
 
             GUILayout.EndHorizontal();

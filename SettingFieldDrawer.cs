@@ -446,7 +446,7 @@ namespace ConfigurationManager
             });
         }
 
-        private static GUIContent ObjectToGuiContent(object x)
+        internal static GUIContent ObjectToGuiContent(object x)
         {
             if (x is Enum)
             {

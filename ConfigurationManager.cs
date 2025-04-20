@@ -104,6 +104,8 @@ namespace ConfigurationManager
         internal int PluginListColumnWidth { get; private set; }
         internal int SettingsListColumnWidth { get; private set; }
 
+        internal void SetRightColumnWidth(int value) => RightColumnWidth = value;
+
         public enum ReadOnlyStyle
         {
             Ignored,

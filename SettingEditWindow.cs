@@ -57,8 +57,14 @@ namespace ConfigurationManager
             };
         }
 
-        public void OpenSetting(SettingEntryBase setting)
+        public void EditSetting(SettingEntryBase setting)
         {
+            if (this.setting == setting && IsOpen)
+            {
+                IsOpen = false;
+                return;
+            }
+
             this.setting = setting;
             
             InitializeWindow();
@@ -79,7 +85,7 @@ namespace ConfigurationManager
             Color color = GUI.backgroundColor;
             GUI.backgroundColor = _windowBackgroundColor.Value;
 
-            _windowRect = GUI.Window(WindowId, _windowRect, DrawWindow, setting.SettingName, GetWindowStyle());
+            _windowRect = GUI.Window(WindowId, _windowRect, DrawWindow, $"{setting.PluginInfo.Name} {setting.PluginInfo.Version}", GetWindowStyle());
 
             if (!UnityInput.Current.GetKeyDown(KeyCode.Mouse0) &&
                 (_windowRect.position != _windowPositionEditSetting.Value))
@@ -113,20 +119,24 @@ namespace ConfigurationManager
             }
             else
                 SettingDrawHandlers.TryGetValue(setting.SettingType, out drawerFunction);
+            
+            InitListIndex();
+        }
 
+        private void InitListIndex()
+        {
             listIndex = listEnum == null ? -1 : listEnum.IndexOf(valueToSet);
         }
 
         private void SetAcceptableValuesDrawer()
         {
-            var acceptableValues = setting.AcceptableValues;
-            if (acceptableValues.Length == 0)
+            if (setting.AcceptableValues.Length == 0)
             {
-                errorText.AppendLine("AcceptableValueListAttribute returned an empty list of acceptable values. You need to supply at least 1 option.");
+                errorText.AppendLine("AcceptableValueListAttribute returned an empty list of acceptable values.");
                 return;
             }
 
-            if (!setting.SettingType.IsInstanceOfType(acceptableValues.FirstOrDefault(x => x != null)))
+            if (!setting.SettingType.IsInstanceOfType(setting.AcceptableValues.FirstOrDefault(x => x != null)))
             {
                 errorText.AppendLine("AcceptableValueListAttribute returned a list with items of type other than the settng type itself.");
                 return;
@@ -150,12 +160,32 @@ namespace ConfigurationManager
 
         private void DrawWindow(int windowID)
         {
-            GUILayout.BeginVertical();
             var backgroundColor = GUI.backgroundColor;
             GUI.backgroundColor = _entryBackgroundColor.Value;
 
-            DrawSettingValue();
+            GUILayout.BeginVertical(GetBackgroundStyle());
+
+            GUILayout.Space(1f);
+
+            GUILayout.Label($"<b>{setting.Category}</b>", GetLabelStyle(), GUILayout.ExpandWidth(true));
             
+            DrawDelimiterLine();
+
+            GUILayout.Space(1f);
+
+            GUILayout.BeginHorizontal(GUILayout.ExpandHeight(false));
+            GUILayout.Label($"{setting.DispName} ", GetLabelStyle(), GUILayout.ExpandWidth(false));
+            GUILayout.Label($"({GetTypeRepresentation(setting.SettingType)})", GetLabelStyleInfo(), GUILayout.ExpandWidth(true));
+            GUILayout.EndHorizontal();
+
+            GUILayout.Label(setting.Description, GetLabelStyle(isDefaultValue: false), GUILayout.ExpandWidth(true));
+
+            DrawDelimiterLine();
+
+            GUILayout.Space(1f);
+
+            DrawSettingValue();
+
             if (!errorOnSetting.IsNullOrWhiteSpace())
                 GUILayout.Label(errorOnSetting, GetLabelStyle());
 
@@ -163,9 +193,9 @@ namespace ConfigurationManager
 
             DrawMenuButtons();
 
-            GUI.backgroundColor = backgroundColor;
-
             GUILayout.EndVertical();
+
+            GUI.backgroundColor = backgroundColor;
 
             GUI.DragWindow(new Rect(0, 0, _windowRect.width, HeaderSize));
 
@@ -178,20 +208,48 @@ namespace ConfigurationManager
                 SaveCurrentSizeAndPosition();
         }
 
+        private void DrawLabel(string label, string value)
+        {
+            bool drawAsBlock = !label.IsNullOrWhiteSpace() && !value.IsNullOrWhiteSpace();
+            if (drawAsBlock)
+                GUILayout.BeginHorizontal();
+
+            if (!label.IsNullOrWhiteSpace())
+                GUILayout.Label(value.IsNullOrWhiteSpace() ? label : label + ":", GetLabelStyle(), GUILayout.ExpandWidth(false));
+
+            if (!value.IsNullOrWhiteSpace())
+                GUILayout.Label(value, GetLabelStyleInfo(), GUILayout.ExpandWidth(true));
+
+            if (drawAsBlock)
+                GUILayout.EndHorizontal();
+        }
+
+        private void DrawInfo(string info) => DrawLabel(null, info);
+
+        private string GetTypeRepresentation(Type type)
+        {
+            if (!type.IsGenericType)
+                return type.Name;
+
+            Type[] genericArgs = type.GetGenericArguments();
+            string elements = string.Join(", ", genericArgs.Select(t => t.Name));
+            return $"{type.Name}<{elements}>";
+        }
+
         private void DrawMenuButtons()
         {
             GUILayout.BeginHorizontal();
             {
                 var enabled = GUI.enabled;
-                GUI.enabled = enabled && !IsEqualConfigValues(setting.SettingType, valueToSet, setting.DefaultValue);
+                GUI.enabled = enabled && !IsValueToSetDefaultValue();
                 DrawDefaultButton();
                 GUI.enabled = enabled;
 
-                GUILayout.Label("Press Escape to close window", GetLabelStyle(), GUILayout.ExpandWidth(true));
+                GUILayout.Label("Press Escape to close window", GetLabelStyleInfo(), GUILayout.ExpandWidth(true));
 
                 enabled = GUI.enabled;
                 GUI.enabled = enabled && !IsEqualConfigValues(setting.SettingType, valueToSet, setting.Get());
-                if (GUILayout.Button("Set", GetButtonStyle(), GUILayout.ExpandWidth(false)))
+                if (GUILayout.Button("Apply", GetButtonStyle(), GUILayout.ExpandWidth(false)))
                     ApplySettingValue();
 
                 GUI.enabled = enabled;
@@ -217,24 +275,34 @@ namespace ConfigurationManager
             }
         }
 
-        public void DrawSettingValue()
+        private void DrawSettingValue()
         {
             var color = GUI.backgroundColor;
             GUI.backgroundColor = _widgetBackgroundColor.Value;
 
             _scrollPosition = GUILayout.BeginScrollView(_scrollPosition);
             {
-                if (!DrawCustomField() && !DrawKnownDrawer())
+                if (!DrawCustomField() && !DrawKnownDrawer() && errorText.Length > 0)
                     GUILayout.Label($"Error:\n{errorText}", GetLabelStyle());
             }
             GUILayout.EndScrollView();
 
             GUILayout.FlexibleSpace();
 
-            GUILayout.Label("BepInEx Config Representation", GetLabelStyle());
+            DrawDelimiterLine();
+
+            GUILayout.Label("Edit as text:", GetLabelStyle());
 
             DrawUnknownField();
 
+            GUI.backgroundColor = color;
+        }
+
+        private static void DrawDelimiterLine()
+        {
+            var color = GUI.backgroundColor;
+            GUI.backgroundColor = _widgetBackgroundColor.Value;
+            GUILayout.Label("", GetDelimiterLine(), GUILayout.ExpandWidth(true), GUILayout.Height(2));
             GUI.backgroundColor = color;
         }
 
@@ -278,9 +346,14 @@ namespace ConfigurationManager
             GUI.skin.label.fontSize = fontSize;
             GUI.skin.button.fontSize = fontSize;
 
+            GUILayout.BeginHorizontal();
+
+            int rightColumn = instance.RightColumnWidth;
+            instance.SetRightColumnWidth(Mathf.RoundToInt(_windowRect.width * 0.9f));
+
             try
             {
-                GUI.contentColor = IsDefaultValue(setting) ? _fontColorValueDefault.Value : _fontColorValueChanged.Value;
+                GUI.contentColor = IsValueToSetDefaultValue() ? _fontColorValueDefault.Value : _fontColorValueChanged.Value;
 
                 if (setting.CustomDrawer != null)
                     setting.CustomDrawer(setting is ConfigSettingEntry newSetting ? newSetting.Entry : null);
@@ -301,6 +374,12 @@ namespace ConfigurationManager
                 SettingFieldDrawer.SetSettingFailedToCustomDraw(setting, e);
                 result = false;
             }
+            finally
+            {
+                instance.SetRightColumnWidth(rightColumn);
+            }
+
+            GUILayout.EndHorizontal();
 
             GUI.contentColor = color;
             GUI.skin.textField.fontSize = textFieldFontSize;
@@ -319,6 +398,12 @@ namespace ConfigurationManager
             var rightValue = (float)Convert.ToDouble(setting.AcceptableValueRange.Value, CultureInfo.InvariantCulture);
 
             float height = GetTextStyle(setting).CalcHeight(new GUIContent(value.ToString()), 100f);
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"Range: ", GetLabelStyle(), GUILayout.ExpandWidth(false));
+            GUILayout.Label($"{leftValue} - {rightValue}", GetLabelStyleInfo(), GUILayout.ExpandWidth(true));
+            GUILayout.EndHorizontal();
+
             GUILayout.BeginHorizontal(GUILayout.Height(height));
 
             try
@@ -369,22 +454,21 @@ namespace ConfigurationManager
                 if (text.IsNullOrWhiteSpace() && setting.DefaultValue.ToString() != "")
                     GUI.backgroundColor = _fontColorValueChanged.Value;
 
-                var result = GUILayout.TextArea(text, GetTextStyle(setting), GUILayout.ExpandWidth(true));
+                var result = GUILayout.TextArea(text, GetTextStyle(IsValueToSetDefaultValue()), GUILayout.ExpandWidth(true));
                 if (result != text)
                     valueToSet = setting.StrToObj(result);
             }
             else
             {
                 // Fall back to slow/less reliable method
-                var rawValue = valueToSet;
-                var value = rawValue == null ? "NULL" : rawValue.ToString().AppendZeroIfFloat(setting.SettingType);
+                var value = valueToSet == null ? "NULL" : valueToSet.ToString().AppendZeroIfFloat(setting.SettingType);
 
                 if (value.IsNullOrWhiteSpace() && setting.DefaultValue.ToString() != "")
                     GUI.backgroundColor = _fontColorValueChanged.Value;
 
                 if (CanCovert(value, setting.SettingType))
                 {
-                    var result = GUILayout.TextField(value, GetTextStyle(setting), GUILayout.ExpandWidth(true));
+                    var result = GUILayout.TextArea(value, GetTextStyle(IsValueToSetDefaultValue()), GUILayout.ExpandWidth(true));
                     if (result != value)
                         try
                         {
@@ -397,9 +481,14 @@ namespace ConfigurationManager
                 }
                 else
                 {
-                    valueToSet = GUILayout.TextArea(value, GetTextStyle(setting), GUILayout.ExpandWidth(true));
+                    valueToSet = GUILayout.TextArea(value, GetTextStyle(IsValueToSetDefaultValue()), GUILayout.ExpandWidth(true));
                 }
             }
+        }
+
+        private bool IsValueToSetDefaultValue()
+        {
+            return IsEqualConfigValues(setting.SettingType, valueToSet, setting.DefaultValue);
         }
 
         private readonly Dictionary<Type, bool> _canCovertCache = new Dictionary<Type, bool>();
@@ -437,12 +526,18 @@ namespace ConfigurationManager
             if (setting.DefaultValue != null)
             {
                 if (DrawResetButton())
+                {
                     valueToSet = setting.DefaultValue;
+                    InitListIndex();
+                }
             }
             else if (setting.SettingType.IsClass)
             {
                 if (DrawResetButton())
+                {
                     valueToSet = null;
+                    InitListIndex();
+                }
             }
 
             GUI.backgroundColor = color;
@@ -545,10 +640,6 @@ namespace ConfigurationManager
                 GUI.backgroundColor = color;
         }
 
-        private void DrawEnumField()
-        {
-        }
-
         private void DrawFlagsField()
         {
             var currentValue = Convert.ToInt64(valueToSet);
@@ -606,22 +697,19 @@ namespace ConfigurationManager
 
         private void DrawEnumListField()
         {
-            var listContent = listEnum.Cast<string>().Select(x => new GUIContent(x)).ToArray();
-
-            var size = new Vector2(_windowRect.width, GetComboBoxStyle().CalcHeight(new GUIContent(listContent[0]), 1f) * listContent.Length);
-
-            var innerRect = new Rect(0, 0, size.x, size.y);
+            var listContent = listEnum.Cast<object>().Select(SettingFieldDrawer.ObjectToGuiContent).ToArray();
 
             _enumScrollPosition = GUILayout.BeginScrollView(_enumScrollPosition, false, false);
+            
             try
             {
-                listIndex = GUI.SelectionGrid(innerRect, -1, listContent, 1, GetComboBoxStyle());
+                listIndex = GUILayout.SelectionGrid(listIndex, listContent, 1, GetComboBoxStyle());
                 if (listEnum != null && listIndex >= 0 && listIndex < listEnum.Count)
                     valueToSet = listEnum[listIndex];
             }
             finally
             {
-                GUI.EndScrollView();
+                GUILayout.EndScrollView();
             }
         }
 
@@ -754,7 +842,7 @@ namespace ConfigurationManager
             GUILayout.BeginVertical();
             GUILayout.BeginVertical(GetBoxStyle());
             GUILayout.BeginHorizontal();
-            bool isDefaultValue = DrawHexField(ref value, (Color)setting.DefaultValue);
+            bool isDefaultValue = DrawHexField(ref value, (Color)valueToSet);
 
             GUILayout.Space(3f);
             GUIHelper.BeginColor(value);
@@ -858,6 +946,5 @@ namespace ConfigurationManager
             public Color Last;
             public Texture2D Tex;
         }
-
     }
 }

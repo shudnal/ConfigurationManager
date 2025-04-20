@@ -44,6 +44,7 @@ namespace ConfigurationManager
         private static GUIStyle fileEditorRenameFileField;
         private static GUIStyle fileEditorErrorText;
         private static GUIStyle fileEditorTextArea;
+        private static GUIStyle delimiterLine;
 
         public static int fontSize = 14;
         
@@ -70,12 +71,7 @@ namespace ConfigurationManager
             labelStyleSettingName.clipping = TextClipping.Clip;
 
             labelStyleInfo = new GUIStyle(labelStyleSettingName);
-            labelStyleInfo.hover.textColor = _fontColorValueChanged.Value;
-            labelStyleInfo.hover.background = TooltipBackground;
-            labelStyleInfo.alignment = TextAnchor.MiddleCenter;
-            labelStyleInfo.margin.right = 10;
-            labelStyleInfo.margin.top = 6;
-            labelStyleInfo.padding = new RectOffset(0, 0, 0, 0);
+            labelStyleInfo.normal.textColor = _readOnlyColor.Value;
 
             labelStyleValueDefault = new GUIStyle(labelStyle);
             labelStyleValueDefault.normal.textColor = _fontColorValueDefault.Value;
@@ -234,6 +230,10 @@ namespace ConfigurationManager
             fileEditorTextArea.padding = new RectOffset(5, 5, 5, 5);
             fileEditorTextArea.wordWrap = true;
             fileEditorTextArea.richText = true;
+
+            delimiterLine = new GUIStyle();
+            delimiterLine.normal.background = EntryBackground;
+            delimiterLine.fixedHeight = 2;
         }
 
         public static GUIStyle GetWindowStyle() => windowStyle;
@@ -267,7 +267,8 @@ namespace ConfigurationManager
         public static GUIStyle GetDirectoryStyle(bool isActive) => isActive ? fileEditorDirectoryStyleActive : fileEditorDirectoryStyle;
         public static GUIStyle GetFileNameFieldStyle() => fileEditorRenameFileField;
         public static GUIStyle GetFileNameErrorStyle() => fileEditorErrorText;
-        public static GUIStyle GetFileEditorTextArea() => fileEditorTextArea; 
+        public static GUIStyle GetFileEditorTextArea() => fileEditorTextArea;
+        public static GUIStyle GetDelimiterLine() => delimiterLine;
         public static bool IsEqualColorConfig(Color setting, Color defaultValue) => ColorUtility.ToHtmlStringRGBA(setting) == ColorUtility.ToHtmlStringRGBA(defaultValue);
         internal static bool IsDefaultValue(SettingEntryBase setting)
         {
