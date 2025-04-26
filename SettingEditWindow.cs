@@ -42,6 +42,10 @@ namespace ConfigurationManager
 
         private string errorOnSetting;
 
+        private readonly List<string> vectorParts = new List<string>();
+        private readonly List<float> vectorFloats = new List<float>();
+        private readonly List<float> vectorDefault = new List<float>();
+
         public SettingEditWindow()
         {
             SettingDrawHandlers = new Dictionary<Type, Action>
@@ -50,10 +54,10 @@ namespace ConfigurationManager
                 { typeof(KeyboardShortcut), DrawKeyboardShortcut},
                 { typeof(KeyCode), DrawKeyCode},
                 { typeof(Color), DrawColor },
-                { typeof(Vector2), DrawVector2 },
-                { typeof(Vector3), DrawVector3 },
-                { typeof(Vector4), DrawVector4 },
-                { typeof(Quaternion), DrawQuaternion },
+                { typeof(Vector2), DrawVector },
+                { typeof(Vector3), DrawVector },
+                { typeof(Vector4), DrawVector },
+                { typeof(Quaternion), DrawVector },
             };
         }
 
@@ -121,11 +125,43 @@ namespace ConfigurationManager
                 SettingDrawHandlers.TryGetValue(setting.SettingType, out drawerFunction);
             
             InitListIndex();
+
+            InitVectorParts();
         }
 
         private void InitListIndex()
         {
             listIndex = listEnum == null ? -1 : listEnum.IndexOf(valueToSet);
+        }
+
+        private void InitVectorParts()
+        {
+            vectorParts.Clear();
+            vectorFloats.Clear();
+            vectorDefault.Clear();
+
+            if (setting.SettingType == typeof(Vector2))
+            {
+                FillVectorList(vectorFloats, (Vector2)valueToSet);
+                FillVectorList(vectorDefault, (Vector2)setting.DefaultValue);
+            }
+            else if (setting.SettingType == typeof(Vector3))
+            {
+                FillVectorList(vectorFloats, (Vector3)valueToSet);
+                FillVectorList(vectorDefault, (Vector3)setting.DefaultValue);
+            }
+            else if (setting.SettingType == typeof(Vector4))
+            {
+                FillVectorList(vectorFloats, (Vector4)valueToSet);
+                FillVectorList(vectorDefault, (Vector4)setting.DefaultValue);
+            }
+            else if (setting.SettingType == typeof(Quaternion))
+            {
+                FillVectorList(vectorFloats, (Quaternion)valueToSet);
+                FillVectorList(vectorDefault, (Quaternion)setting.DefaultValue);
+            }
+
+            vectorParts.AddRange(vectorFloats.Select(f => f.ToString()));
         }
 
         private void SetAcceptableValuesDrawer()
@@ -182,7 +218,7 @@ namespace ConfigurationManager
 
             DrawDelimiterLine();
 
-            GUILayout.Space(1f);
+            GUILayout.Space(5f);
 
             DrawSettingValue();
 
@@ -282,20 +318,15 @@ namespace ConfigurationManager
 
             _scrollPosition = GUILayout.BeginScrollView(_scrollPosition);
             {
-                if (!DrawCustomField() && !DrawKnownDrawer() && errorText.Length > 0)
-                    GUILayout.Label($"Error:\n{errorText}", GetLabelStyle());
+                if (!DrawCustomField() && !DrawKnownDrawer())
+                    if (errorText.Length > 0)
+                        GUILayout.Label($"Error:\n{errorText}", GetLabelStyle());
+                    else
+                        DrawUnknownField();
             }
             GUILayout.EndScrollView();
 
-            GUILayout.FlexibleSpace();
-
-            DrawDelimiterLine();
-
-            GUILayout.Label("Edit as text:", GetLabelStyle());
-
-            DrawUnknownField();
-
-            GUI.backgroundColor = color;
+           GUI.backgroundColor = color;
         }
 
         private static void DrawDelimiterLine()
@@ -529,6 +560,7 @@ namespace ConfigurationManager
                 {
                     valueToSet = setting.DefaultValue;
                     InitListIndex();
+                    InitVectorParts();
                 }
             }
             else if (setting.SettingType.IsClass)
@@ -537,6 +569,7 @@ namespace ConfigurationManager
                 {
                     valueToSet = null;
                     InitListIndex();
+                    InitVectorParts();
                 }
             }
 
@@ -632,7 +665,7 @@ namespace ConfigurationManager
             if (boolVal)
                 GUI.backgroundColor = _enabledBackgroundColor.Value;
 
-            bool result = GUILayout.Toggle(boolVal, boolVal ? _enabledText.Value : _disabledText.Value, GetToggleStyle(setting), GUILayout.ExpandWidth(true));
+            bool result = GUILayout.SelectionGrid(boolVal ? 0 : 1, new [] {_enabledText.Value, _disabledText.Value }, 2, GetButtonStyle(), GUILayout.ExpandWidth(false)) == 0;
             if (result != boolVal)
                 valueToSet = result;
 
@@ -667,7 +700,7 @@ namespace ConfigurationManager
                                 bool curr = (currentValue & value.val) == value.val;
                                 bool defValue = (defaultValue & value.val) == value.val;
 
-                                GUIStyle style = GetToggleStyle(curr == defValue);
+                                GUIStyle style = GetButtonStyle(curr == defValue);
 
                                 // Make sure this horizontal group doesn't extend over window width, if it does then start a new horiz group below
                                 var textDimension = (int)style.CalcSize(new GUIContent(value.name)).x;
@@ -677,10 +710,12 @@ namespace ConfigurationManager
 
                                 GUI.changed = false;
 
-                                var newVal = GUILayout.Toggle(curr, value.name, style, GUILayout.ExpandWidth(false));
+                                if (GUILayout.Button(value.name, style, GUILayout.ExpandWidth(false)))
+                                    curr = !curr;
+
                                 if (GUI.changed)
                                 {
-                                    var newValue = newVal ? currentValue | value.val : currentValue & ~value.val;
+                                    var newValue = curr ? currentValue | value.val : currentValue & ~value.val;
                                     valueToSet = Enum.ToObject(setting.SettingType, newValue);
                                 }
                             }
@@ -778,61 +813,50 @@ namespace ConfigurationManager
             }
         }
 
-        private void DrawVector2()
+        private void DrawVectorPart(int position)
         {
-            var vector = (Vector2)valueToSet;
-            var copy = vector;
-            bool integerValuesOnly = (vector.x % 1 == 0) && (vector.y % 1 == 0);
-            vector.x = DrawSingleVectorSlider(vector.x, "X", ((Vector2)setting.DefaultValue).x, integerValuesOnly);
-            vector.y = DrawSingleVectorSlider(vector.y, "Y", ((Vector2)setting.DefaultValue).y, integerValuesOnly);
-            if (vector != copy) valueToSet = vector;
+            string label = position switch
+            {
+                0 => "X",
+                1 => "Y",
+                2 => "Z",
+                3 => "W",
+                _ => ""
+            };
+
+            bool isDefaultValue = float.TryParse(vectorParts[position], NumberStyles.Any, CultureInfo.InvariantCulture, out var x) && vectorDefault[position] == x;
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"{label} ", GetLabelStyle(), GUILayout.ExpandWidth(false));
+            vectorParts[position] = GUILayout.TextField(vectorParts[position], GetTextStyle(isDefaultValue), GUILayout.ExpandWidth(true)).Replace(',', '.');
+            GUILayout.EndHorizontal();
         }
 
-        private void DrawVector3()
+        private void DrawVector()
         {
-            var vector = (Vector3)valueToSet;
-            var copy = vector;
-            bool integerValuesOnly = (vector.x % 1 == 0) && (vector.y % 1 == 0) && (vector.z % 1 == 0);
-            vector.x = DrawSingleVectorSlider(vector.x, "X", ((Vector3)setting.DefaultValue).x, integerValuesOnly);
-            vector.y = DrawSingleVectorSlider(vector.y, "Y", ((Vector3)setting.DefaultValue).y, integerValuesOnly);
-            vector.z = DrawSingleVectorSlider(vector.z, "Z", ((Vector3)setting.DefaultValue).z, integerValuesOnly);
-            if (vector != copy) valueToSet = vector;
-        }
+            for (int i = 0; i < vectorParts.Count; i++)
+                DrawVectorPart(i);
 
-        private void DrawVector4()
-        {
-            var vector = (Vector4)valueToSet;
-            var copy = vector;
-            bool integerValuesOnly = (vector.x % 1 == 0) && (vector.y % 1 == 0) && (vector.z % 1 == 0) && (vector.w % 1 == 0);
-            vector.x = DrawSingleVectorSlider(vector.x, "X", ((Vector4)setting.DefaultValue).x, integerValuesOnly);
-            vector.y = DrawSingleVectorSlider(vector.y, "Y", ((Vector4)setting.DefaultValue).y, integerValuesOnly);
-            vector.z = DrawSingleVectorSlider(vector.z, "Z", ((Vector4)setting.DefaultValue).z, integerValuesOnly);
-            vector.w = DrawSingleVectorSlider(vector.w, "W", ((Vector4)setting.DefaultValue).w, integerValuesOnly);
-            if (vector != copy) valueToSet = vector;
-        }
+            for (int i = 0; i < vectorParts.Count; i++)
+                if (float.TryParse(vectorParts[i], NumberStyles.Any, CultureInfo.InvariantCulture, out var x))
+                    vectorFloats[i] = x;
 
-        private void DrawQuaternion()
-        {
-            var vector = (Quaternion)valueToSet;
-            var copy = vector;
-            bool integerValuesOnly = (vector.x % 1 == 0) && (vector.y % 1 == 0) && (vector.z % 1 == 0) && (vector.w % 1 == 0);
-            vector.x = DrawSingleVectorSlider(vector.x, "X", ((Quaternion)setting.DefaultValue).x, integerValuesOnly);
-            vector.y = DrawSingleVectorSlider(vector.y, "Y", ((Quaternion)setting.DefaultValue).y, integerValuesOnly);
-            vector.z = DrawSingleVectorSlider(vector.z, "Z", ((Quaternion)setting.DefaultValue).z, integerValuesOnly);
-            vector.w = DrawSingleVectorSlider(vector.w, "W", ((Quaternion)setting.DefaultValue).w, integerValuesOnly);
-            if (vector != copy) valueToSet = vector;
-        }
+            if (setting.SettingType == typeof(Vector2))
+                valueToSet = new Vector2(vectorFloats[0], vectorFloats[1]);
+            else if (setting.SettingType == typeof(Vector3))
+                valueToSet = new Vector3(vectorFloats[0], vectorFloats[1], vectorFloats[2]);
+            else if (setting.SettingType == typeof(Vector4))
+                valueToSet = new Vector4(vectorFloats[0], vectorFloats[1], vectorFloats[2], vectorFloats[3]);
+            else if (setting.SettingType == typeof(Quaternion))
+                valueToSet = new Quaternion(vectorFloats[0], vectorFloats[1], vectorFloats[2], vectorFloats[3]);
 
-        private float DrawSingleVectorSlider(float setting, string label, float defaultValue, bool integerValuesOnly)
-        {
-            GUILayout.Label(label, GetLabelStyle(), GUILayout.ExpandWidth(false));
-            int precision = _vectorDynamicPrecision.Value && integerValuesOnly ? 0 : Math.Abs(_vectorPrecision.Value);
-            string value = GUILayout.TextField(setting.ToString("F" + precision, CultureInfo.InvariantCulture), GetTextStyle(setting, defaultValue), GUILayout.ExpandWidth(true)).Replace(',', '.');
-            if (precision == 0 && value.EndsWith('.'))
-                value = string.Concat(value, string.Empty.PadRight(Math.Abs(_vectorPrecision.Value - 1), '0'), 1);
+            GUILayout.FlexibleSpace();
 
-            float.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var x);
-            return x;
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"Precision: {_vectorPrecision.Value} ", GetLabelStyle(), GUILayout.ExpandWidth(false));
+            float height = GetTextStyle(setting).CalcHeight(new GUIContent(_vectorPrecision.Value.ToString()), 100f);
+            _vectorPrecision.Value = Mathf.RoundToInt(DrawCenteredHorizontalSlider(_vectorPrecision.Value, 0f, 5f, height));
+            GUILayout.EndHorizontal();
         }
 
         private void DrawColor()
@@ -938,6 +962,37 @@ namespace ConfigurationManager
                 {
                     return Utilities.Utils.RoundWithPrecision(value, 3);
                 }
+            }
+        }
+
+        private static void FillVectorList<T>(List<float> list, T value)
+        {
+            if (value == null) return;
+
+            if (value is Vector2 vector2)
+            {
+                list.Add(vector2.x);
+                list.Add(vector2.y);
+            }
+            else if (value is Vector3 vector3)
+            {
+                list.Add(vector3.x);
+                list.Add(vector3.y);
+                list.Add(vector3.z);
+            }
+            else if (value is Vector4 vector4)
+            {
+                list.Add(vector4.x);
+                list.Add(vector4.y);
+                list.Add(vector4.z);
+                list.Add(vector4.w);
+            }
+            else if (value is Quaternion quaternion)
+            {
+                list.Add(quaternion.x);
+                list.Add(quaternion.y);
+                list.Add(quaternion.z);
+                list.Add(quaternion.w);
             }
         }
 

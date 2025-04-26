@@ -476,11 +476,10 @@ namespace ConfigurationManager
 
             GUILayout.BeginHorizontal(GUILayout.Width(LeftColumnWidth), GUILayout.MaxWidth(LeftColumnWidth));
             GUILayout.Label(new GUIContent(setting.DispName.TrimStart('!'), setting.Description), GetLabelStyleSettingName(), GUILayout.ExpandWidth(true));
-            if (_showTooltipBlock.Value)
-            {
-                if (GUILayout.Button(new GUIContent(_editText.Value, setting.Description), GetButtonStyle(), GUILayout.ExpandWidth(false)))
-                    _configSettingWindow.EditSetting(setting);
-            }
+            if (_showEditButton.Value)
+                //if (setting.CustomDrawer == null && setting.CustomHotkeyDrawer == null || SettingFieldDrawer.IsSettingFailedToCustomDraw(setting))
+                    if (GUILayout.Button(new GUIContent(_editText.Value, setting.Description), GetButtonStyle(), GUILayout.ExpandWidth(false)))
+                        _configSettingWindow.EditSetting(setting);
 
             GUILayout.EndHorizontal();
 

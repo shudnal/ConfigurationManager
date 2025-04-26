@@ -91,7 +91,7 @@ namespace ConfigurationManager
 
             buttonStyle = new GUIStyle(GUI.skin.button);
             buttonStyle.normal.textColor = _fontColor.Value;
-            buttonStyle.onNormal.textColor = _fontColor.Value;
+            buttonStyle.onNormal.textColor = _fontColorValueChanged.Value;
             buttonStyle.fontSize = fontSize;
 
             buttonStyleValueDefault = new GUIStyle(buttonStyle);
@@ -284,6 +284,17 @@ namespace ConfigurationManager
                 return true;
             }
         }
-        internal static bool IsEqualConfigValues(Type type, object value1, object value2) => type == typeof(Color) ? IsEqualColorConfig((Color)value1, (Color)value2) : value1.ToString().Equals(value2.ToString(), StringComparison.OrdinalIgnoreCase);
+        internal static bool IsEqualConfigValues(Type type, object value1, object value2)
+        {
+            return type switch
+            {
+                Type t when t == typeof(Color) => IsEqualColorConfig((Color)value1, (Color)value2),
+                Type t when t == typeof(Vector2) => (Vector2)value1 == (Vector2)value2,
+                Type t when t == typeof(Vector3) => (Vector3)value1 == (Vector3)value2,
+                Type t when t == typeof(Vector4) => (Vector4)value1 == (Vector4)value2,
+                Type t when t == typeof(Quaternion) => (Quaternion)value1 == (Quaternion)value2,
+                _ => value1.ToString().Equals(value2.ToString(), StringComparison.OrdinalIgnoreCase)
+            };
+        }
     }
 }

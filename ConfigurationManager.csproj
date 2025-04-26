@@ -31,6 +31,9 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+	<PropertyGroup>
+		<LangVersion>8</LangVersion>
+	</PropertyGroup>
   <ItemGroup>
     <Compile Include="ConfigFilesEditor.cs" />
     <Compile Include="ConfigSettingEntry.cs" />
