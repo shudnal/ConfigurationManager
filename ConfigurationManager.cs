@@ -98,6 +98,7 @@ namespace ConfigurationManager
         internal static Texture2D TooltipBackground { get; private set; }
         internal static Texture2D HeaderBackground { get; private set; }
         internal static Texture2D HeaderBackgroundHover { get; private set; }
+        internal static Texture2D SettingWindowBackground { get; private set; }
 
         internal int LeftColumnWidth { get; private set; }
         internal int RightColumnWidth { get; private set; }
@@ -179,6 +180,8 @@ namespace ConfigurationManager
         public static ConfigEntry<Color> _headerBackgroundColor;
         public static ConfigEntry<Color> _headerBackgroundHoverColor;
         public static ConfigEntry<Color> _entryBackgroundColor;
+        public static ConfigEntry<Color> _editWindowBackgroundColor;
+
         public static ConfigEntry<Color> _fontColor;
         public static ConfigEntry<Color> _fontColorValueChanged;
         public static ConfigEntry<Color> _fontColorValueDefault;
@@ -297,12 +300,14 @@ namespace ConfigurationManager
             _widgetBackgroundColor = Config.Bind("Colors", "Widget color", new Color(0.88f, 0.46f, 0, 0.8f), "Widget color");
             _enabledBackgroundColor = Config.Bind("Colors", "Enabled toggle color", new Color(0.88f, 0.46f, 0f, 1f), "Color of enabled toggle");
             _readOnlyColor = Config.Bind("Colors", "Readonly color", Color.gray, "Color of readonly setting");
+            _editWindowBackgroundColor = Config.Bind("Colors", "Setting window background color", new Color(0.55f, 0.5f, 0.5f, 0.65f), "Setting window background color");
 
             _windowBackgroundColor.SettingChanged += (s, e) => UpdateBackgrounds();
             _entryBackgroundColor.SettingChanged += (s, e) => UpdateBackgrounds();
             _tooltipBackgroundColor.SettingChanged += (s, e) => UpdateBackgrounds();
             _headerBackgroundColor.SettingChanged += (s, e) => UpdateBackgrounds();
             _headerBackgroundHoverColor.SettingChanged += (s, e) => UpdateBackgrounds();
+            _editWindowBackgroundColor.SettingChanged += (s, e) => UpdateBackgrounds();
 
             _fontColor = Config.Bind("Colors - Font", "Main font", new Color(1f, 0.71f, 0.36f, 1f), "Font color");
             _fontColorValueDefault = Config.Bind("Colors - Font", "Default value", new Color(1f, 0.71f, 0.36f, 1f), "Font color");

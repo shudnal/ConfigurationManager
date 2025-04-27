@@ -11,10 +11,13 @@ namespace ConfigurationManager.Utilities
         {
             _colorStack.Push(GUI.color);
             GUI.color = color;
+            _colorStack.Push(GUI.backgroundColor);
+            GUI.backgroundColor = Color.clear;
         }
 
         public static void EndColor()
         {
+            GUI.backgroundColor = _colorStack.Pop();
             GUI.color = _colorStack.Pop();
         }
 

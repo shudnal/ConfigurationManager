@@ -45,7 +45,7 @@ namespace ConfigurationManager
         private readonly List<string> vectorParts = new List<string>();
         private readonly List<float> vectorFloats = new List<float>();
         private readonly List<float> vectorDefault = new List<float>();
-
+        
         public SettingEditWindow()
         {
             SettingDrawHandlers = new Dictionary<Type, Action>
@@ -103,7 +103,7 @@ namespace ConfigurationManager
             listEnum = null;
             listIndex = -1;
             drawerFunction = null;
-            valueToSet = setting.Get();
+            valueToSet = setting.SettingType == typeof(Color) ? Utilities.Utils.RoundColorToHEX((Color)setting.Get()) : setting.Get();
             errorText.Clear();
             errorOnSetting = string.Empty;
 
@@ -199,7 +199,7 @@ namespace ConfigurationManager
             var backgroundColor = GUI.backgroundColor;
             GUI.backgroundColor = _entryBackgroundColor.Value;
 
-            GUILayout.BeginVertical(GetBackgroundStyle());
+            GUILayout.BeginVertical(GetSettingWindowBackgroundStyle());
 
             GUILayout.Space(1f);
 
@@ -225,7 +225,9 @@ namespace ConfigurationManager
             if (!errorOnSetting.IsNullOrWhiteSpace())
                 GUILayout.Label(errorOnSetting, GetLabelStyle());
 
-            GUILayout.Space(5f);
+            DrawDelimiterLine();
+
+            GUILayout.Space(1f);
 
             DrawMenuButtons();
 
@@ -470,8 +472,8 @@ namespace ConfigurationManager
         private static float DrawCenteredHorizontalSlider(float converted, float leftValue, float rightValue, float height)
         {
             GUILayout.BeginVertical(GUILayout.Height(height));
-            GUILayout.Space(height * 0.45f);
-            var result = GUILayout.HorizontalSlider(converted, leftValue, rightValue, GetSliderStyle(), GetThumbStyle(), GUILayout.ExpandWidth(true));
+            GUILayout.Space(height * 0.35f);
+            var result = GUILayout.HorizontalSlider(converted, leftValue, rightValue, GetSliderStyle(), GetThumbStyle(), GUILayout.ExpandWidth(true), GUILayout.Height(height));
             GUILayout.EndVertical();
             return result;
         }
@@ -517,10 +519,7 @@ namespace ConfigurationManager
             }
         }
 
-        private bool IsValueToSetDefaultValue()
-        {
-            return IsEqualConfigValues(setting.SettingType, valueToSet, setting.DefaultValue);
-        }
+        private bool IsValueToSetDefaultValue() => IsEqualConfigValues(setting.SettingType, valueToSet, setting.DefaultValue);
 
         private readonly Dictionary<Type, bool> _canCovertCache = new Dictionary<Type, bool>();
         private bool CanCovert(string value, Type type)
@@ -541,6 +540,13 @@ namespace ConfigurationManager
             }
         }
 
+        public static void ClearCache()
+        {
+            foreach (var tex in ColorCache)
+                UnityEngine.Object.Destroy(tex.Value.Tex);
+            ColorCache.Clear();
+        }
+
         internal void DrawDefaultButton()
         {
             if (setting.HideDefaultButton) return;
@@ -558,9 +564,10 @@ namespace ConfigurationManager
             {
                 if (DrawResetButton())
                 {
-                    valueToSet = setting.DefaultValue;
+                    valueToSet = setting.SettingType == typeof(Color) ? Utilities.Utils.RoundColorToHEX((Color)setting.DefaultValue) : setting.DefaultValue;
                     InitListIndex();
                     InitVectorParts();
+                    ClearCache();
                 }
             }
             else if (setting.SettingType.IsClass)
@@ -570,6 +577,7 @@ namespace ConfigurationManager
                     valueToSet = null;
                     InitListIndex();
                     InitVectorParts();
+                    ClearCache();
                 }
             }
 
@@ -862,11 +870,11 @@ namespace ConfigurationManager
         private void DrawColor()
         {
             Color value = (Color)valueToSet;
+            Color defaultColor = Utilities.Utils.RoundColorToHEX((Color)setting.DefaultValue);
 
             GUILayout.BeginVertical();
-            GUILayout.BeginVertical(GetBoxStyle());
             GUILayout.BeginHorizontal();
-            bool isDefaultValue = DrawHexField(ref value, (Color)valueToSet);
+            DrawHexField(ref value, defaultColor);
 
             GUILayout.Space(3f);
             GUIHelper.BeginColor(value);
@@ -890,15 +898,19 @@ namespace ConfigurationManager
             GUILayout.EndHorizontal();
 
             GUILayout.Space(2f);
-            GUILayout.BeginHorizontal();
 
-            DrawColorField("R", ref value, ref value.r, isDefaultValue);
-            GUILayout.Space(3f);
-            DrawColorField("G", ref value, ref value.g, isDefaultValue);
-            GUILayout.Space(3f);
-            DrawColorField("B", ref value, ref value.b, isDefaultValue);
-            GUILayout.Space(3f);
-            DrawColorField("A", ref value, ref value.a, isDefaultValue);
+            DrawColorField("Red", ref value, ref value.r, Utilities.Utils.RoundColor(value.r) == Utilities.Utils.RoundColor(defaultColor.r));
+            DrawColorField("Green", ref value, ref value.g, Utilities.Utils.RoundColor(value.g) == Utilities.Utils.RoundColor(defaultColor.g));
+            DrawColorField("Blue", ref value, ref value.b, Utilities.Utils.RoundColor(value.b) == Utilities.Utils.RoundColor(defaultColor.b));
+            DrawColorField("Alpha", ref value, ref value.a, Utilities.Utils.RoundColor(value.a) == Utilities.Utils.RoundColor(defaultColor.a));
+
+            HSLColor defaultHSL = defaultColor;
+            HSLColor hsl = value;
+            DrawHSLField("Hue", ref hsl, ref hsl.h, Utilities.Utils.RoundWithPrecision(hsl.h, 1) == Utilities.Utils.RoundWithPrecision(defaultHSL.h, 1));
+            DrawHSLField("Saturation", ref hsl, ref hsl.s, Utilities.Utils.RoundColor(hsl.s) == Utilities.Utils.RoundColor(defaultHSL.s));
+            DrawHSLField("Lightness", ref hsl, ref hsl.l, Utilities.Utils.RoundColor(hsl.l) == Utilities.Utils.RoundColor(defaultHSL.l));
+
+            value = hsl;
 
             if (value != cacheEntry.Last)
             {
@@ -907,17 +919,14 @@ namespace ConfigurationManager
                 cacheEntry.Last = value;
             }
 
-            GUILayout.EndHorizontal();
-
-            GUILayout.EndVertical();
-            GUILayout.Space(2f);
             GUILayout.EndVertical();
         }
 
         private bool DrawHexField(ref Color value, Color defaultValue)
         {
+            GUIStyle style = GetTextStyle(value, defaultValue);
             string currentText = $"#{ColorUtility.ToHtmlStringRGBA(value)}";
-            string textValue = GUILayout.TextField(currentText, GetTextStyle(value, defaultValue), GUILayout.MaxWidth(Mathf.Clamp(95f * fontSize / 14, 80f, 180f)), GUILayout.ExpandWidth(false));
+            string textValue = GUILayout.TextField(currentText, style, GUILayout.Width(style.CalcSize(new GUIContent("#FFFFFFFF.")).x), GUILayout.ExpandWidth(false));
             if (textValue != currentText && ColorUtility.TryParseHtmlString(textValue, out Color color))
                 value = color;
 
@@ -926,41 +935,57 @@ namespace ConfigurationManager
 
         private void DrawColorField(string fieldLabel, ref Color settingColor, ref float settingValue, bool isDefaultValue)
         {
-            GUILayout.BeginVertical();
             GUILayout.BeginHorizontal();
-            GUILayout.Label(fieldLabel, GetLabelStyle(), GUILayout.ExpandWidth(true));
+            GUILayout.Label(fieldLabel, GetLabelStyle(), GUILayout.Width(GetLabelStyle().CalcSize(new GUIContent("Green.")).x), GUILayout.ExpandWidth(false));
 
-            string currentText = settingValue.ToString("0.000");
-            SetColorValue(ref settingColor, float.Parse(GUILayout.TextField(currentText, GetTextStyle(isDefaultValue), GUILayout.MaxWidth(45f), GUILayout.ExpandWidth(true))));
+            GUIStyle style = GetTextStyle(isDefaultValue);
+            Vector2 size = style.CalcSize(new GUIContent("0,000."));
+
+            string currentText = Utilities.Utils.RoundWithPrecision(settingValue, 3).ToString("0.000");
+            SetColorValue(ref settingColor, float.Parse(GUILayout.TextField(currentText, style, GUILayout.Width(size.x), GUILayout.ExpandWidth(false)).Replace('.', ',')));
+
+            SetColorValue(ref settingColor, byte.Parse(GUILayout.TextField((Utilities.Utils.RoundWithPrecision(settingValue, 3) * 255).ToString("F0"), style, GUILayout.Width(style.CalcSize(new GUIContent("000.")).x), GUILayout.ExpandWidth(false))) / 255f);
+
+            SetColorValue(ref settingColor, DrawCenteredHorizontalSlider(settingValue, 0f, 1f, size.y));
 
             GUILayout.EndHorizontal();
-            GUILayout.Space(1f);
-
-            SetColorValue(ref settingColor, GUILayout.HorizontalSlider(settingValue, 0f, 1f, GUILayout.ExpandWidth(true)));
-
-            GUILayout.EndVertical();
 
             void SetColorValue(ref Color color, float value)
             {
+                float roundedValue = Utilities.Utils.RoundWithPrecision(value, 3);
                 switch (fieldLabel)
                 {
-                    case "R":
-                        color.r = RoundTo000();
-                        break;
-                    case "G":
-                        color.g = RoundTo000();
-                        break;
-                    case "B":
-                        color.b = RoundTo000();
-                        break;
-                    case "A":
-                        color.a = RoundTo000();
-                        break;
+                    case "Red":     color.r = Mathf.Clamp01(roundedValue); break;
+                    case "Green":   color.g = Mathf.Clamp01(roundedValue); break;
+                    case "Blue":    color.b = Mathf.Clamp01(roundedValue); break;
+                    case "Alpha":   color.a = Mathf.Clamp01(roundedValue); break;
                 }
+            }
+        }
 
-                float RoundTo000()
+        private void DrawHSLField(string fieldLabel, ref HSLColor settingColor, ref float settingValue, bool isDefaultValue)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(fieldLabel, GetLabelStyle(), GUILayout.Width(GetLabelStyle().CalcSize(new GUIContent("Saturation..")).x), GUILayout.ExpandWidth(false));
+
+            GUIStyle style = GetTextStyle(isDefaultValue);
+            Vector2 size = style.CalcSize(new GUIContent("000,00."));
+
+            string currentText = Utilities.Utils.RoundWithPrecision(settingValue, fieldLabel == "Hue" ? 2 : 4).ToString(fieldLabel == "Hue" ? "000.00" : "0.0000");
+            SetColorValue(ref settingColor, float.Parse(GUILayout.TextField(currentText, style, GUILayout.Width(size.x), GUILayout.ExpandWidth(false)).Replace('.', ',')));
+
+            SetColorValue(ref settingColor, DrawCenteredHorizontalSlider(settingValue, 0f, fieldLabel == "Hue" ? 360f : 1f, size.y));
+
+            GUILayout.EndHorizontal();
+
+            void SetColorValue(ref HSLColor color, float value)
+            {
+                float roundedValue = Utilities.Utils.RoundWithPrecision(value, fieldLabel == "Hue" ? 2 : 4);
+                switch (fieldLabel)
                 {
-                    return Utilities.Utils.RoundWithPrecision(value, 3);
+                    case "Hue":         color.h = Mathf.Clamp(roundedValue, 0f, 360f); break;
+                    case "Saturation":  color.s = Mathf.Clamp01(roundedValue > 1f ? roundedValue / 100 : roundedValue); break;
+                    case "Lightness":   color.l = Mathf.Clamp01(roundedValue > 1f ? roundedValue / 100 : roundedValue); break;
                 }
             }
         }

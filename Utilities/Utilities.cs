@@ -14,7 +14,7 @@ using System.Globalization;
 
 namespace ConfigurationManager.Utilities
 {
-    internal static class Utils
+    public static class Utils
     {
         public static string ToProperCase(this string str)
         {
@@ -106,6 +106,18 @@ namespace ConfigurationManager.Utilities
         {
             int multiplier = Convert.ToInt32(Math.Pow(10, precision));
             return Mathf.Round(value * multiplier) / multiplier;
+        }
+
+        public static byte RoundColor(float color) => (byte)Mathf.Round(color * 255);
+
+        public static Color RoundColorToHEX(Color color)
+        {
+            byte r = RoundColor(color.r);
+            byte g = RoundColor(color.g);
+            byte b = RoundColor(color.b);
+            byte a = RoundColor(color.a);
+
+            return new Color32(r, g, b, a);
         }
 
         public static void FillTexture(this Texture2D tex, Color color)

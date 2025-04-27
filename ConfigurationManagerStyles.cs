@@ -36,6 +36,7 @@ namespace ConfigurationManager
         private static GUIStyle categoryBackgroundStyle;
         private static GUIStyle categoryHeaderBackgroundStyle;
         private static GUIStyle categoryHeaderBackgroundStyleWithHover;
+        private static GUIStyle settingWindowBackgroundStyle;
         private static GUIStyle tooltipStyle;
         private static GUIStyle fileEditorFileStyle;
         private static GUIStyle fileEditorFileStyleActive;
@@ -187,6 +188,9 @@ namespace ConfigurationManager
             categoryHeaderBackgroundStyleWithHover = new GUIStyle(categoryHeaderBackgroundStyle);
             categoryHeaderBackgroundStyleWithHover.hover.background = HeaderBackgroundHover;
 
+            settingWindowBackgroundStyle = new GUIStyle(backgroundStyle);
+            settingWindowBackgroundStyle.normal.background = SettingWindowBackground;
+
             tooltipStyle = new GUIStyle(GUI.skin.box);
             tooltipStyle.normal.textColor = _fontColor.Value;
             tooltipStyle.fontSize = fontSize;
@@ -247,6 +251,7 @@ namespace ConfigurationManager
         public static GUIStyle GetBackgroundStyle(bool withHover = false) => withHover ? backgroundStyleWithHover : backgroundStyle;
         public static GUIStyle GetCategoryBackgroundStyle() => categoryBackgroundStyle;
         public static GUIStyle GetCategoryHeaderBackgroundStyle(bool withHover = false) => withHover ? categoryHeaderBackgroundStyleWithHover : categoryHeaderBackgroundStyle;
+        public static GUIStyle GetSettingWindowBackgroundStyle() => settingWindowBackgroundStyle;
         public static GUIStyle GetComboBoxStyle() => comboBoxStyle;
         public static GUIStyle GetToggleStyle() => toggleStyle;
         public static GUIStyle GetToggleStyle(bool isDefaultValue = true) => isDefaultValue ? toggleStyleValueDefault : toggleStyleValueChanged;

@@ -649,7 +649,7 @@ namespace ConfigurationManager
 
         private void CreateBackgrounds()
         {
-            if (WindowBackground == null || EntryBackground == null || TooltipBackground == null || HeaderBackground == null || HeaderBackgroundHover == null)
+            if (WindowBackground == null)
             {
                 var background = new Texture2D(1, 1, TextureFormat.ARGB32, false);
                 background.SetPixel(0, 0, _windowBackgroundColor.Value);
@@ -675,6 +675,11 @@ namespace ConfigurationManager
                 headerBackgroundHover.SetPixel(0, 0, _headerBackgroundHoverColor.Value);
                 headerBackgroundHover.Apply();
                 HeaderBackgroundHover = headerBackgroundHover;
+
+                var settingWindowBackground = new Texture2D(1, 1, TextureFormat.ARGB32, false);
+                settingWindowBackground.SetPixel(0, 0, _editWindowBackgroundColor.Value);
+                settingWindowBackground.Apply();
+                SettingWindowBackground = settingWindowBackground;
             }
         }
 
@@ -685,12 +690,14 @@ namespace ConfigurationManager
             Destroy(TooltipBackground);
             Destroy(HeaderBackground);
             Destroy(HeaderBackgroundHover);
+            Destroy(SettingWindowBackground);
 
             WindowBackground = null;
             EntryBackground = null;
             TooltipBackground = null;
             HeaderBackground = null;
             HeaderBackgroundHover = null;
+            SettingWindowBackground = null;
 
             CreateBackgrounds();
         }

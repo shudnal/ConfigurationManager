@@ -705,12 +705,13 @@ namespace ConfigurationManager
 
         private static void DrawColor(SettingEntryBase obj)
         {
-            Color setting = (Color)obj.Get();
+            Color setting = Utilities.Utils.RoundColorToHEX((Color)obj.Get());
+            Color defaultColor = Utilities.Utils.RoundColorToHEX((Color)obj.DefaultValue);
 
             GUILayout.BeginVertical();
             GUILayout.BeginVertical(GetBoxStyle());
             GUILayout.BeginHorizontal();
-            bool isDefaultValue = DrawHexField(ref setting, (Color)obj.DefaultValue);
+            bool isDefaultValue = DrawHexField(ref setting, defaultColor);
 
             GUILayout.Space(3f);
             GUIHelper.BeginColor(setting);
@@ -736,13 +737,13 @@ namespace ConfigurationManager
             GUILayout.Space(2f);
             GUILayout.BeginHorizontal();
 
-            DrawColorField("R", ref setting, ref setting.r, isDefaultValue);
+            DrawColorField("R", ref setting, ref setting.r, Utilities.Utils.RoundColor(setting.r) == Utilities.Utils.RoundColor(defaultColor.r));
             GUILayout.Space(3f);
-            DrawColorField("G", ref setting, ref setting.g, isDefaultValue);
+            DrawColorField("G", ref setting, ref setting.g, Utilities.Utils.RoundColor(setting.g) == Utilities.Utils.RoundColor(defaultColor.g));
             GUILayout.Space(3f);
-            DrawColorField("B", ref setting, ref setting.b, isDefaultValue);
+            DrawColorField("B", ref setting, ref setting.b, Utilities.Utils.RoundColor(setting.b) == Utilities.Utils.RoundColor(defaultColor.b));
             GUILayout.Space(3f);
-            DrawColorField("A", ref setting, ref setting.a, isDefaultValue);
+            DrawColorField("A", ref setting, ref setting.a, Utilities.Utils.RoundColor(setting.a) == Utilities.Utils.RoundColor(defaultColor.a));
 
             if (setting != cacheEntry.Last)
             {
@@ -760,8 +761,9 @@ namespace ConfigurationManager
 
         private static bool DrawHexField(ref Color value, Color defaultValue)
         {
+            GUIStyle style = GetTextStyle(value, defaultValue);
             string currentText = $"#{ColorUtility.ToHtmlStringRGBA(value)}";
-            string textValue = GUILayout.TextField(currentText, GetTextStyle(value, defaultValue), GUILayout.MaxWidth(Mathf.Clamp(95f * fontSize / 14, 80f, 180f)), GUILayout.ExpandWidth(false));
+            string textValue = GUILayout.TextField(currentText, style, GUILayout.Width(style.CalcSize(new GUIContent("#FFFFFFFF.")).x), GUILayout.ExpandWidth(false));
             if (textValue != currentText && ColorUtility.TryParseHtmlString(textValue, out Color color))
                 value = color;
 
@@ -774,7 +776,7 @@ namespace ConfigurationManager
             GUILayout.BeginHorizontal();
             GUILayout.Label(fieldLabel, GetLabelStyle(), GUILayout.ExpandWidth(true));
 
-            string currentText = settingValue.ToString("0.000");
+            string currentText = Utilities.Utils.RoundWithPrecision(settingValue, 3).ToString("0.000");
             SetColorValue(ref settingColor, float.Parse(GUILayout.TextField(currentText, GetTextStyle(isDefaultValue), GUILayout.MaxWidth(45f), GUILayout.ExpandWidth(true))));
 
             GUILayout.EndHorizontal();
@@ -786,25 +788,13 @@ namespace ConfigurationManager
 
             void SetColorValue(ref Color color, float value)
             {
+                float roundedValue = Utilities.Utils.RoundWithPrecision(value, 3);
                 switch (fieldLabel)
                 {
-                    case "R":
-                        color.r = RoundTo000();
-                        break;
-                    case "G":
-                        color.g = RoundTo000();
-                        break;
-                    case "B":
-                        color.b = RoundTo000();
-                        break;
-                    case "A":
-                        color.a = RoundTo000();
-                        break;
-                }
-
-                float RoundTo000()
-                {
-                    return Utilities.Utils.RoundWithPrecision(value, 3);
+                    case "R": color.r = roundedValue; break;
+                    case "G": color.g = roundedValue; break;
+                    case "B": color.b = roundedValue; break;
+                    case "A": color.a = roundedValue; break;
                 }
             }
         }
