@@ -45,6 +45,8 @@ namespace ConfigurationManager
         private readonly List<string> vectorParts = new List<string>();
         private readonly List<float> vectorFloats = new List<float>();
         private readonly List<float> vectorDefault = new List<float>();
+
+        private string colorAsHEX;
         
         public SettingEditWindow()
         {
@@ -106,6 +108,7 @@ namespace ConfigurationManager
             valueToSet = setting.SettingType == typeof(Color) ? Utilities.Utils.RoundColorToHEX((Color)setting.Get()) : setting.Get();
             errorText.Clear();
             errorOnSetting = string.Empty;
+            colorAsHEX = setting.SettingType == typeof(Color) ? $"#{ColorUtility.ToHtmlStringRGBA((Color)valueToSet)}" : string.Empty;
 
             if (setting.AcceptableValueRange.Key != null)
                 drawerFunction = DrawRangeField;
@@ -763,7 +766,7 @@ namespace ConfigurationManager
                 GUILayout.Label(_shortcutKeysText.Value, GetLabelStyle(), GUILayout.ExpandWidth(true));
                 GUIUtility.keyboardControl = -1;
 
-                if (_keysToCheck == null) _keysToCheck = UnityInput.Current.SupportedKeyCodes.Except(new[] { KeyCode.Mouse0, KeyCode.None }).ToArray();
+                _keysToCheck ??= UnityInput.Current.SupportedKeyCodes.Except(new[] { KeyCode.Mouse0, KeyCode.None }).ToArray();
                 foreach (var key in _keysToCheck)
                 {
                     if (UnityInput.Current.GetKeyUp(key))
@@ -794,7 +797,7 @@ namespace ConfigurationManager
                 GUIUtility.keyboardControl = -1;
 
                 var input = UnityInput.Current;
-                if (_keysToCheck == null) _keysToCheck = input.SupportedKeyCodes.Except(new[] { KeyCode.Mouse0, KeyCode.None }).ToArray();
+                _keysToCheck ??= input.SupportedKeyCodes.Except(new[] { KeyCode.Mouse0, KeyCode.None }).ToArray();
                 foreach (var key in _keysToCheck)
                 {
                     if (input.GetKeyUp(key))
@@ -917,6 +920,7 @@ namespace ConfigurationManager
                 valueToSet = value;
                 cacheEntry.Tex.FillTexture(value);
                 cacheEntry.Last = value;
+                colorAsHEX = $"#{ColorUtility.ToHtmlStringRGBA(value)}";
             }
 
             GUILayout.EndVertical();
@@ -925,13 +929,100 @@ namespace ConfigurationManager
         private bool DrawHexField(ref Color value, Color defaultValue)
         {
             GUIStyle style = GetTextStyle(value, defaultValue);
-            string currentText = $"#{ColorUtility.ToHtmlStringRGBA(value)}";
-            string textValue = GUILayout.TextField(currentText, style, GUILayout.Width(style.CalcSize(new GUIContent("#FFFFFFFF.")).x), GUILayout.ExpandWidth(false));
-            if (textValue != currentText && ColorUtility.TryParseHtmlString(textValue, out Color color))
+            UpdateHexString(ref colorAsHEX, GUILayout.TextField(colorAsHEX, style, GUILayout.Width(style.CalcSize(new GUIContent("#FFFFFFFF.")).x), GUILayout.ExpandWidth(false)));
+
+            bool enabled = GUI.enabled;
+            GUI.enabled = !colorAsHEX.Replace("#", "").Equals(ColorUtility.ToHtmlStringRGBA(value), StringComparison.OrdinalIgnoreCase);
+
+            if (GUILayout.Button(_shortcutKeyText.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)) && ColorUtility.TryParseHtmlString(colorAsHEX, out Color color))
                 value = color;
+
+            GUI.enabled = enabled;
 
             return IsEqualColorConfig(value, defaultValue);
         }
+
+        void UpdateHexString(ref string originalHEX, string newHEX)
+        {
+            char[] hexChars = (newHEX.StartsWith("#") ? newHEX : "#" + newHEX).ToUpper().ToCharArray();
+            for (int i = 1; i < hexChars.Length; i++)
+                if (!IsValidHexChar(hexChars[i]))
+                    hexChars[i] = 'F';
+
+            newHEX = new string(hexChars);
+
+            if (originalHEX.Equals(newHEX))
+                return;
+
+            //LogInfo($"\n\"{originalHEX}\" -> \"{newHEX}\"");
+
+            if (originalHEX.Length == newHEX.Length)
+            {
+                // Symbols were replaced without change of string length, just replace string
+                originalHEX = newHEX;
+            }
+            else if (originalHEX.IndexOf(newHEX) == 0)
+            {
+                // Symbols were removed from tail
+                originalHEX = newHEX.PadRight(9, '0');
+            }
+            else if (newHEX.IndexOf(originalHEX) == 0)
+            {
+                // Extra symbols were added, ignore
+                originalHEX = newHEX.Substring(0, 9);
+            }
+            else if (originalHEX.Length > newHEX.Length)
+            {
+                FindStartEndLength(originalHEX, newHEX, out string startString, out string endString);
+
+                // Symbols were removed, concat start + zeroes + end
+                originalHEX = startString + new string('0', originalHEX.Length - newHEX.Length) + endString;
+            }
+            else if (originalHEX.Length < newHEX.Length)
+            {
+                FindStartEndLength(originalHEX, newHEX, out string startString, out string endString);
+
+                // Symbols were added, replace and follow with original string
+                int replacedLength = newHEX.Length - endString.Length - startString.Length;
+                originalHEX = newHEX.Substring(0, startString.Length + replacedLength) + newHEX.Substring(startString.Length + replacedLength + (newHEX.Length - 9));
+            }
+
+            originalHEX = originalHEX.PadRight(9, '0');
+
+            //LogInfo($"{originalHEX}");
+        }
+
+        void FindStartEndLength(string originalHEX, string newHEX, out string startString, out string endString)
+        {
+            int startLength = -1;
+            int endLength = -1;
+
+            int minLength = Math.Min(originalHEX.Length, newHEX.Length);
+            for (int i = 0; i < minLength; i++)
+            {
+                if (startLength != -1 && endLength != -1)
+                    break;
+
+                if (startLength == -1 && originalHEX[i] != newHEX[i])
+                    startLength = i;
+
+                if (endLength == -1 && originalHEX[originalHEX.Length - 1 - i] != newHEX[newHEX.Length - 1 - i])
+                    endLength = minLength - 1 - i;
+            }
+
+            if (startLength == -1)
+                startLength = minLength;
+
+            if (endLength == -1)
+                endLength = 0;
+
+            endLength = minLength - endLength;
+
+            startString = newHEX.Substring(0, startLength);
+            endString = newHEX.Substring(newHEX.Length - endLength + 1);
+        }
+
+        bool IsValidHexChar(char c) => (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F');
 
         private void DrawColorField(string fieldLabel, ref Color settingColor, ref float settingValue, bool isDefaultValue)
         {
