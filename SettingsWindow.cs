@@ -329,12 +329,7 @@ namespace ConfigurationManager
             SearchString = GUILayout.TextField(SearchString, GetTextStyle(), GUILayout.ExpandWidth(true));
 
             if (string.IsNullOrEmpty(SearchString) && Event.current.type == EventType.Repaint)
-            {
-                var placeholderStyle = new GUIStyle(GetTextStyle());
-                placeholderStyle.normal.textColor = Color.gray;
-
-                GUI.Label(GUILayoutUtility.GetLastRect(), _searchText.Value, placeholderStyle);
-            }
+                GUI.Label(GUILayoutUtility.GetLastRect(), _searchText.Value, GetPlaceholderTextStyle());
 
             if (_focusSearchBox)
             {

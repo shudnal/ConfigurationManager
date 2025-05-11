@@ -39,6 +39,7 @@ namespace ConfigurationManager
 
         private const string SearchBoxName = "searchBoxEditor";
         private const int DirectoryOffset = 20;
+        private const string TextEditorControlName = "textEditorTextField";
         private bool _focusSearchBox;
         private bool _focusTextArea;
         private string _searchString;
@@ -212,13 +213,13 @@ namespace ConfigurationManager
 
                     GUI.enabled = File.Exists(_activeFile);
                     
-                    GUI.SetNextControlName("textEditor");
+                    GUI.SetNextControlName(TextEditorControlName);
                     _fileContent = GUILayout.TextArea(_fileContent, GetFileEditorTextArea(), GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(true));
                     
-                    if (_focusTextArea || GUI.GetNameOfFocusedControl() == "textEditor")
+                    if (_focusTextArea || GUI.GetNameOfFocusedControl() == TextEditorControlName)
                     {
                         GUI.FocusWindow(WindowId);
-                        GUI.FocusControl("textEditor");
+                        GUI.FocusControl(TextEditorControlName);
                         _focusTextArea = false;
                     }
 

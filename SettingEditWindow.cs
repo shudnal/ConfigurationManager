@@ -18,7 +18,7 @@ namespace ConfigurationManager
         private Rect _windowRect = new Rect(_windowPositionEditSetting.Value, _windowSizeEditSetting.Value);
 
         private const int WindowId = -6800;
-
+        private const string NewItemFieldControlName = "StringListNewItemField";
         private SettingEntryBase setting;
 
         private static SettingEntryBase _currentKeyboardShortcutToSet;
@@ -47,6 +47,12 @@ namespace ConfigurationManager
         private readonly List<float> vectorDefault = new List<float>();
 
         private string colorAsHEX;
+
+        private List<string> separatedStringDefault = new List<string>();
+        private List<string> separatedString = new List<string>();
+        private string separator;
+        private int editStringView;
+        private string newItem;
         
         public SettingEditWindow()
         {
@@ -100,6 +106,18 @@ namespace ConfigurationManager
             GUI.backgroundColor = color;
         }
 
+        private void UpdateStringList()
+        {
+            if (setting.SettingType != typeof(string))
+                return;
+
+            separatedString.Clear();
+            separatedString.AddRange(valueToSet.ToString().Split(separator));
+
+            separatedStringDefault.Clear();
+            separatedStringDefault.AddRange(setting.DefaultValue.ToString().Split(separator).Select(s => s.Trim()));
+        }
+
         private void InitializeWindow()
         {
             listEnum = null;
@@ -109,13 +127,15 @@ namespace ConfigurationManager
             errorText.Clear();
             errorOnSetting = string.Empty;
             colorAsHEX = setting.SettingType == typeof(Color) ? $"#{ColorUtility.ToHtmlStringRGBA((Color)valueToSet)}" : string.Empty;
+            separator = ",";
+            separatedString.Clear();
+            newItem = string.Empty;
+            editStringView = 0;
 
             if (setting.AcceptableValueRange.Key != null)
                 drawerFunction = DrawRangeField;
             else if (setting.AcceptableValues != null)
                 SetAcceptableValuesDrawer();
-            else if (typeof(IList<string>).IsAssignableFrom(setting.SettingType))
-                drawerFunction = DrawStringListField;
             else if (setting.SettingType.IsEnum && setting.SettingType != typeof(KeyCode))
             {
                 listEnum = Enum.GetValues(setting.SettingType);
@@ -130,6 +150,8 @@ namespace ConfigurationManager
             InitListIndex();
 
             InitVectorParts();
+            
+            UpdateStringList();
         }
 
         private void InitListIndex()
@@ -487,20 +509,54 @@ namespace ConfigurationManager
             if (setting.ObjToStr != null && setting.StrToObj != null)
             {
                 var text = setting.ObjToStr(valueToSet).AppendZeroIfFloat(setting.SettingType);
-                if (text.IsNullOrWhiteSpace() && setting.DefaultValue.ToString() != "")
-                    GUI.backgroundColor = _fontColorValueChanged.Value;
 
-                var result = GUILayout.TextArea(text, GetTextStyle(IsValueToSetDefaultValue()), GUILayout.ExpandWidth(true));
-                if (result != text)
-                    valueToSet = setting.StrToObj(result);
+                if (setting.SettingType == typeof(string))
+                {
+                    if (editStringView > 0)
+                    {
+                        DrawEditableList(); 
+                        valueToSet = setting.StrToObj(string.Join(separator, separatedString));
+                        GUILayout.FlexibleSpace();
+                    }
+                    else
+                    {
+                        var result = GUILayout.TextArea(text, GetTextStyle(IsValueToSetDefaultValue()), GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
+                        if (result != text)
+                            valueToSet = setting.StrToObj(result);
+                    }
+
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label("Edit as: ", GetLabelStyle(), GUILayout.ExpandWidth(false));
+                    if (editStringView != (editStringView = GUILayout.SelectionGrid(editStringView, new[] { "Text", "List" }, 2, GetButtonStyle(), GUILayout.ExpandWidth(false))))
+                    {
+                        // On view mode change?
+                    }
+
+                    if (editStringView > 0)
+                    {
+                        GUILayout.Label("Separator: ", GetLabelStyle(), GUILayout.ExpandWidth(false));
+                        if (separator != (separator = GUILayout.TextField(separator)))
+                            UpdateStringList();
+
+                        if (GUILayout.Button("Trim whitespace", GetButtonStyle(), GUILayout.ExpandWidth(false)))
+                        {
+                            separatedString = separatedString.Select(s => s.Trim()).ToList();
+                            valueToSet = setting.StrToObj(string.Join(separator, separatedString));
+                        }
+                    }
+                    GUILayout.EndHorizontal();
+                }
+                else
+                {
+                    var result = GUILayout.TextArea(text, GetTextStyle(IsValueToSetDefaultValue()), GUILayout.ExpandWidth(true));
+                    if (result != text)
+                        valueToSet = setting.StrToObj(result);
+                }
             }
             else
             {
                 // Fall back to slow/less reliable method
                 var value = valueToSet == null ? "NULL" : valueToSet.ToString().AppendZeroIfFloat(setting.SettingType);
-
-                if (value.IsNullOrWhiteSpace() && setting.DefaultValue.ToString() != "")
-                    GUI.backgroundColor = _fontColorValueChanged.Value;
 
                 if (CanCovert(value, setting.SettingType))
                 {
@@ -520,6 +576,57 @@ namespace ConfigurationManager
                     valueToSet = GUILayout.TextArea(value, GetTextStyle(IsValueToSetDefaultValue()), GUILayout.ExpandWidth(true));
                 }
             }
+        }
+
+        private void DrawEditableList()
+        {
+            float width = Mathf.Round(GetButtonStyle().CalcSize(new GUIContent("▲")).x);
+
+            for (int i = 0; i < separatedString.Count; i++)
+            {
+                GUILayout.BeginHorizontal();
+
+                if (GUILayout.Button("✕", GetButtonStyle(), GUILayout.Width(width)))
+                {
+                    GUILayout.EndHorizontal();
+                    separatedString.RemoveAt(i);
+                    break;
+                }
+
+                separatedString[i] = GUILayout.TextArea(separatedString[i], GetTextStyle(separatedStringDefault.IndexOf(separatedString[i].Trim()) == i), GUILayout.ExpandWidth(true));
+
+                var enabled = GUI.enabled;
+                GUI.enabled = i > 0;
+                if (GUILayout.Button("▲", GetButtonStyle(), GUILayout.Width(width)))
+                    SwapElements(i, i - 1);
+
+                GUI.enabled = i < separatedString.Count - 1;
+                if (GUILayout.Button("▼", GetButtonStyle(), GUILayout.Width(width)))
+                    SwapElements(i, i + 1);
+
+                GUI.enabled = enabled;
+
+                GUILayout.EndHorizontal();
+            }
+
+            GUILayout.BeginHorizontal();
+
+            GUI.SetNextControlName(NewItemFieldControlName);
+            newItem = GUILayout.TextField(newItem, GetTextStyle(isDefaultValue:false), GUILayout.ExpandWidth(true));
+
+            if (string.IsNullOrEmpty(newItem) && Event.current.type == EventType.Repaint)
+                GUI.Label(GUILayoutUtility.GetLastRect(), "Enter new value", GetPlaceholderTextStyle());
+
+            if (GUILayout.Button("Add", GetButtonStyle(), GUILayout.ExpandWidth(false)) && !string.IsNullOrWhiteSpace(newItem))
+            {
+                separatedString.Add(newItem);
+                newItem = "";
+                GUI.FocusControl(NewItemFieldControlName);
+            }
+
+            GUILayout.EndHorizontal();
+
+            void SwapElements(int indexA, int indexB) => (separatedString[indexA], separatedString[indexB]) = (separatedString[indexB], separatedString[indexA]);
         }
 
         private bool IsValueToSetDefaultValue() => IsEqualConfigValues(setting.SettingType, valueToSet, setting.DefaultValue);
@@ -570,6 +677,7 @@ namespace ConfigurationManager
                     valueToSet = setting.SettingType == typeof(Color) ? Utilities.Utils.RoundColorToHEX((Color)setting.DefaultValue) : setting.DefaultValue;
                     InitListIndex();
                     InitVectorParts();
+                    UpdateStringList();
                     ClearCache();
                 }
             }
@@ -580,91 +688,12 @@ namespace ConfigurationManager
                     valueToSet = null;
                     InitListIndex();
                     InitVectorParts();
+                    UpdateStringList();
                     ClearCache();
                 }
             }
 
             GUI.backgroundColor = color;
-        }
-
-        private void DrawStringListField()
-        {
-            if (SettingFieldDrawer.IsSettingFailedToStringListDraw(setting))
-                return;
-
-            Color color = GUI.backgroundColor;
-            GUI.backgroundColor = _widgetBackgroundColor.Value;
-
-            bool wasUpdated = false;
-            bool locked = setting.ReadOnly is true;
-
-            float buttonWidth = GetButtonStyle().CalcSize(new GUIContent("x")).y;
-
-            GUILayout.BeginVertical();
-
-            List<string> stringList = valueToSet as List<string>;
-            List<string> newList = new List<string>();
-
-            for (int i = 0; i < stringList.Count; i++)
-            {
-                GUILayout.BeginHorizontal();
-
-                string val = stringList[i];
-
-                string newVal = GUILayout.TextField(val, GetTextStyle(setting), GUILayout.ExpandWidth(true));
-
-                if (newVal != val && !locked)
-                    wasUpdated = true;
-
-                if (GUILayout.Button("x", GetButtonStyle(), GUILayout.Width(buttonWidth)) && !locked)
-                    wasUpdated = true;
-                else
-                    newList.Add(newVal);
-
-                if (GUILayout.Button("+", GetButtonStyle(), GUILayout.Width(buttonWidth)) && !locked)
-                {
-                    wasUpdated = true;
-                    newList.Add("");
-                }
-
-                GUILayout.EndHorizontal();
-            }
-
-            GUILayout.Space(5);
-
-            GUILayout.EndVertical();
-
-            GUI.backgroundColor = color;
-
-            string log = string.Empty;
-            try
-            {
-                valueToSet = Activator.CreateInstance(setting.SettingType, new object[] { newList });
-                return;
-            }
-            catch (Exception e)
-            {
-                log += e.ToString();
-            }
-
-            try
-            {
-                object list = Activator.CreateInstance(setting.SettingType);
-                if (list is IList<string> ilist)
-                {
-                    foreach (var item in newList)
-                        ilist.Add(item);
-
-                    valueToSet = ilist;
-                }
-                return;
-            }
-            catch (Exception e)
-            {
-                log += "\n" + e.ToString();
-            }
-
-            SettingFieldDrawer.SetSettingFailedToStringListDraw(setting, log);
         }
 
         private void DrawBoolField()
@@ -757,6 +786,8 @@ namespace ConfigurationManager
             {
                 GUILayout.EndScrollView();
             }
+
+            GUILayout.FlexibleSpace();
         }
 
         private void DrawKeyCode()
@@ -929,7 +960,7 @@ namespace ConfigurationManager
         private bool DrawHexField(ref Color value, Color defaultValue)
         {
             GUIStyle style = GetTextStyle(value, defaultValue);
-            UpdateHexString(ref colorAsHEX, GUILayout.TextField(colorAsHEX, style, GUILayout.Width(style.CalcSize(new GUIContent("#FFFFFFFF.")).x), GUILayout.ExpandWidth(false)));
+            UpdateHexString(ref colorAsHEX, GUILayout.TextField(colorAsHEX, style, GUILayout.Width(style.CalcSize(new GUIContent("#CCCCCCCC.")).x), GUILayout.ExpandWidth(false)));
 
             bool enabled = GUI.enabled;
             GUI.enabled = !colorAsHEX.Replace("#", "").Equals(ColorUtility.ToHtmlStringRGBA(value), StringComparison.OrdinalIgnoreCase);

@@ -46,6 +46,7 @@ namespace ConfigurationManager
         private static GUIStyle fileEditorErrorText;
         private static GUIStyle fileEditorTextArea;
         private static GUIStyle delimiterLine;
+        private static GUIStyle placeholderText;
 
         public static int fontSize = 14;
         
@@ -238,6 +239,9 @@ namespace ConfigurationManager
             delimiterLine = new GUIStyle();
             delimiterLine.normal.background = EntryBackground;
             delimiterLine.fixedHeight = 2;
+
+            placeholderText = new GUIStyle(textStyleValueDefault);
+            placeholderText.normal.textColor = Color.gray;
         }
 
         public static GUIStyle GetWindowStyle() => windowStyle;
@@ -274,6 +278,7 @@ namespace ConfigurationManager
         public static GUIStyle GetFileNameErrorStyle() => fileEditorErrorText;
         public static GUIStyle GetFileEditorTextArea() => fileEditorTextArea;
         public static GUIStyle GetDelimiterLine() => delimiterLine;
+        public static GUIStyle GetPlaceholderTextStyle() => placeholderText;
         public static bool IsEqualColorConfig(Color setting, Color defaultValue) => ColorUtility.ToHtmlStringRGBA(setting) == ColorUtility.ToHtmlStringRGBA(defaultValue);
         internal static bool IsDefaultValue(SettingEntryBase setting)
         {
