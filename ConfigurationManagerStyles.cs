@@ -39,6 +39,7 @@ namespace ConfigurationManager
         private static GUIStyle categoryHeaderBackgroundStyle;
         private static GUIStyle categoryHeaderBackgroundStyleWithHover;
         private static GUIStyle settingWindowBackgroundStyle;
+        private static GUIStyle categorySplitViewBackgroundStyle;
         private static GUIStyle tooltipStyle;
         private static GUIStyle fileEditorFileStyle;
         private static GUIStyle fileEditorFileStyleActive;
@@ -51,7 +52,7 @@ namespace ConfigurationManager
         private static GUIStyle placeholderText;
 
         public static int fontSize = 14;
-        
+
         public static void CreateStyles()
         {
             _textSize.Value = Mathf.Clamp(_textSize.Value, 10, 30);
@@ -112,8 +113,7 @@ namespace ConfigurationManager
                 wordWrap = false,
                 stretchWidth = true
             };
-            categoryHeaderStyleDefault.padding.top = 1;
-            categoryHeaderStyleDefault.padding.bottom = 1;
+            categoryHeaderStyleDefault.padding.top = categoryHeaderStyleDefault.padding.bottom = 1;
 
             categoryHeaderStyleChanged = new GUIStyle(categoryHeaderStyleDefault);
             categoryHeaderStyleChanged.normal.textColor = _fontColorValueChanged.Value;
@@ -124,22 +124,27 @@ namespace ConfigurationManager
             pluginHeaderStyleActive = new GUIStyle(pluginHeaderStyle);
             pluginHeaderStyleActive.normal.textColor = _fontColorValueChanged.Value;
 
-            pluginHeaderStyleSplitView = new GUIStyle(labelStyle)
-            {
-                alignment = TextAnchor.MiddleLeft,
-                wordWrap = true,
-                stretchWidth = false
-            };
+            pluginHeaderStyleSplitView = new GUIStyle(labelStyle);
+            pluginHeaderStyleSplitView.margin.top = pluginHeaderStyleSplitView.margin.bottom = 2;
+            pluginHeaderStyleSplitView.padding = new RectOffset();
+            pluginHeaderStyleSplitView.alignment = TextAnchor.MiddleLeft;
+            pluginHeaderStyleSplitView.wordWrap = false;
 
             pluginHeaderStyleSplitViewActive = new GUIStyle(pluginHeaderStyleSplitView);
             pluginHeaderStyleSplitViewActive.normal.textColor = _fontColorValueChanged.Value;
             pluginHeaderStyleSplitViewActive.onNormal.textColor = _fontColorValueChanged.Value;
+            pluginHeaderStyleSplitViewActive.fontStyle = FontStyle.Bold;
 
             pluginCategoryStyleSplitView = new GUIStyle(pluginHeaderStyleSplitView);
+            pluginCategoryStyleSplitView.margin.top = pluginCategoryStyleSplitView.margin.bottom = 2;
             pluginCategoryStyleSplitView.clipping = TextClipping.Clip;
+            pluginCategoryStyleSplitView.hover.textColor = _fontColorValueChanged.Value;
+            pluginCategoryStyleSplitView.hover.background = HeaderBackground;
 
-            pluginCategoryStyleSplitViewActive = new GUIStyle(pluginHeaderStyleSplitViewActive);
-            pluginCategoryStyleSplitViewActive.clipping = TextClipping.Clip;
+            pluginCategoryStyleSplitViewActive = new GUIStyle(pluginCategoryStyleSplitView);
+            pluginCategoryStyleSplitViewActive.normal.textColor = _fontColorValueChanged.Value;
+            pluginCategoryStyleSplitViewActive.onNormal.textColor = _fontColorValueChanged.Value;
+            pluginCategoryStyleSplitViewActive.fontStyle = FontStyle.Bold;
 
             toggleStyle = new GUIStyle(GUI.skin.toggle);
             toggleStyle.normal.textColor = _fontColor.Value;
@@ -200,6 +205,10 @@ namespace ConfigurationManager
             settingWindowBackgroundStyle = new GUIStyle(backgroundStyle);
             settingWindowBackgroundStyle.normal.background = SettingWindowBackground;
 
+            categorySplitViewBackgroundStyle = new GUIStyle(backgroundStyleWithHover);
+            categorySplitViewBackgroundStyle.padding = new RectOffset();
+            categorySplitViewBackgroundStyle.margin = new RectOffset(20, 4, 2, 2);
+
             tooltipStyle = new GUIStyle(GUI.skin.box);
             tooltipStyle.normal.textColor = _fontColor.Value;
             tooltipStyle.fontSize = fontSize;
@@ -255,8 +264,9 @@ namespace ConfigurationManager
         public static GUIStyle GetWindowStyle() => windowStyle;
         public static GUIStyle GetCategoryStyle(bool isDefaultStyle = true) => isDefaultStyle ? categoryHeaderStyleDefault : categoryHeaderStyleChanged;
         public static GUIStyle GetHeaderStyle(bool isActive) => isActive ? pluginHeaderStyleActive : pluginHeaderStyle;
-        public static GUIStyle GetHeaderStyleSplitView(bool isActivePlugin = false) => isActivePlugin ? pluginHeaderStyleSplitViewActive : pluginHeaderStyleSplitView;
-        public static GUIStyle GetCategoryStyleSplitView(bool isActiveCategory = false) => isActiveCategory ? pluginCategoryStyleSplitViewActive : pluginCategoryStyleSplitView;
+        public static GUIStyle GetHeaderSplitViewStyle(bool isActivePlugin = false) => isActivePlugin ? pluginHeaderStyleSplitViewActive : pluginHeaderStyleSplitView;
+        public static GUIStyle GetCategorySplitViewStyle(bool isActiveCategory = false) => isActiveCategory ? pluginCategoryStyleSplitViewActive : pluginCategoryStyleSplitView;
+        public static GUIStyle GetCategorySplitViewBackgroundStyle() => categorySplitViewBackgroundStyle;
         public static GUIStyle GetSliderStyle() => sliderStyle;
         public static GUIStyle GetThumbStyle() => thumbStyle;
         public static GUIStyle GetBoxStyle() => boxStyle;

@@ -232,7 +232,7 @@ namespace ConfigurationManager
 
             _splitView = Config.Bind("General - Window", "Split View", true, "If enabled - plugins will be shown in the left column and plugin settings will be shown in the right column.");
             _scaleFactor = Config.Bind("General - Window", "Scale factor", 1f, new ConfigDescription("Scale factor of configuration manager window. Triple click on configuration manager window title to reset scale.", new AcceptableValueRange<float>(0.5f, 2.5f)));
-            _splitViewListSize = Config.Bind("General - Window", "Split View list relative size", 0.3f, new ConfigDescription("Relative size (percentage of window width) of split view plugin names list", new AcceptableValueRange<float>(0.1f, 0.5f)));
+            _splitViewListSize = Config.Bind("General - Window", "Split View list relative size", 0.33f, new ConfigDescription("Relative size (percentage of window width) of split view plugin names list", new AcceptableValueRange<float>(0.1f, 0.5f)));
             _columnSeparatorPosition = Config.Bind("General - Window", "Setting name relative size", 0.4f, new ConfigDescription("Relative position of virtual line separating setting name from value", new AcceptableValueRange<float>(0.2f, 0.6f)));
 
             CalculateDefaultWindowRect();
@@ -249,8 +249,8 @@ namespace ConfigurationManager
             _windowPositionTextEditor = Config.Bind("General - File Editor", "Window position", GetDefaultTextEditorWindowPosition(), "Window position. Double click on window title to reset position.");
             _windowSizeTextEditor = Config.Bind("General - File Editor", "Window size", GetDefaultTextEditorWindowSize(), "Window size. Double click on window title to reset size.");
 
-            _windowPositionEditSetting = Config.Bind("General - Setting Edit Window", "Window position", GetDefaultTextEditorWindowPosition(), "Window position. Double click on window title to reset position.");
-            _windowSizeEditSetting = Config.Bind("General - Setting Edit Window", "Window size", GetDefaultTextEditorWindowSize(), "Window size. Double click on window title to reset size.");
+            _windowPositionEditSetting = Config.Bind("General - Setting Edit Window", "Window position", GetDefaultEditSettingWindowPosition(), "Window position. Double click on window title to reset position.");
+            _windowSizeEditSetting = Config.Bind("General - Setting Edit Window", "Window size", GetDefaultEditSettingWindowSize(), "Window size. Double click on window title to reset size.");
 
             _sortCategoriesByName = Config.Bind("General - Categories", "Sort by name", false, "If disabled, categories will be sorted in the order in which they were declared by the mod author.");
             _categoriesCollapseable = Config.Bind("General - Categories", "Collapsable categories", true, "Categories can be collapsed to reduce lagging and to ease scrolling.");
@@ -293,7 +293,7 @@ namespace ConfigurationManager
             _shortcutKeysText = Config.Bind("Text - Config", "Shortcut keys combination", "Press any key", "Text when waiting for key combination");
 
             _windowBackgroundColor = Config.Bind("Colors", "Window background color", new Color(0, 0, 0, 1), "Window background color");
-            _entryBackgroundColor = Config.Bind("Colors", "Entry background color", new Color(0.55f, 0.5f, 0.5f, 0.84f), "Entry background color");
+            _entryBackgroundColor = Config.Bind("Colors", "Entry background color", new Color(0.55f, 0.5f, 0.5f, 0.94f), "Entry background color");
             _tooltipBackgroundColor = Config.Bind("Colors", "Tooltip background color", new Color(0.55f, 0.5f, 0.45f, 0.95f), "Tooltip background color");
             _headerBackgroundColor = Config.Bind("Colors", "Header background color", new Color(0.74f, 0.54f, 0.37f, 0.8f), "Header background color");
             _headerBackgroundHoverColor = Config.Bind("Colors", "Header hover background color", new Color(0.88f, 0.46f, 0f, 0.8f), "Header hover background color");
@@ -322,8 +322,11 @@ namespace ConfigurationManager
         private Vector2 GetDefaultManagerWindowPosition() => DefaultWindowRect.position;
         private Vector2 GetDefaultManagerWindowSize() => DefaultWindowRect.size;
 
-        private Vector2 GetDefaultTextEditorWindowPosition() => new Vector2(GetDefaultManagerWindowPosition().x + GetDefaultManagerWindowSize().x + 35f, GetDefaultManagerWindowPosition().y);
+        private Vector2 GetDefaultTextEditorWindowPosition() => new Vector2(GetDefaultManagerWindowPosition().x + GetDefaultManagerWindowSize().x + 20f, GetDefaultManagerWindowPosition().y);
         private Vector2 GetDefaultTextEditorWindowSize() => new Vector2(Screen.width - GetDefaultTextEditorWindowPosition().x - GetDefaultManagerWindowPosition().x, GetDefaultManagerWindowSize().y + GetDefaultManagerWindowPosition().y);
+
+        private Vector2 GetDefaultEditSettingWindowSize() => new Vector2(500f, 500f);
+        private Vector2 GetDefaultEditSettingWindowPosition() => new Vector2(GetDefaultManagerWindowPosition().x + GetDefaultManagerWindowSize().x + 10f, GetDefaultManagerWindowPosition().y + (GetDefaultManagerWindowSize().y - GetDefaultEditSettingWindowSize().y) / 2);
 
         void OnDestroy()
         {
@@ -471,23 +474,44 @@ namespace ConfigurationManager
                 }
             }
 
-            public bool CategoriesCollapsed { get; internal set; }
+            public bool Selected
+            {
+                get => instance != null && instance._selectedPlugin == Info.GUID;
+                set
+                {
+                    if (instance != null)
+                        instance._selectedPlugin = value ? Info.GUID : string.Empty;
+                }
+            }
+
+            public bool ShowCategories
+            {
+                get => instance != null && (instance._showPluginCategories == Info.GUID || instance.IsSearching);
+                set
+                {
+                    if (instance != null)
+                        instance._showPluginCategories = value ? Info.GUID : string.Empty;
+                }
+            }
 
             public sealed class PluginSettingsGroupData
             {
+                public string ID;
                 public string Name;
                 public List<SettingEntryBase> Settings;
                 public bool Collapsed;
-                public bool FilterSplitView;
+                public bool Selected
+                {
+                    get => instance != null && instance._selectedCategory == ID;
+                    set
+                    {
+                        if (instance != null)
+                            instance._selectedCategory = value ? ID : string.Empty;
+                    }
+                }
             }
 
             public int Height { get; set; }
-
-            public void SetDefaultCollapseState()
-            {
-                Collapsed = true;
-                CategoriesCollapsed = false;
-            }
         }
     }
 }

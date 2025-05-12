@@ -195,8 +195,8 @@ namespace ConfigurationManager
             return state;
         }
         
-        public static bool DrawPluginHeaderSplitViewList(GUIContent content, bool isActivePlugin) => GUILayout.Button(content, GetHeaderStyleSplitView(isActivePlugin), GUILayout.ExpandWidth(true));
-        public static bool DrawPluginCategorySplitViewList(GUIContent content, bool isActiveCategory) => GUILayout.Button(content, GetCategoryStyleSplitView(isActiveCategory), GUILayout.ExpandWidth(true));
+        public static bool DrawPluginHeaderSplitViewList(GUIContent content, bool isActivePlugin) => GUILayout.Button(content, GetHeaderSplitViewStyle(isActivePlugin), GUILayout.ExpandWidth(true));
+        public static bool DrawPluginCategorySplitViewList(GUIContent content, bool isActiveCategory) => GUILayout.Button(content, GetCategorySplitViewStyle(isActiveCategory), GUILayout.ExpandWidth(true));
 
         public static bool DrawCurrentDropdown()
         {

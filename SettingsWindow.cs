@@ -12,9 +12,8 @@ namespace ConfigurationManager
     public partial class ConfigurationManager
     {
         internal const int HeaderSize = 20;
-        internal const int DefaultWidth = 700;
+        internal const int DefaultWidth = 750;
         internal const int DefaultHeight = 900;
-
 
         internal float scaleFactor;
         internal Matrix4x4 guiMatrix;
@@ -27,20 +26,17 @@ namespace ConfigurationManager
         private ConfigFilesEditor _configFilesEditor;
         private SettingEditWindow _configSettingWindow;
 
+        internal string _selectedCategory;
+        internal string _selectedPlugin;
+        internal string _showPluginCategories;
+
         public bool SplitView
         {
             get => _splitView == null || _splitView.Value;
             set
             {
-                if (_splitView.Value == (_splitView.Value = value))
-                    return;
-
-                if (_splitView.Value)
-                {
-                    _filteredSetings.Where(plg => !plg.Collapsed).Skip(1).Do(plg => plg.Collapsed = true);
-                    if (_filteredSetings.All(plg => plg.Collapsed) && _filteredSetings.FirstOrDefault() is PluginSettingsData plugin)
-                        plugin.Collapsed = false;
-                }
+                if (_splitView != null)
+                    _splitView.Value = value;
             }
         }
 
@@ -114,6 +110,9 @@ namespace ConfigurationManager
             _windowPosition.Value = GetDefaultManagerWindowPosition();
             _windowSizeTextEditor.Value = GetDefaultTextEditorWindowSize();
             _windowPositionTextEditor.Value = GetDefaultTextEditorWindowPosition();
+            _windowPositionEditSetting.Value = GetDefaultEditSettingWindowPosition();
+            _windowSizeEditSetting.Value = GetDefaultEditSettingWindowSize();
+
             Config.Save();
             SettingFieldDrawer.ClearComboboxCache();
         }
@@ -189,11 +188,13 @@ namespace ConfigurationManager
 
                 GUILayout.Space(5f);
 
-                var plugin = _filteredSetings.FirstOrDefault(plg => !plg.Collapsed) ?? _filteredSetings.FirstOrDefault();
+                var plugin = _filteredSetings.FirstOrDefault(plg => plg.Selected) ?? _filteredSetings.FirstOrDefault();
 
                 if (plugin != null)
                 {
                     plugin.Collapsed = false;
+                    if (plugin.Selected != (plugin.Selected = true))
+                        plugin.ShowCategories = true;
 
                     GUILayout.BeginVertical(GUILayout.MaxWidth(SettingsListColumnWidth));
 
@@ -374,46 +375,45 @@ namespace ConfigurationManager
 
             GUILayout.BeginHorizontal(GetBackgroundStyle(withHover: true));
 
-            if (SettingFieldDrawer.DrawPluginHeaderSplitViewList(GetPluginHeaderName(plugin), !plugin.Collapsed))
+            if (SettingFieldDrawer.DrawPluginHeaderSplitViewList(GetPluginHeaderName(plugin), plugin.Selected))
             {
-                if (plugin.Collapsed == (plugin.Collapsed = false))
-                    plugin.CategoriesCollapsed = !plugin.CategoriesCollapsed;
-
-                _filteredSetings.Where(plg => plg != plugin).Do(plg => plg.SetDefaultCollapseState());
+                plugin.Selected = true;
+                plugin.ShowCategories = !plugin.ShowCategories;
             }
 
             GUILayout.EndHorizontal();
 
-            if (!plugin.Collapsed && !plugin.CategoriesCollapsed && plugin.Categories.Any())
-                plugin.Categories.Do(cat => DrawPluginCategorySplitViewCollapsableList(plugin, cat));
+            if (IsSearching || plugin.Selected && plugin.ShowCategories && (plugin.Categories.Count > 1))
+            {
+                GUILayout.BeginVertical(GetCategorySplitViewBackgroundStyle());
+                plugin.Categories.Do(DrawPluginCategorySplitViewCollapsableList);
+                GUILayout.EndVertical();
+            }
 
             GUI.backgroundColor = backgroundColor;
-        }
 
-        private void DrawPluginCategorySplitViewCollapsableList(PluginSettingsData plugin, PluginSettingsData.PluginSettingsGroupData category)
-        {
-            var style = new GUIStyle(GetBackgroundStyle(withHover: true));
-            style.margin.left = 20;
-
-            GUILayout.BeginHorizontal(style);
-            if (SettingFieldDrawer.DrawPluginCategorySplitViewList(new GUIContent(category.Name), category.FilterSplitView))
+            void DrawPluginCategorySplitViewCollapsableList(PluginSettingsData.PluginSettingsGroupData category)
             {
-                category.FilterSplitView = !category.FilterSplitView;
-                plugin.Categories.Where(cat => cat != category).Do(cat => cat.FilterSplitView = false);
+                GUILayout.BeginHorizontal();
+                if (SettingFieldDrawer.DrawPluginCategorySplitViewList(new GUIContent(category.Name), category.Selected))
+                {
+                    plugin.Selected = true;
+                    category.Selected = !category.Selected;
+                }
+                GUILayout.EndHorizontal();
             }
-            GUILayout.EndHorizontal();
         }
 
         private void DrawPluginCategories(PluginSettingsData plugin, bool hasCollapsedCategories, bool toggleCollapseAll = false)
         {
-            bool hasFilteredCategories = !IsSearching && SplitView && plugin.Categories.Any(cat => cat.FilterSplitView);
+            bool hasSelectedCategory = SplitView && plugin.Categories.Any(cat => cat.Selected);
             
-            plugin.Categories.Do(category => DrawSingleCategory(plugin, hasCollapsedCategories, hasFilteredCategories, toggleCollapseAll, category));
+            plugin.Categories.Do(category => DrawSingleCategory(plugin, hasCollapsedCategories, hasSelectedCategory, toggleCollapseAll, category));
         }
 
-        private void DrawSingleCategory(PluginSettingsData plugin, bool hasCollapsedCategories, bool hasFilteredCategories, bool toggleCollapseAll, PluginSettingsData.PluginSettingsGroupData category)
+        private void DrawSingleCategory(PluginSettingsData plugin, bool hasCollapsedCategories, bool hasSelectedCategory, bool toggleCollapseAll, PluginSettingsData.PluginSettingsGroupData category)
         {
-            if (hasFilteredCategories && !category.FilterSplitView)
+            if (hasSelectedCategory && !category.Selected)
                 return;
 
             var backgroundColor = GUI.backgroundColor;
@@ -588,6 +588,7 @@ namespace ConfigurationManager
                         .OrderBy(x => _sortCategoriesByName.Value ? -1 : originalCategoryOrder.IndexOf(x.Key))
                         .ThenBy(x => x.Key)
                         .Select(x => new PluginSettingsData.PluginSettingsGroupData { 
+                            ID = $"{pluginSettings.Key.GUID}-{x.Key}",
                             Name = x.Key, 
                             Settings = x.OrderByDescending(set => set.Order).ThenBy(set => set.DispName).ToList(),
                             Collapsed = _categoriesCollapseable.Value && 
@@ -622,12 +623,11 @@ namespace ConfigurationManager
 
         private void CalculateDefaultWindowRect()
         {
-            var width = Mathf.Min(Screen.width, DefaultWidth) * (SplitView ? 1f + _splitViewListSize.Value : 1f);
+            var width = Mathf.Min(Screen.width, DefaultWidth * (SplitView ? 1f + _splitViewListSize.Value : 1f));
             var height = Mathf.Min(Screen.height, DefaultHeight);
-            var offsetX = Mathf.RoundToInt((Screen.width - width) / 10f);
-            var offsetY = Mathf.RoundToInt((Screen.height - height) / 10f);
+            var offset = Mathf.RoundToInt(Mathf.Min(Screen.width - width, Screen.height - height)) / 16f;
 
-            DefaultWindowRect = new Rect(offsetX, offsetY, width, height);
+            DefaultWindowRect = new Rect(offset, offset, width, height);
 
             CalculateSettingsColumnsWidth(DefaultWindowRect.width);
         }

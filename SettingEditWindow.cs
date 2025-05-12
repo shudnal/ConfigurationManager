@@ -6,7 +6,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Text;
 using UnityEngine;
 using static ConfigurationManager.ConfigurationManager;
 using static ConfigurationManager.ConfigurationManagerStyles;
@@ -29,14 +28,14 @@ namespace ConfigurationManager
         private static readonly Dictionary<SettingEntryBase, ColorCacheEntry> ColorCache = new Dictionary<SettingEntryBase, ColorCacheEntry>();
 
         private Vector2 _scrollPosition = Vector2.zero;
-        private Vector2 _enumScrollPosition = Vector2.zero;
+        private Vector2 _scrollPositionEnum = Vector2.zero;
 
         private int listIndex = -1;
         private IList listEnum = null;
 
         private Action drawerFunction;
 
-        private StringBuilder errorText = new StringBuilder(10);
+        private string errorText;
 
         private object valueToSet;
 
@@ -124,17 +123,19 @@ namespace ConfigurationManager
             listIndex = -1;
             drawerFunction = null;
             valueToSet = setting.SettingType == typeof(Color) ? Utilities.Utils.RoundColorToHEX((Color)setting.Get()) : setting.Get();
-            errorText.Clear();
+            errorText = string.Empty;
             errorOnSetting = string.Empty;
             colorAsHEX = setting.SettingType == typeof(Color) ? $"#{ColorUtility.ToHtmlStringRGBA((Color)valueToSet)}" : string.Empty;
             separator = ",";
             separatedString.Clear();
             newItem = string.Empty;
             editStringView = 0;
+            _scrollPosition = Vector2.zero;
+            _scrollPositionEnum = Vector2.zero;
 
             if (setting.AcceptableValueRange.Key != null)
                 drawerFunction = DrawRangeField;
-            else if (setting.AcceptableValues != null)
+            else if (setting.AcceptableValues != null && setting.AcceptableValues.Length > 0 && setting.SettingType.IsInstanceOfType(setting.AcceptableValues.FirstOrDefault(x => x != null)))
                 SetAcceptableValuesDrawer();
             else if (setting.SettingType.IsEnum && setting.SettingType != typeof(KeyCode))
             {
@@ -191,25 +192,16 @@ namespace ConfigurationManager
 
         private void SetAcceptableValuesDrawer()
         {
-            if (setting.AcceptableValues.Length == 0)
-            {
-                errorText.AppendLine("AcceptableValueListAttribute returned an empty list of acceptable values.");
-                return;
-            }
-
-            if (!setting.SettingType.IsInstanceOfType(setting.AcceptableValues.FirstOrDefault(x => x != null)))
-            {
-                errorText.AppendLine("AcceptableValueListAttribute returned a list with items of type other than the settng type itself.");
-                return;
-            }
-
             if (setting.SettingType == typeof(KeyCode))
             {
-                listEnum = setting.AcceptableValues?.Length > 1 ? setting.AcceptableValues : Enum.GetValues(setting.SettingType);
+                listEnum = setting.AcceptableValues.Length > 1 ? setting.AcceptableValues : Enum.GetValues(setting.SettingType);
                 drawerFunction = DrawKeyCode;
             }
             else
+            {
+                listEnum = setting.AcceptableValues;
                 drawerFunction = DrawEnumListField;
+            }
         }
 
         internal void SaveCurrentSizeAndPosition()
@@ -240,6 +232,14 @@ namespace ConfigurationManager
             GUILayout.EndHorizontal();
 
             GUILayout.Label(setting.Description, GetLabelStyle(isDefaultValue: false), GUILayout.ExpandWidth(true));
+
+            if (setting.DefaultValue != null)
+            {
+                GUILayout.BeginHorizontal(GUILayout.ExpandHeight(false));
+                GUILayout.Label($"Default: ", GetLabelStyle(), GUILayout.ExpandWidth(false));
+                GUILayout.Label($"{GetValueRepresentation(setting.DefaultValue, setting.SettingType)}", GetLabelStyleInfo(), GUILayout.ExpandWidth(true));
+                GUILayout.EndHorizontal();
+            }
 
             DrawDelimiterLine();
 
@@ -289,14 +289,47 @@ namespace ConfigurationManager
 
         private void DrawInfo(string info) => DrawLabel(null, info);
 
+        private static readonly Dictionary<Type, string> typeMappings = new Dictionary<Type, string>
+        {
+            { typeof(int), "Integer" },
+            { typeof(float), "Float" },
+            { typeof(double), "Double" },
+            { typeof(decimal), "Decimal" },
+            { typeof(bool), "Boolean" },
+            { typeof(string), "String" },
+            { typeof(long), "Long" },
+            { typeof(short), "Short" },
+            { typeof(byte), "Byte" },
+            { typeof(sbyte), "Signed Byte" },
+            { typeof(uint), "Unsigned Integer" },
+            { typeof(ulong), "Unsigned Long" },
+            { typeof(ushort), "Unsigned Short" },
+            { typeof(char), "Character" },
+            { typeof(DateTime), "DateTime" },
+            { typeof(TimeSpan), "TimeSpan" },
+            { typeof(Guid), "GUID" },
+            { typeof(KeyValuePair<,>), "Map<Key, Value>" },
+            { typeof(object), "Object" },
+        };
+
         private string GetTypeRepresentation(Type type)
         {
             if (!type.IsGenericType)
-                return type.Name;
+                return typeMappings.TryGetValue(type, out string friendlyName) ? friendlyName : type.Name;
 
             Type[] genericArgs = type.GetGenericArguments();
-            string elements = string.Join(", ", genericArgs.Select(t => t.Name));
-            return $"{type.Name}<{elements}>";
+            string elements = string.Join(", ", genericArgs.Select(t => typeMappings.TryGetValue(t, out string name) ? name : t.Name));
+            return $"{typeMappings.GetValueOrDefault(type, type.Name)}<{elements}>";
+        }
+
+        private string GetValueRepresentation(object value, Type type)
+        {
+            if (type == typeof(Color))
+                return $"#{ColorUtility.ToHtmlStringRGBA((Color)value)}";
+            else if (type == typeof(bool))
+                return (bool)value ? _enabledText.Value : _disabledText.Value;
+
+            return value.ToString();
         }
 
         private void DrawMenuButtons()
@@ -343,17 +376,44 @@ namespace ConfigurationManager
             var color = GUI.backgroundColor;
             GUI.backgroundColor = _widgetBackgroundColor.Value;
 
+            bool drawStringMenu = false;
             _scrollPosition = GUILayout.BeginScrollView(_scrollPosition);
             {
                 if (!DrawCustomField() && !DrawKnownDrawer())
+                {
                     if (errorText.Length > 0)
                         GUILayout.Label($"Error:\n{errorText}", GetLabelStyle());
-                    else
-                        DrawUnknownField();
+                    
+                    DrawUnknownField(out drawStringMenu);
+                }
             }
             GUILayout.EndScrollView();
 
-           GUI.backgroundColor = color;
+            if (drawStringMenu)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Edit as: ", GetLabelStyle(), GUILayout.ExpandWidth(false));
+                if (editStringView != (editStringView = GUILayout.SelectionGrid(editStringView, new[] { "Text", "List" }, 2, GetButtonStyle(), GUILayout.ExpandWidth(false))))
+                {
+                    // On view mode change?
+                }
+
+                if (editStringView > 0)
+                {
+                    GUILayout.Label("Separator: ", GetLabelStyle(), GUILayout.ExpandWidth(false));
+                    if (separator != (separator = GUILayout.TextField(separator)))
+                        UpdateStringList();
+
+                    if (GUILayout.Button("Trim whitespace", GetButtonStyle(), GUILayout.ExpandWidth(false)))
+                    {
+                        separatedString = separatedString.Select(s => s.Trim()).ToList();
+                        valueToSet = setting.StrToObj(string.Join(separator, separatedString));
+                    }
+                }
+                GUILayout.EndHorizontal();
+            }
+
+            GUI.backgroundColor = color;
         }
 
         private static void DrawDelimiterLine()
@@ -377,7 +437,7 @@ namespace ConfigurationManager
             catch (Exception e)
             {
                 LogWarning(e);
-                errorText.AppendLine($"{e.GetType().Name} - {e.Message}");
+                errorText = $"{e.GetType().Name} - {e.Message}";
             }
             return false;
         }
@@ -503,8 +563,10 @@ namespace ConfigurationManager
             return result;
         }
 
-        private void DrawUnknownField()
+        private void DrawUnknownField(out bool drawStringMenu)
         {
+            drawStringMenu = false;
+
             // Try to use user-supplied converters
             if (setting.ObjToStr != null && setting.StrToObj != null)
             {
@@ -524,27 +586,7 @@ namespace ConfigurationManager
                         if (result != text)
                             valueToSet = setting.StrToObj(result);
                     }
-
-                    GUILayout.BeginHorizontal();
-                    GUILayout.Label("Edit as: ", GetLabelStyle(), GUILayout.ExpandWidth(false));
-                    if (editStringView != (editStringView = GUILayout.SelectionGrid(editStringView, new[] { "Text", "List" }, 2, GetButtonStyle(), GUILayout.ExpandWidth(false))))
-                    {
-                        // On view mode change?
-                    }
-
-                    if (editStringView > 0)
-                    {
-                        GUILayout.Label("Separator: ", GetLabelStyle(), GUILayout.ExpandWidth(false));
-                        if (separator != (separator = GUILayout.TextField(separator)))
-                            UpdateStringList();
-
-                        if (GUILayout.Button("Trim whitespace", GetButtonStyle(), GUILayout.ExpandWidth(false)))
-                        {
-                            separatedString = separatedString.Select(s => s.Trim()).ToList();
-                            valueToSet = setting.StrToObj(string.Join(separator, separatedString));
-                        }
-                    }
-                    GUILayout.EndHorizontal();
+                    drawStringMenu = true;
                 }
                 else
                 {
@@ -774,7 +816,7 @@ namespace ConfigurationManager
         {
             var listContent = listEnum.Cast<object>().Select(SettingFieldDrawer.ObjectToGuiContent).ToArray();
 
-            _enumScrollPosition = GUILayout.BeginScrollView(_enumScrollPosition, false, false);
+            _scrollPositionEnum = GUILayout.BeginScrollView(_scrollPositionEnum, false, false);
             
             try
             {
@@ -813,6 +855,8 @@ namespace ConfigurationManager
             }
             else
             {
+                listEnum ??= Enum.GetValues(setting.SettingType);
+
                 DrawEnumListField();
 
                 if (GUILayout.Button(new GUIContent(_shortcutKeyText.Value), GetButtonStyle(), GUILayout.ExpandWidth(false)))
