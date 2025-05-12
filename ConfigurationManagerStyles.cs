@@ -31,6 +31,8 @@ namespace ConfigurationManager
         private static GUIStyle pluginHeaderStyleActive;
         private static GUIStyle pluginHeaderStyleSplitView;
         private static GUIStyle pluginHeaderStyleSplitViewActive;
+        private static GUIStyle pluginCategoryStyleSplitView;
+        private static GUIStyle pluginCategoryStyleSplitViewActive;
         private static GUIStyle backgroundStyle;
         private static GUIStyle backgroundStyleWithHover;
         private static GUIStyle categoryBackgroundStyle;
@@ -132,6 +134,12 @@ namespace ConfigurationManager
             pluginHeaderStyleSplitViewActive = new GUIStyle(pluginHeaderStyleSplitView);
             pluginHeaderStyleSplitViewActive.normal.textColor = _fontColorValueChanged.Value;
             pluginHeaderStyleSplitViewActive.onNormal.textColor = _fontColorValueChanged.Value;
+
+            pluginCategoryStyleSplitView = new GUIStyle(pluginHeaderStyleSplitView);
+            pluginCategoryStyleSplitView.clipping = TextClipping.Clip;
+
+            pluginCategoryStyleSplitViewActive = new GUIStyle(pluginHeaderStyleSplitViewActive);
+            pluginCategoryStyleSplitViewActive.clipping = TextClipping.Clip;
 
             toggleStyle = new GUIStyle(GUI.skin.toggle);
             toggleStyle.normal.textColor = _fontColor.Value;
@@ -248,6 +256,7 @@ namespace ConfigurationManager
         public static GUIStyle GetCategoryStyle(bool isDefaultStyle = true) => isDefaultStyle ? categoryHeaderStyleDefault : categoryHeaderStyleChanged;
         public static GUIStyle GetHeaderStyle(bool isActive) => isActive ? pluginHeaderStyleActive : pluginHeaderStyle;
         public static GUIStyle GetHeaderStyleSplitView(bool isActivePlugin = false) => isActivePlugin ? pluginHeaderStyleSplitViewActive : pluginHeaderStyleSplitView;
+        public static GUIStyle GetCategoryStyleSplitView(bool isActiveCategory = false) => isActiveCategory ? pluginCategoryStyleSplitViewActive : pluginCategoryStyleSplitView;
         public static GUIStyle GetSliderStyle() => sliderStyle;
         public static GUIStyle GetThumbStyle() => thumbStyle;
         public static GUIStyle GetBoxStyle() => boxStyle;

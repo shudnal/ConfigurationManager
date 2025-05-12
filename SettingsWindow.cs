@@ -197,8 +197,7 @@ namespace ConfigurationManager
 
                     GUILayout.BeginVertical(GUILayout.MaxWidth(SettingsListColumnWidth));
 
-                    var hasCollapsedCategories = plugin.Categories.Any(cat => cat.Collapsed);
-
+                    bool hasCollapsedCategories = plugin.Categories.Any(cat => cat.Collapsed);
                     SettingFieldDrawer.DrawPluginHeader(GetPluginHeaderName(plugin, showGuid: true), plugin.Collapsed, hasCollapsedCategories, withHover:false, out var toggleCollapseAll);
 
                     _settingWindowCategoriesScrollPos[plugin.Info.GUID] = GUILayout.BeginScrollView(_settingWindowCategoriesScrollPos.TryGetValue(plugin.Info.GUID, out Vector2 scrollPos) ? scrollPos : Vector2.zero, false, true);
@@ -377,22 +376,46 @@ namespace ConfigurationManager
 
             if (SettingFieldDrawer.DrawPluginHeaderSplitViewList(GetPluginHeaderName(plugin), !plugin.Collapsed))
             {
-                plugin.Collapsed = false;
-                _filteredSetings.Where(plg => plg != plugin).Do(plg => plg.Collapsed = true);
+                if (plugin.Collapsed == (plugin.Collapsed = false))
+                    plugin.CategoriesCollapsed = !plugin.CategoriesCollapsed;
+
+                _filteredSetings.Where(plg => plg != plugin).Do(plg => plg.SetDefaultCollapseState());
             }
 
             GUILayout.EndHorizontal();
 
+            if (!plugin.Collapsed && !plugin.CategoriesCollapsed && plugin.Categories.Any())
+                plugin.Categories.Do(cat => DrawPluginCategorySplitViewCollapsableList(plugin, cat));
+
             GUI.backgroundColor = backgroundColor;
+        }
+
+        private void DrawPluginCategorySplitViewCollapsableList(PluginSettingsData plugin, PluginSettingsData.PluginSettingsGroupData category)
+        {
+            var style = new GUIStyle(GetBackgroundStyle(withHover: true));
+            style.margin.left = 20;
+
+            GUILayout.BeginHorizontal(style);
+            if (SettingFieldDrawer.DrawPluginCategorySplitViewList(new GUIContent(category.Name), category.FilterSplitView))
+            {
+                category.FilterSplitView = !category.FilterSplitView;
+                plugin.Categories.Where(cat => cat != category).Do(cat => cat.FilterSplitView = false);
+            }
+            GUILayout.EndHorizontal();
         }
 
         private void DrawPluginCategories(PluginSettingsData plugin, bool hasCollapsedCategories, bool toggleCollapseAll = false)
         {
-            plugin.Categories.Do(category => DrawSingleCategory(plugin, hasCollapsedCategories, toggleCollapseAll, category));
+            bool hasFilteredCategories = !IsSearching && SplitView && plugin.Categories.Any(cat => cat.FilterSplitView);
+            
+            plugin.Categories.Do(category => DrawSingleCategory(plugin, hasCollapsedCategories, hasFilteredCategories, toggleCollapseAll, category));
         }
 
-        private void DrawSingleCategory(PluginSettingsData plugin, bool hasCollapsedCategories, bool toggleCollapseAll, PluginSettingsData.PluginSettingsGroupData category)
+        private void DrawSingleCategory(PluginSettingsData plugin, bool hasCollapsedCategories, bool hasFilteredCategories, bool toggleCollapseAll, PluginSettingsData.PluginSettingsGroupData category)
         {
+            if (hasFilteredCategories && !category.FilterSplitView)
+                return;
+
             var backgroundColor = GUI.backgroundColor;
             GUI.backgroundColor = _entryBackgroundColor.Value;
 

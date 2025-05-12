@@ -279,10 +279,10 @@ namespace ConfigurationManager
             _viewModeSplitViewText = Config.Bind("Text - Menu", "Split View", "Split View", "Text for button to change to split view mode");
             _editText = Config.Bind("Text - Menu", "Edit", "Edit", "Text for button to open edit setting window");
 
-            _toggleTextEditorText = Config.Bind("File Editor - Text", "Open button", "Show File Editor", "Open file editor label text");
-            _searchTextEditor = Config.Bind("File Editor - Text", "Search", "Search:", "Search label text");
-            _saveFileTextEditor = Config.Bind("File Editor - Text", "Save", "Save", "Save changes in file");
-            _windowTitleTextEditor = Config.Bind("File Editor - Text", "Title", "Configuration Files Editor", "Window title");
+            _toggleTextEditorText = Config.Bind("Text - File Editor", "Open button", "Show File Editor", "Open file editor label text");
+            _searchTextEditor = Config.Bind("Text - File Editor", "Search", "Search:", "Search label text");
+            _saveFileTextEditor = Config.Bind("Text - File Editor", "Save", "Save", "Save changes in file");
+            _windowTitleTextEditor = Config.Bind("Text - File Editor", "Title", "Configuration Files Editor", "Window title");
 
             _resetSettingText = Config.Bind("Text - Config", "Setting Reset", "Reset", "Reset setting text");
             _clearText = Config.Bind("Text - Config", "Setting Clear", "Clear", "Clear search text");
@@ -471,14 +471,23 @@ namespace ConfigurationManager
                 }
             }
 
+            public bool CategoriesCollapsed { get; internal set; }
+
             public sealed class PluginSettingsGroupData
             {
                 public string Name;
                 public List<SettingEntryBase> Settings;
                 public bool Collapsed;
+                public bool FilterSplitView;
             }
 
             public int Height { get; set; }
+
+            public void SetDefaultCollapseState()
+            {
+                Collapsed = true;
+                CategoriesCollapsed = false;
+            }
         }
     }
 }
