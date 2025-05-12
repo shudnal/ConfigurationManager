@@ -52,7 +52,9 @@ namespace ConfigurationManager
         private string separator;
         private int editStringView;
         private string newItem;
-        
+
+        private bool IsStringList => setting != null && setting.SettingType != null && typeof(IList<string>).IsAssignableFrom(setting.SettingType);
+
         public SettingEditWindow()
         {
             SettingDrawHandlers = new Dictionary<Type, Action>
@@ -107,14 +109,35 @@ namespace ConfigurationManager
 
         private void UpdateStringList()
         {
-            if (setting.SettingType != typeof(string))
+            if (setting.SettingType != typeof(string) && !IsStringList)
                 return;
 
             separatedString.Clear();
-            separatedString.AddRange(valueToSet.ToString().Split(separator));
+            if (IsStringList)
+                try
+                {
+                    separatedString.AddRange(valueToSet as IList<string>);
+                }
+                catch
+                {
+                    separatedString.AddRange(valueToSet.ToString().Split(separator));
+                }
+            else
+                separatedString.AddRange(valueToSet.ToString().Split(separator));
 
             separatedStringDefault.Clear();
-            separatedStringDefault.AddRange(setting.DefaultValue.ToString().Split(separator).Select(s => s.Trim()));
+            if (setting.DefaultValue != null)
+                if (IsStringList)
+                    try
+                    {
+                        separatedStringDefault.AddRange((setting.DefaultValue as IList<string>).Select(s => s.Trim()));
+                    }
+                    catch
+                    {
+                        separatedStringDefault.AddRange(setting.DefaultValue.ToString().Split(separator).Select(s => s.Trim()));
+                    }
+                else
+                    separatedStringDefault.AddRange(setting.DefaultValue.ToString().Split(separator).Select(s => s.Trim()));
         }
 
         private void InitializeWindow()
@@ -570,9 +593,9 @@ namespace ConfigurationManager
             // Try to use user-supplied converters
             if (setting.ObjToStr != null && setting.StrToObj != null)
             {
-                var text = setting.ObjToStr(valueToSet).AppendZeroIfFloat(setting.SettingType);
+                string text = setting.ObjToStr(valueToSet).AppendZeroIfFloat(setting.SettingType);
 
-                if (setting.SettingType == typeof(string))
+                if (setting.SettingType == typeof(string) || IsStringList)
                 {
                     if (editStringView > 0)
                     {
@@ -582,7 +605,7 @@ namespace ConfigurationManager
                     }
                     else
                     {
-                        var result = GUILayout.TextArea(text, GetTextStyle(IsValueToSetDefaultValue()), GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
+                        string result = GUILayout.TextArea(text, GetTextStyle(IsValueToSetDefaultValue()), GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
                         if (result != text)
                             valueToSet = setting.StrToObj(result);
                     }
@@ -590,7 +613,7 @@ namespace ConfigurationManager
                 }
                 else
                 {
-                    var result = GUILayout.TextArea(text, GetTextStyle(IsValueToSetDefaultValue()), GUILayout.ExpandWidth(true));
+                    string result = GUILayout.TextArea(text, GetTextStyle(IsValueToSetDefaultValue()), GUILayout.ExpandWidth(true));
                     if (result != text)
                         valueToSet = setting.StrToObj(result);
                 }
