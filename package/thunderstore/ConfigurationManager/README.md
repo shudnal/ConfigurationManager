@@ -21,6 +21,9 @@ Press hotkey button in game (default `F1`) to open mod window and change configu
 * Lots of minor refinements and improvements
 * Readonly entries (locked from server) could be colored, disabled or completely hidden
 * Window can be scaled to better fit 4K screens
+* default view is Split View where plugins and categories are showed as a tree in left column
+* File Editor for configuration files
+* Setting Edit Window for more detailed setting configuration
 
 ## Valheim specific
 The game does not take input while the window is open (only player input by default).

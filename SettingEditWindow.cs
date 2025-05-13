@@ -1088,8 +1088,6 @@ namespace ConfigurationManager
             if (originalHEX.Equals(newHEX))
                 return;
 
-            //LogInfo($"\n\"{originalHEX}\" -> \"{newHEX}\"");
-
             if (originalHEX.Length == newHEX.Length)
             {
                 // Symbols were replaced without change of string length, just replace string
@@ -1122,8 +1120,6 @@ namespace ConfigurationManager
             }
 
             originalHEX = originalHEX.PadRight(9, '0');
-
-            //LogInfo($"{originalHEX}");
         }
 
         void FindStartEndLength(string originalHEX, string newHEX, out string startString, out string endString)

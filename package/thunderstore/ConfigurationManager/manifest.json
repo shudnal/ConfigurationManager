@@ -2,6 +2,10 @@
   "name": "ConfigurationManager",
   "version_number": "1.1.0",
   "website_url": "https://github.com/shudnal/ConfigurationManager",
-  "description": "Localized, recolored, refined. Changed values are highlighted. Prevent user input or pause the game while window is open. Window scale depends on game scale.",
-  "dependencies": ["denikson-BepInExPack_Valheim-5.4.2202"]
+  "description": "Localized, recolored, refined. Split view mode. Config files editor. Setting edit window. Changed values are highlighted. Prevent user input or pause the game while window is open. Window scale depends on game scale.",
+  "dependencies": [
+    "denikson-BepInExPack_Valheim-5.4.2202",
+    "ValheimModding-YamlDotNet-16.3.0",
+    "ValheimModding-JsonDotNET-13.0.3"
+  ]
 }
