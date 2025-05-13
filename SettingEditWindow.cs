@@ -262,7 +262,7 @@ namespace ConfigurationManager
             instance.Config.Save();
         }
 
-        private void DrawWindow(int windowID)
+       private void DrawWindow(int windowID)
         {
             var backgroundColor = GUI.backgroundColor;
             GUI.backgroundColor = _entryBackgroundColor.Value;
@@ -287,7 +287,7 @@ namespace ConfigurationManager
             if (setting.DefaultValue != null)
             {
                 GUILayout.BeginHorizontal(GUILayout.ExpandHeight(false));
-                GUILayout.Label($"Default: ", GetLabelStyle(), GUILayout.ExpandWidth(false));
+                GUILayout.Label(_defaultValueDescriptionEditWindow.Value, GetLabelStyle(), GUILayout.ExpandWidth(false));
                 GUILayout.Label($"{GetValueRepresentation(setting.DefaultValue, setting.SettingType)}", GetLabelStyleInfo(), GUILayout.ExpandWidth(true));
                 GUILayout.EndHorizontal();
             }
@@ -392,11 +392,11 @@ namespace ConfigurationManager
                 DrawDefaultButton();
                 GUI.enabled = enabled;
 
-                GUILayout.Label("Press Escape to close window", GetLabelStyleInfo(), GUILayout.ExpandWidth(true));
+                GUILayout.Label(_pressEscapeHintEditWindow.Value, GetLabelStyleInfo(), GUILayout.ExpandWidth(true));
 
                 enabled = GUI.enabled;
                 GUI.enabled = enabled && !IsEqualConfigValues(setting.SettingType, valueToSet, setting.Get());
-                if (GUILayout.Button("Apply", GetButtonStyle(), GUILayout.ExpandWidth(false)))
+                if (GUILayout.Button(_applyButtonEditWindow.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
                     ApplySettingValue();
 
                 GUI.enabled = enabled;
@@ -443,19 +443,19 @@ namespace ConfigurationManager
             if (drawStringMenu)
             {
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("Edit as: ", GetLabelStyle(), GUILayout.ExpandWidth(false));
-                if (editStringView != (editStringView = GUILayout.SelectionGrid(editStringView, new[] { "Text", "List" }, 2, GetButtonStyle(), GUILayout.ExpandWidth(false))))
+                GUILayout.Label(_editAsLabelEditWindow.Value, GetLabelStyle(), GUILayout.ExpandWidth(false));
+                if (editStringView != (editStringView = GUILayout.SelectionGrid(editStringView, new[] { _editAsTextEditWindow.Value, _editAsListEditWindow.Value }, 2, GetButtonStyle(), GUILayout.ExpandWidth(false))))
                 {
                     // On view mode change?
                 }
 
                 if (editStringView > 0)
                 {
-                    GUILayout.Label("Separator: ", GetLabelStyle(), GUILayout.ExpandWidth(false));
+                    GUILayout.Label(_separatorLabelEditWindow.Value, GetLabelStyle(), GUILayout.ExpandWidth(false));
                     if (separator != (separator = GUILayout.TextField(separator)))
                         UpdateStringList();
 
-                    if (GUILayout.Button("Trim whitespace", GetButtonStyle(), GUILayout.ExpandWidth(false)))
+                    if (GUILayout.Button(_trimWhitespaceButtonEditWindow.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
                     {
                         separatedString = separatedString.Select(s => s.Trim()).ToList();
                         valueToSet = setting.StrToObj(string.Join(separator, separatedString));
@@ -573,7 +573,7 @@ namespace ConfigurationManager
             float height = GetTextStyle(setting).CalcHeight(new GUIContent(value.ToString()), 100f);
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"Range: ", GetLabelStyle(), GUILayout.ExpandWidth(false));
+            GUILayout.Label(_rangeLabelEditWindow.Value, GetLabelStyle(), GUILayout.ExpandWidth(false));
             GUILayout.Label($"{leftValue} - {rightValue}", GetLabelStyleInfo(), GUILayout.ExpandWidth(true));
             GUILayout.EndHorizontal();
 
@@ -712,9 +712,9 @@ namespace ConfigurationManager
             newItem = GUILayout.TextField(newItem, GetTextStyle(isDefaultValue:false), GUILayout.ExpandWidth(true));
 
             if (string.IsNullOrEmpty(newItem) && Event.current.type == EventType.Repaint)
-                GUI.Label(GUILayoutUtility.GetLastRect(), "Enter new value", GetPlaceholderTextStyle());
+                GUI.Label(GUILayoutUtility.GetLastRect(), _newValuePlaceholderEditWindow.Value, GetPlaceholderTextStyle());
 
-            if (GUILayout.Button("Add", GetButtonStyle(), GUILayout.ExpandWidth(false)) && !string.IsNullOrWhiteSpace(newItem))
+            if (GUILayout.Button(_addButtonEditWindow.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)) && !string.IsNullOrWhiteSpace(newItem))
             {
                 separatedString.Add(newItem);
                 newItem = "";
@@ -998,7 +998,7 @@ namespace ConfigurationManager
             GUILayout.FlexibleSpace();
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"Precision: {_vectorPrecision.Value} ", GetLabelStyle(), GUILayout.ExpandWidth(false));
+            GUILayout.Label($"{_precisionLabelEditWindow.Value}: {_vectorPrecision.Value} ", GetLabelStyle(), GUILayout.ExpandWidth(false));
             float height = GetTextStyle(setting).CalcHeight(new GUIContent(_vectorPrecision.Value.ToString()), 100f);
             _vectorPrecision.Value = Mathf.RoundToInt(DrawCenteredHorizontalSlider(_vectorPrecision.Value, 0f, 5f, height));
             GUILayout.EndHorizontal();

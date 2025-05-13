@@ -180,6 +180,19 @@ namespace ConfigurationManager
         public static ConfigEntry<Vector2> _windowPositionEditSetting;
         public static ConfigEntry<Vector2> _windowSizeEditSetting;
 
+        public static ConfigEntry<string> _defaultValueDescriptionEditWindow;
+        public static ConfigEntry<string> _pressEscapeHintEditWindow;
+        public static ConfigEntry<string> _applyButtonEditWindow;
+        public static ConfigEntry<string> _editAsLabelEditWindow;
+        public static ConfigEntry<string> _editAsTextEditWindow;
+        public static ConfigEntry<string> _editAsListEditWindow;
+        public static ConfigEntry<string> _separatorLabelEditWindow;
+        public static ConfigEntry<string> _trimWhitespaceButtonEditWindow;
+        public static ConfigEntry<string> _rangeLabelEditWindow;
+        public static ConfigEntry<string> _addButtonEditWindow;
+        public static ConfigEntry<string> _newValuePlaceholderEditWindow;
+        public static ConfigEntry<string> _precisionLabelEditWindow;
+
         public static ConfigEntry<string> _searchText;
         public static ConfigEntry<string> _resetSettingText;
         public static ConfigEntry<string> _clearText;
@@ -320,6 +333,19 @@ namespace ConfigurationManager
             _fileIsNotValidJsonTextEditor = Config.Bind("Text - File Editor", "File is not valid JSON", "File is not valid JSON", "Text for JSON validation result");
             _fileIsValidYamlTextEditor = Config.Bind("Text - File Editor", "File is valid YAML", "File is valid YAML", "Text for YAML validation result");
             _fileIsNotValidYamlTextEditor = Config.Bind("Text - File Editor", "File is not valid YAML", "File is not valid YAML", "Text for YAML validation result");
+
+            _defaultValueDescriptionEditWindow = Config.Bind("Text - Edit Window", "Default value description", "Default: ", "Label for default value");
+            _pressEscapeHintEditWindow = Config.Bind("Text - Edit Window", "Press Escape hint", "Press Escape to close window", "Label for default value");
+            _applyButtonEditWindow = Config.Bind("Text - Edit Window", "Apply button", "Apply", "Label for default value");
+            _editAsLabelEditWindow = Config.Bind("Text - Edit Window", "Edit as label", "Edit as: ", "Label for default value");
+            _editAsTextEditWindow = Config.Bind("Text - Edit Window", "Edit as text", "Text", "Label for default value");
+            _editAsListEditWindow = Config.Bind("Text - Edit Window", "Edit as list", "List", "Label for default value");
+            _separatorLabelEditWindow = Config.Bind("Text - Edit Window", "Separator lable", "Separator: ", "Label for default value");
+            _trimWhitespaceButtonEditWindow = Config.Bind("Text - Edit Window", "Trim whitespace button", "Trim whitespace", "Label for default value");
+            _rangeLabelEditWindow = Config.Bind("Text - Edit Window", "Range label", "Range: ", "Label for default value");
+            _addButtonEditWindow = Config.Bind("Text - Edit Window", "Add button", "Add", "Label for default value");
+            _newValuePlaceholderEditWindow = Config.Bind("Text - Edit Window", "New value placeholder", "Enter new value", "Label for default value");
+            _precisionLabelEditWindow = Config.Bind("Text - Edit Window", "Precision label", "Precision", "Label for default value");
 
             _resetSettingText = Config.Bind("Text - Config", "Setting Reset", "Reset", "Reset setting text");
             _clearText = Config.Bind("Text - Config", "Setting Clear", "Clear", "Clear search text");
