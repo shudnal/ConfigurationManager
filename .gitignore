@@ -366,3 +366,5 @@ FodyWeavers.xsd
 
 # Idea
 .idea/
+/package/nexus/ConfigurationManager
+/package/nexus/ConfigurationManager.zip

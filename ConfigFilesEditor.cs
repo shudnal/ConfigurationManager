@@ -51,6 +51,8 @@ namespace ConfigurationManager
 
         private FileEditState _fileNameState;
 
+        private bool _isOpen;
+
         private void SetFileEditState(FileEditState newState)
         {
             _fileNameState = newState;
@@ -70,7 +72,15 @@ namespace ConfigurationManager
             }
         }
 
-        public bool IsOpen { get; set; }
+        public bool IsOpen
+        {
+            get => _isOpen;
+            set
+            {
+                if (_isOpen != (_isOpen = value))
+                    ClearCache();
+            }
+        }
 
         public void OnGUI()
         {
@@ -249,7 +259,7 @@ namespace ConfigurationManager
         {
             _directoryDepth++;
 
-            DrawDirectories(Directory.GetDirectories(path));
+            DrawDirectories(GetDirectories(path));
 
             if (path == _activeDirectory && _fileNameState == FileEditState.CreatingFolder)
                 DrawFileNameField();
@@ -261,7 +271,7 @@ namespace ConfigurationManager
 
         private int _directoryDepth;
 
-        private void DrawDirectories(string[] directories)
+        private void DrawDirectories(IEnumerable<string> directories)
         {
             foreach (string directory in directories)
             {
@@ -281,7 +291,7 @@ namespace ConfigurationManager
                 {
                     GUILayout.BeginHorizontal();
                     GUILayout.Space(DirectoryOffset);
-                    
+
                     GUILayout.BeginVertical();
                     DrawDirectory(directory); 
                     GUILayout.EndVertical();
@@ -382,12 +392,63 @@ namespace ConfigurationManager
                 Process.Start(new ProcessStartInfo(_trashBinDirectory) { UseShellExecute = true });
         }
 
+        private readonly Dictionary<string, string[]> _cachedFileTree = new Dictionary<string, string[]>();
+        private readonly Dictionary<string, string[]> _cachedDirectories = new Dictionary<string, string[]>();
+        private FileSystemWatcher[] _watchers;
+
+        public ConfigFilesEditor()
+        {
+            InitializeFileWatcher();
+        }
+
+        private void InitializeFileWatcher()
+        {
+            _watchers = new[] { new FileSystemWatcher(Paths.ConfigPath), new FileSystemWatcher(Paths.PluginPath) };
+
+            foreach (var watcher in _watchers)
+            {
+                watcher.IncludeSubdirectories = true;
+
+                watcher.Changed += (_, __) => ClearCache();
+                watcher.Created += (_, __) => ClearCache();
+                watcher.Deleted += (_, __) => ClearCache();
+                watcher.Renamed += (_, __) => ClearCache();
+            }
+        }
+
+        private void ClearCache()
+        {
+            LogInfo("Files tree cache cleared");
+            _cachedFileTree.Clear();
+            _cachedDirectories.Clear();
+            foreach (var watcher in _watchers)
+                watcher.EnableRaisingEvents = IsOpen;
+        }
+
+        private string[] GetFiles(string path)
+        {
+            if (_cachedFileTree.TryGetValue(path, out var cachedFiles))
+                return cachedFiles;
+
+            string[] files = Directory.GetFiles(path);
+            _cachedFileTree[path] = files;
+            return files;
+        }
+
+        private string[] GetDirectories(string path)
+        {
+            if (_cachedDirectories.TryGetValue(path, out var cachedDirs))
+                return cachedDirs;
+
+            string[] directories = Directory.GetDirectories(path);
+            _cachedDirectories[path] = directories;
+            return directories;
+        }
+
         private void DrawFiles(string path)
         {
-            string[] files = Directory.GetFiles(path);
-
             bool newFileDrawed = false;
-            foreach (string file in files)
+            foreach (string file in GetFiles(path))
                 if (IsValidFile(file))
                 {
                     if (file == _activeFile && _fileNameState == FileEditState.RenamingFile)
@@ -433,7 +494,7 @@ namespace ConfigurationManager
 
         private bool DirectoryContainsValidFiles(string path)
         {
-            return Directory.GetFiles(path).Any(IsValidFile) || Directory.GetDirectories(path).Any(DirectoryContainsValidFiles);
+            return GetFiles(path).Any(IsValidFile) || GetDirectories(path).Any(DirectoryContainsValidFiles);
         }
 
         private void LoadFileToEditor(string filePath)
