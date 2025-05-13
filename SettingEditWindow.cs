@@ -1,11 +1,13 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
 using ConfigurationManager.Utilities;
+using HarmonyLib;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Reflection;
 using UnityEngine;
 using static ConfigurationManager.ConfigurationManager;
 using static ConfigurationManager.ConfigurationManagerStyles;
@@ -52,6 +54,8 @@ namespace ConfigurationManager
         private string separator;
         private int editStringView;
         private string newItem;
+
+        private ConfigEntryBase dummyCustomDrawerConfigEntry;
 
         private bool IsStringList => setting != null && setting.SettingType != null && typeof(IList<string>).IsAssignableFrom(setting.SettingType);
 
@@ -109,6 +113,9 @@ namespace ConfigurationManager
 
         private void UpdateStringList()
         {
+            if (separator.IsNullOrWhiteSpace())
+                separator = ",";
+
             if (setting.SettingType != typeof(string) && !IsStringList)
                 return;
 
@@ -155,6 +162,27 @@ namespace ConfigurationManager
             editStringView = 0;
             _scrollPosition = Vector2.zero;
             _scrollPositionEnum = Vector2.zero;
+
+            dummyCustomDrawerConfigEntry = null;
+            if (setting is ConfigSettingEntry newSetting && (setting.CustomDrawer != null || setting.CustomHotkeyDrawer != null))
+            {
+                // Create dummy entry to not change original config entry
+                Type genericType = typeof(ConfigEntry<>).MakeGenericType(newSetting.Entry.SettingType);
+                ConstructorInfo constructor = AccessTools.Constructor(genericType, new[] {
+                    typeof(ConfigFile),
+                    typeof(ConfigDefinition),
+                    newSetting.Entry.SettingType,
+                    typeof(ConfigDescription)
+                });
+
+                dummyCustomDrawerConfigEntry = (ConfigEntryBase)constructor.Invoke(new object[] {
+                    newSetting.Entry.ConfigFile,
+                    newSetting.Entry.Definition,
+                    newSetting.Entry.DefaultValue,
+                    newSetting.Entry.Description
+                });
+                dummyCustomDrawerConfigEntry.BoxedValue = newSetting.Entry.BoxedValue;
+            }
 
             if (setting.AcceptableValueRange.Key != null)
                 drawerFunction = DrawRangeField;
@@ -489,6 +517,7 @@ namespace ConfigurationManager
 
             GUILayout.BeginHorizontal();
 
+            // Some plugins rely on this field to limit width
             int rightColumn = instance.RightColumnWidth;
             instance.SetRightColumnWidth(Mathf.RoundToInt(_windowRect.width * 0.9f));
 
@@ -497,12 +526,12 @@ namespace ConfigurationManager
                 GUI.contentColor = IsValueToSetDefaultValue() ? _fontColorValueDefault.Value : _fontColorValueChanged.Value;
 
                 if (setting.CustomDrawer != null)
-                    setting.CustomDrawer(setting is ConfigSettingEntry newSetting ? newSetting.Entry : null);
+                    setting.CustomDrawer(dummyCustomDrawerConfigEntry);
                 else if (setting.CustomHotkeyDrawer != null)
                 {
                     var isBeingSet = _currentKeyboardShortcutToSet == setting;
                     var isBeingSetOriginal = isBeingSet;
-                    setting.CustomHotkeyDrawer(setting is ConfigSettingEntry newSetting ? newSetting.Entry : null, ref isBeingSet);
+                    setting.CustomHotkeyDrawer(dummyCustomDrawerConfigEntry, ref isBeingSet);
 
                     if (isBeingSet != isBeingSetOriginal)
                         _currentKeyboardShortcutToSet = isBeingSet ? setting : null;
@@ -527,6 +556,9 @@ namespace ConfigurationManager
             GUI.skin.textArea.fontSize = textAreaFontSize;
             GUI.skin.label.fontSize = labelFontSize;
             GUI.skin.button.fontSize = buttonFontSize;
+
+            if (result && dummyCustomDrawerConfigEntry != null)
+                valueToSet = dummyCustomDrawerConfigEntry.BoxedValue;
 
             return result;
         }
@@ -740,6 +772,8 @@ namespace ConfigurationManager
                 if (DrawResetButton())
                 {
                     valueToSet = setting.SettingType == typeof(Color) ? Utilities.Utils.RoundColorToHEX((Color)setting.DefaultValue) : setting.DefaultValue;
+                    if (dummyCustomDrawerConfigEntry != null)
+                        dummyCustomDrawerConfigEntry.BoxedValue = setting.DefaultValue;
                     InitListIndex();
                     InitVectorParts();
                     UpdateStringList();
@@ -751,6 +785,8 @@ namespace ConfigurationManager
                 if (DrawResetButton())
                 {
                     valueToSet = null;
+                    if (dummyCustomDrawerConfigEntry != null)
+                        dummyCustomDrawerConfigEntry.BoxedValue = null;
                     InitListIndex();
                     InitVectorParts();
                     UpdateStringList();
