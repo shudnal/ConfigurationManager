@@ -52,6 +52,7 @@ namespace ConfigurationManager
         private FileEditState _fileNameState;
 
         private bool _isOpen;
+        private bool _clearCache;
 
         private void SetFileEditState(FileEditState newState)
         {
@@ -418,15 +419,21 @@ namespace ConfigurationManager
 
         private void ClearCache()
         {
-            LogInfo("Files tree cache cleared");
-            _cachedFileTree.Clear();
-            _cachedDirectories.Clear();
+            _clearCache = true;
             foreach (var watcher in _watchers)
                 watcher.EnableRaisingEvents = IsOpen;
         }
 
         private string[] GetFiles(string path)
         {
+            if (_clearCache)
+            {
+                _cachedFileTree.Clear();
+                _cachedDirectories.Clear();
+            }
+
+            _clearCache = false;
+
             if (_cachedFileTree.TryGetValue(path, out var cachedFiles))
                 return cachedFiles;
 
@@ -437,6 +444,14 @@ namespace ConfigurationManager
 
         private string[] GetDirectories(string path)
         {
+            if (_clearCache)
+            {
+                _cachedFileTree.Clear();
+                _cachedDirectories.Clear();
+            }
+
+            _clearCache = false;
+
             if (_cachedDirectories.TryGetValue(path, out var cachedDirs))
                 return cachedDirs;
 
