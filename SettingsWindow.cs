@@ -121,17 +121,18 @@ namespace ConfigurationManager
         {
             if (UnityInput.Current.GetMouseButtonDown(0) && titleBarRect.Contains(Event.current.mousePosition))
             {
-                if (lastClickPosition == Event.current.mousePosition && Time.fixedTime != lastClickTime && Time.fixedTime - lastClickTime < DoubleClickThreshold)
+                float time = (float)Math.Round(Time.realtimeSinceStartup, 1);
+                if (lastClickPosition == Event.current.mousePosition && time != lastClickTime && time - lastClickTime < DoubleClickThreshold)
                 {
                     ResetWindowSizeAndPosition();
 
-                    if (Time.fixedTime != lastDoubleClickTime && Time.fixedTime - lastDoubleClickTime < DoubleClickThreshold)
+                    if (time != lastDoubleClickTime && time - lastDoubleClickTime < DoubleClickThreshold)
                         ResetWindowScale();
 
-                    lastDoubleClickTime = Time.fixedTime;
+                    lastDoubleClickTime = time;
                 }
 
-                lastClickTime = Time.fixedTime;
+                lastClickTime = time;
                 lastClickPosition = Event.current.mousePosition;
             }
         }
