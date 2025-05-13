@@ -117,7 +117,7 @@ namespace ConfigurationManager
         {
             GUILayout.BeginHorizontal();
             {
-                string label = "Files:";
+                string label = _extensionsTitleTextEditor.Value;
                 GUILayout.Label(label, GetLabelStyle(), GUILayout.Width(GetLabelStyle().CalcSize(new GUIContent(label)).x + 2));
                 _editableExtensions.Value = GUILayout.TextField(_editableExtensions.Value, GetTextStyle(), GUILayout.ExpandWidth(true));
 
@@ -178,9 +178,9 @@ namespace ConfigurationManager
 
                 GUI.enabled = fileIsActive;
                 
-                if (GUILayout.Button("Validate JSON", GetButtonStyle(), GUILayout.ExpandWidth(false)))
+                if (GUILayout.Button(_validateJsonTextEditor.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
                     _errorText = IsValidJSON(_fileContent);
-                if (GUILayout.Button("Validate YAML", GetButtonStyle(), GUILayout.ExpandWidth(false)))
+                if (GUILayout.Button(_validateYamlTextEditor.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
                     _errorText = IsValidYAML(_fileContent);
 
                 GUI.enabled = true;
@@ -309,10 +309,10 @@ namespace ConfigurationManager
             GUILayout.BeginHorizontal(GUILayout.MaxWidth(GetFileListWidth() - DirectoryOffset * (_directoryDepth + 1) - 5));
             
             if (_fileNameState == FileEditState.CreatingFolder || _fileNameState == FileEditState.CreatingFile)
-                GUILayout.Label(_fileNameState == FileEditState.CreatingFolder ? "Folder:" : "File:", GetLabelStyle(), GUILayout.ExpandWidth(false));
+                GUILayout.Label(_fileNameState == FileEditState.CreatingFolder ? _newFolderLabelTextEditor.Value: _newFileLabelTextEditor.Value, GetLabelStyle(), GUILayout.ExpandWidth(false));
 
             _newItemName = GUILayout.TextField(_newItemName, GetFileNameFieldStyle(), GUILayout.ExpandWidth(true));
-            if (GUILayout.Button("OK", GetButtonStyle(), GUILayout.ExpandWidth(false)))
+            if (GUILayout.Button(_newEntryOKButtonTextEditor.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
             {
                 if (_fileNameState == FileEditState.CreatingFolder || _fileNameState == FileEditState.CreatingFile)
                     CreateNewItem(_newItemName, _fileNameState == FileEditState.CreatingFolder);
@@ -345,7 +345,7 @@ namespace ConfigurationManager
 
             if (File.Exists(newPath))
             {
-                _newItemErrorText = "File already exists";
+                _newItemErrorText = _fileExistsTextEditor.Value;
                 return;
             }
             
@@ -536,27 +536,27 @@ namespace ConfigurationManager
             GUILayout.BeginVertical();
 
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("New folder", GetButtonStyle()))
+            if (GUILayout.Button(_newFolderButtonTextEditor.Value, GetButtonStyle()))
             {
                 SetFileEditState(FileEditState.CreatingFolder);
             }
-            if (GUILayout.Button("New file", GetButtonStyle()))
+            if (GUILayout.Button(_newFileButtonTextEditor.Value, GetButtonStyle()))
             {
                 SetFileEditState(FileEditState.CreatingFile);
             }
-            if (GUILayout.Button("Rename", GetButtonStyle()))
+            if (GUILayout.Button(_renameFileButtonTextEditor.Value, GetButtonStyle()))
             {
                 SetFileEditState(FileEditState.RenamingFile);
                 _newItemName = Path.GetFileName(_activeFile);
             }
-            if (GUILayout.Button(new GUIContent("Delete", "File will be moved into Trash Bin"), GetButtonStyle()))
+            if (GUILayout.Button(new GUIContent(_deleteFileButtonTextEditor.Value, _deleteFileTooltipTextEditor.Value), GetButtonStyle()))
                 MoveActiveFileToTrash();
 
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
-            _showEmptyFolders.Value = GUILayout.Toggle(_showEmptyFolders.Value, "Show empty folders", GetToggleStyle(), GUILayout.ExpandWidth(true));
-            if (GUILayout.Button("Open Trash Bin", GetButtonStyle()))
+            _showEmptyFolders.Value = GUILayout.Toggle(_showEmptyFolders.Value, _showEmptyTextEditor.Value, GetToggleStyle(), GUILayout.ExpandWidth(true));
+            if (GUILayout.Button(_openTrashBinTextEditor.Value, GetButtonStyle()))
                 OpenTrashBin();
             GUILayout.EndHorizontal();
 
@@ -604,11 +604,11 @@ namespace ConfigurationManager
             try
             {
                 JToken.Parse(text);
-                return "File is valid JSON";
+                return _fileIsValidJsonTextEditor.Value;
             }
             catch
             {
-                return "File is not valid JSON";
+                return _fileIsNotValidJsonTextEditor.Value;
             }
         }
 
@@ -625,11 +625,11 @@ namespace ConfigurationManager
 
                 deserializer.Deserialize<object>(text);
 
-                return "File is valid YAML";
+                return _fileIsValidYamlTextEditor.Value;
             }
             catch
             {
-                return $"File is not valid YAML";
+                return _fileIsNotValidYamlTextEditor.Value;
             }
         }
 

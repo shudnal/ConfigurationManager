@@ -151,12 +151,31 @@ namespace ConfigurationManager
 
         public static ConfigEntry<Vector2> _windowPositionTextEditor;
         public static ConfigEntry<Vector2> _windowSizeTextEditor;
+        public static ConfigEntry<bool> _showEmptyFolders;
+        public static ConfigEntry<bool> _hideModConfigs;
+
         public static ConfigEntry<string> _searchTextEditor;
         public static ConfigEntry<string> _saveFileTextEditor;
         public static ConfigEntry<string> _windowTitleTextEditor;
         public static ConfigEntry<string> _editableExtensions;
-        public static ConfigEntry<bool> _showEmptyFolders;
-        public static ConfigEntry<bool> _hideModConfigs;
+        public static ConfigEntry<string> _extensionsTitleTextEditor;
+        public static ConfigEntry<string> _validateJsonTextEditor;
+        public static ConfigEntry<string> _validateYamlTextEditor;
+        public static ConfigEntry<string> _newFileLabelTextEditor;
+        public static ConfigEntry<string> _newFolderLabelTextEditor;
+        public static ConfigEntry<string> _newEntryOKButtonTextEditor;
+        public static ConfigEntry<string> _fileExistsTextEditor;
+        public static ConfigEntry<string> _newFolderButtonTextEditor;
+        public static ConfigEntry<string> _newFileButtonTextEditor;
+        public static ConfigEntry<string> _renameFileButtonTextEditor;
+        public static ConfigEntry<string> _deleteFileButtonTextEditor;
+        public static ConfigEntry<string> _deleteFileTooltipTextEditor;
+        public static ConfigEntry<string> _showEmptyTextEditor;
+        public static ConfigEntry<string> _openTrashBinTextEditor;
+        public static ConfigEntry<string> _fileIsValidJsonTextEditor;
+        public static ConfigEntry<string> _fileIsNotValidJsonTextEditor;
+        public static ConfigEntry<string> _fileIsValidYamlTextEditor;
+        public static ConfigEntry<string> _fileIsNotValidYamlTextEditor;
 
         public static ConfigEntry<Vector2> _windowPositionEditSetting;
         public static ConfigEntry<Vector2> _windowSizeEditSetting;
@@ -283,6 +302,24 @@ namespace ConfigurationManager
             _searchTextEditor = Config.Bind("Text - File Editor", "Search", "Search:", "Search label text");
             _saveFileTextEditor = Config.Bind("Text - File Editor", "Save", "Save", "Save changes in file");
             _windowTitleTextEditor = Config.Bind("Text - File Editor", "Title", "Configuration Files Editor", "Window title");
+            _extensionsTitleTextEditor = Config.Bind("Text - File Editor", "Extensions label", "Files:", "Label for extension list");
+            _validateJsonTextEditor = Config.Bind("Text - File Editor", "JSON validation button", "Validate JSON", "Button for JSON validation");
+            _validateYamlTextEditor = Config.Bind("Text - File Editor", "YAML validation button", "Validate YAML", "Button for YAML validation");
+            _newFileLabelTextEditor = Config.Bind("Text - File Editor", "New file label", "File:", "Label for new file name");
+            _newFolderLabelTextEditor = Config.Bind("Text - File Editor", "New folder label", "Folder:", "Label for new folder name");
+            _newEntryOKButtonTextEditor = Config.Bind("Text - File Editor", "New object confirmation button", "OK", "Label for confirmation button");
+            _fileExistsTextEditor = Config.Bind("Text - File Editor", "Error text file exists", "File already exists", "Error text if file already exists");
+            _newFolderButtonTextEditor = Config.Bind("Text - File Editor", "New folder", "New folder", "Text for new folder button");
+            _newFileButtonTextEditor = Config.Bind("Text - File Editor", "New file", "New file", "Text for new file button");
+            _renameFileButtonTextEditor = Config.Bind("Text - File Editor", "Rename", "Rename", "Text for Rename button");
+            _deleteFileButtonTextEditor = Config.Bind("Text - File Editor", "Delete", "Delete", "Text for Delete button");
+            _deleteFileTooltipTextEditor = Config.Bind("Text - File Editor", "Delete tooltip", "File will be moved into Trash Bin", "Tooltip for Delete button");
+            _showEmptyTextEditor = Config.Bind("Text - File Editor", "Show empty folders", "Show empty folders", "Text for show empty folders toggle");
+            _openTrashBinTextEditor = Config.Bind("Text - File Editor", "Open Trash Bin", "Open Trash Bin", "Text for open trash bin button");
+            _fileIsValidJsonTextEditor = Config.Bind("Text - File Editor", "File is valid JSON", "File is valid JSON", "Text for JSON validation result");
+            _fileIsNotValidJsonTextEditor = Config.Bind("Text - File Editor", "File is not valid JSON", "File is not valid JSON", "Text for JSON validation result");
+            _fileIsValidYamlTextEditor = Config.Bind("Text - File Editor", "File is valid YAML", "File is valid YAML", "Text for YAML validation result");
+            _fileIsNotValidYamlTextEditor = Config.Bind("Text - File Editor", "File is not valid YAML", "File is not valid YAML", "Text for YAML validation result");
 
             _resetSettingText = Config.Bind("Text - Config", "Setting Reset", "Reset", "Reset setting text");
             _clearText = Config.Bind("Text - Config", "Setting Clear", "Clear", "Clear search text");
