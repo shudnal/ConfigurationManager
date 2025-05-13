@@ -400,6 +400,8 @@ namespace ConfigurationManager
                 {
                     plugin.Selected = true;
                     category.Selected = !category.Selected;
+                    if (category.Selected)
+                        category.Collapsed = false;
                 }
                 GUILayout.EndHorizontal();
             }
