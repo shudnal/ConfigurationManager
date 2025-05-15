@@ -1,3 +1,8 @@
+# 1.1.1
+* show only keybinds filter
+* field type name included in searching
+* tooltips in setting edit window localization configs fixed
+
 # 1.1.0
 * new default view mode - Split View (legacy List View mode is still available)
 * new feature - Configuration File Editor for ingame editing of cfg, yaml and json files

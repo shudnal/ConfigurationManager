@@ -1,4 +1,5 @@
 ﻿using BepInEx;
+using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
 using System;
@@ -289,12 +290,11 @@ namespace ConfigurationManager
                 var enabled = GUI.enabled;
                 GUI.enabled = !IsSearching;
 
-                var newVal = GUILayout.Toggle(_showAdvanced.Value, new GUIContent(_advancedText.Value, _advancedTextTooltip.Value), GetToggleStyle(), GUILayout.ExpandWidth(false));
-                if (_showAdvanced.Value != newVal)
-                {
-                    _showAdvanced.Value = newVal;
+                if (_showAdvanced.Value != (_showAdvanced.Value = GUILayout.Toggle(_showAdvanced.Value, new GUIContent(_advancedText.Value, _advancedTextTooltip.Value), GetToggleStyle(), GUILayout.ExpandWidth(false))))
                     BuildFilteredSettingList();
-                }
+
+                if (_showKeybinds.Value != (_showKeybinds.Value = GUILayout.Toggle(_showKeybinds.Value, new GUIContent(_shortcutsText.Value, _shortcutsTextTooltip.Value), GetToggleStyle(), GUILayout.ExpandWidth(false))))
+                    BuildFilteredSettingList();
 
                 GUI.enabled = enabled;
 
@@ -563,6 +563,8 @@ namespace ConfigurationManager
             {
                 if (!_showAdvanced.Value)
                     results = results.Where(x => x.IsAdvanced != true);
+                if (_showKeybinds.Value)
+                    results = results.Where(x => IsKeyboardShortcut(x));
             }
 
             var settingsAreCollapsed = _pluginConfigCollapsedDefault.Value;
@@ -611,6 +613,8 @@ namespace ConfigurationManager
                 .ToList();
         }
 
+        private static bool IsKeyboardShortcut(SettingEntryBase x) => x.SettingType == typeof(KeyboardShortcut);
+
         private static bool ContainsSearchString(SettingEntryBase setting, string[] searchStrings)
         {
             var combinedSearchTarget = setting.PluginInfo.Name + "\n" +
@@ -619,6 +623,7 @@ namespace ConfigurationManager
                                        setting.Category + "\n" +
                                        setting.Description + "\n" +
                                        setting.DefaultValue + "\n" +
+                                       setting.SettingType.Name + "\n" +
                                        setting.Get();
 
             return searchStrings.All(s => combinedSearchTarget.IndexOf(s, StringComparison.InvariantCultureIgnoreCase) >= 0);

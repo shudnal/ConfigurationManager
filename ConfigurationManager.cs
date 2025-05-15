@@ -20,7 +20,7 @@ namespace ConfigurationManager
     {
         public const string GUID = "_shudnal.ConfigurationManager";
         public const string pluginName = "Valheim Configuration Manager";
-        public const string Version = "1.1.0";
+        public const string Version = "1.1.1";
 
         internal static ConfigurationManager instance;
         private static SettingFieldDrawer _fieldDrawer;
@@ -116,6 +116,7 @@ namespace ConfigurationManager
         }
 
         public static ConfigEntry<bool> _showAdvanced;
+        public static ConfigEntry<bool> _showKeybinds;
         public static ConfigEntry<bool> _loggingEnabled;
         public static ConfigEntry<ReadOnlyStyle> _readOnlyStyle;
 
@@ -145,6 +146,7 @@ namespace ConfigurationManager
         public static ConfigEntry<string> _windowTitle;
         public static ConfigEntry<string> _normalText;
         public static ConfigEntry<string> _shortcutsText;
+        public static ConfigEntry<string> _shortcutsTextTooltip;
         public static ConfigEntry<string> _advancedText;
         public static ConfigEntry<string> _advancedTextTooltip;
         public static ConfigEntry<string> _closeText;
@@ -294,13 +296,15 @@ namespace ConfigurationManager
             _categoriesCollapsedDefault.SettingChanged += (sender, args) => BuildSettingList();
 
             _showAdvanced = Config.Bind("Filtering", "Show advanced", false);
+            _showKeybinds = Config.Bind("Filtering", "Show only keybinds", false);
             _readOnlyStyle = Config.Bind("Filtering", "Style readonly entries", ReadOnlyStyle.Colored, "Entries marked as readonly are not available for change.");
 
             _readOnlyStyle.SettingChanged += (sender, args) => BuildSettingList();
 
             _windowTitle = Config.Bind("Text - Menu", "Window Title", "Configuration Manager", "Window title text");
             _normalText = Config.Bind("Text - Menu", "Normal", "Normal", "Normal settings toggle text");
-            _shortcutsText = Config.Bind("Text - Menu", "Shortcuts", "Keybinds", "Shortcut key settings toggle text");
+            _shortcutsText = Config.Bind("Text - Menu", "Keybinds", "Keybinds only", "Keybinds key settings toggle text");
+            _shortcutsTextTooltip = Config.Bind("Text - Menu", "Keybinds tooltip", "Show only plugins and settings with keybind shortcuts", "Keybinds toolip toggle text");
             _advancedText = Config.Bind("Text - Menu", "Advanced", "Advanced", "Advanced settings toggle text");
             _advancedTextTooltip = Config.Bind("Text - Menu", "Advanced tooltip", "Show plugins and settings marked by author as advanced." +
                 "\nFor example BepInEx settings are marked as advanced.", "Advanced settings toggle tooltip");
@@ -335,17 +339,17 @@ namespace ConfigurationManager
             _fileIsNotValidYamlTextEditor = Config.Bind("Text - File Editor", "File is not valid YAML", "File is not valid YAML", "Text for YAML validation result");
 
             _defaultValueDescriptionEditWindow = Config.Bind("Text - Edit Window", "Default value description", "Default: ", "Label for default value");
-            _pressEscapeHintEditWindow = Config.Bind("Text - Edit Window", "Press Escape hint", "Press Escape to close window", "Label for default value");
-            _applyButtonEditWindow = Config.Bind("Text - Edit Window", "Apply button", "Apply", "Label for default value");
-            _editAsLabelEditWindow = Config.Bind("Text - Edit Window", "Edit as label", "Edit as: ", "Label for default value");
-            _editAsTextEditWindow = Config.Bind("Text - Edit Window", "Edit as text", "Text", "Label for default value");
-            _editAsListEditWindow = Config.Bind("Text - Edit Window", "Edit as list", "List", "Label for default value");
-            _separatorLabelEditWindow = Config.Bind("Text - Edit Window", "Separator lable", "Separator: ", "Label for default value");
-            _trimWhitespaceButtonEditWindow = Config.Bind("Text - Edit Window", "Trim whitespace button", "Trim whitespace", "Label for default value");
-            _rangeLabelEditWindow = Config.Bind("Text - Edit Window", "Range label", "Range: ", "Label for default value");
-            _addButtonEditWindow = Config.Bind("Text - Edit Window", "Add button", "Add", "Label for default value");
-            _newValuePlaceholderEditWindow = Config.Bind("Text - Edit Window", "New value placeholder", "Enter new value", "Label for default value");
-            _precisionLabelEditWindow = Config.Bind("Text - Edit Window", "Precision label", "Precision", "Label for default value");
+            _pressEscapeHintEditWindow = Config.Bind("Text - Edit Window", "Press Escape hint", "Press Escape to close window", "Hint in window bottom");
+            _applyButtonEditWindow = Config.Bind("Text - Edit Window", "Apply button", "Apply", "Apply button label");
+            _editAsLabelEditWindow = Config.Bind("Text - Edit Window", "Edit as label", "Edit as: ", "Label for edit as element");
+            _editAsTextEditWindow = Config.Bind("Text - Edit Window", "Edit as text", "Text", "Label for edit as Text button");
+            _editAsListEditWindow = Config.Bind("Text - Edit Window", "Edit as list", "List", "Label for edit as List button");
+            _separatorLabelEditWindow = Config.Bind("Text - Edit Window", "Separator lable", "Separator: ", "Label for separator field");
+            _trimWhitespaceButtonEditWindow = Config.Bind("Text - Edit Window", "Trim whitespace button", "Trim whitespace", "Text for trim whitespace button");
+            _rangeLabelEditWindow = Config.Bind("Text - Edit Window", "Range label", "Range: ", "Label for Range field");
+            _addButtonEditWindow = Config.Bind("Text - Edit Window", "Add button", "Add", "Label for add button");
+            _newValuePlaceholderEditWindow = Config.Bind("Text - Edit Window", "New value placeholder", "Enter new value", "Label for new value placeholder in list view");
+            _precisionLabelEditWindow = Config.Bind("Text - Edit Window", "Precision label", "Precision", "Label for vector precision field");
 
             _resetSettingText = Config.Bind("Text - Config", "Setting Reset", "Reset", "Reset setting text");
             _clearText = Config.Bind("Text - Config", "Setting Clear", "Clear", "Clear search text");
