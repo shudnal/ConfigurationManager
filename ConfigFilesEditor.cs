@@ -24,10 +24,10 @@ namespace ConfigurationManager
             RenamingFile
         }
 
-        private readonly string[] _directories = { Paths.ConfigPath, Paths.PluginPath };
+        private readonly static string _trashBinDirectory = Path.Combine(Paths.CachePath, "ConfigurationManagerTrashBin");
+        private readonly static string[] _directories = { Paths.ConfigPath, Paths.PluginPath, _trashBinDirectory };
 
         private readonly Dictionary<string, bool> _folderStates = new Dictionary<string, bool>();
-        private readonly string _trashBinDirectory = Path.Combine(Paths.CachePath, "ConfigurationManagerTrashBin");
 
         private Vector2 _scrollPosition;
         private string _fileContent;
@@ -242,6 +242,9 @@ namespace ConfigurationManager
 
                     GUI.enabled = true;
                     GUILayout.EndScrollView();
+
+                    if (_showFullName.Value)
+                        GUILayout.TextField(_activeFile, GetTextStyle(), GUILayout.ExpandWidth(true));
                 }
                 GUILayout.EndVertical();
 
@@ -282,6 +285,9 @@ namespace ConfigurationManager
         {
             foreach (string directory in directories)
             {
+                if (!_showTrashBin.Value && directory == _trashBinDirectory)
+                    continue;
+
                 if (!_showEmptyFolders.Value && !DirectoryContainsValidFiles(directory))
                     continue;
 
@@ -391,12 +397,6 @@ namespace ConfigurationManager
             {
                 _newItemErrorText = e.Message;
             }
-        }
-
-        private void OpenTrashBin()
-        {
-            if (Directory.Exists(_trashBinDirectory))
-                Process.Start(new ProcessStartInfo(_trashBinDirectory) { UseShellExecute = true });
         }
 
         private readonly Dictionary<string, string[]> _cachedFileTree = new Dictionary<string, string[]>();
@@ -562,8 +562,9 @@ namespace ConfigurationManager
 
             GUILayout.BeginHorizontal();
             _showEmptyFolders.Value = GUILayout.Toggle(_showEmptyFolders.Value, _showEmptyTextEditor.Value, GetToggleStyle(), GUILayout.ExpandWidth(true));
-            if (GUILayout.Button(_openTrashBinTextEditor.Value, GetButtonStyle()))
-                OpenTrashBin();
+            GUILayout.FlexibleSpace();
+            _showFullName.Value = GUILayout.Toggle(_showFullName.Value, new GUIContent(_showFullNameTextEditor.Value, _showFullNameTooltipTextEditor.Value), GetToggleStyle());
+            _showTrashBin.Value = GUILayout.Toggle(_showTrashBin.Value, _showTrashBinTextEditor.Value, GetToggleStyle());
             GUILayout.EndHorizontal();
 
             GUILayout.EndVertical();

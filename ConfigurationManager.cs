@@ -20,7 +20,7 @@ namespace ConfigurationManager
     {
         public const string GUID = "_shudnal.ConfigurationManager";
         public const string pluginName = "Valheim Configuration Manager";
-        public const string Version = "1.1.2";
+        public const string Version = "1.1.3";
 
         internal static ConfigurationManager instance;
         private static SettingFieldDrawer _fieldDrawer;
@@ -155,6 +155,8 @@ namespace ConfigurationManager
         public static ConfigEntry<Vector2> _windowSizeTextEditor;
         public static ConfigEntry<bool> _showEmptyFolders;
         public static ConfigEntry<bool> _hideModConfigs;
+        public static ConfigEntry<bool> _showTrashBin;
+        public static ConfigEntry<bool> _showFullName;
 
         public static ConfigEntry<int> _textEditorFontSize;
         public static ConfigEntry<Color> _textEditorFontColor;
@@ -179,7 +181,9 @@ namespace ConfigurationManager
         public static ConfigEntry<string> _deleteFileButtonTextEditor;
         public static ConfigEntry<string> _deleteFileTooltipTextEditor;
         public static ConfigEntry<string> _showEmptyTextEditor;
-        public static ConfigEntry<string> _openTrashBinTextEditor;
+        public static ConfigEntry<string> _showTrashBinTextEditor;
+        public static ConfigEntry<string> _showFullNameTextEditor;
+        public static ConfigEntry<string> _showFullNameTooltipTextEditor;
         public static ConfigEntry<string> _fileIsValidJsonTextEditor;
         public static ConfigEntry<string> _fileIsNotValidJsonTextEditor;
         public static ConfigEntry<string> _fileIsValidYamlTextEditor;
@@ -292,6 +296,8 @@ namespace ConfigurationManager
             _showEmptyFolders = Config.Bind("General - File Editor", "Show empty folders", false, "Hide or show directories with no files");
             _windowPositionTextEditor = Config.Bind("General - File Editor", "Window position", GetDefaultTextEditorWindowPosition(), "Window position. Double click on window title to reset position.");
             _windowSizeTextEditor = Config.Bind("General - File Editor", "Window size", GetDefaultTextEditorWindowSize(), "Window size. Double click on window title to reset size.");
+            _showTrashBin = Config.Bind("General - File Editor", "Show Trash Bin in file editor", true, "Show configuration manager trash bin folder in list.");
+            _showFullName = Config.Bind("General - File Editor", "Show full name of active file", true, "Show full name of active file.");
 
             _windowPositionEditSetting = Config.Bind("General - Setting Edit Window", "Window position", GetDefaultEditSettingWindowPosition(), "Window position. Double click on window title to reset position.");
             _windowSizeEditSetting = Config.Bind("General - Setting Edit Window", "Window size", GetDefaultEditSettingWindowSize(), "Window size. Double click on window title to reset size.");
@@ -348,7 +354,9 @@ namespace ConfigurationManager
             _deleteFileButtonTextEditor = Config.Bind("Text - File Editor", "Delete", "Delete", "Text for Delete button");
             _deleteFileTooltipTextEditor = Config.Bind("Text - File Editor", "Delete tooltip", "File will be moved into Trash Bin", "Tooltip for Delete button");
             _showEmptyTextEditor = Config.Bind("Text - File Editor", "Show empty folders", "Show empty folders", "Text for show empty folders toggle");
-            _openTrashBinTextEditor = Config.Bind("Text - File Editor", "Open Trash Bin", "Open Trash Bin", "Text for open trash bin button");
+            _showTrashBinTextEditor = Config.Bind("Text - File Editor", "Show Trash Bin", "Show Trash Bin", "Text for show trash bin toggle");
+            _showFullNameTextEditor = Config.Bind("Text - File Editor", "Show file name", "Show file name", "Text for show file name toggle");
+            _showFullNameTooltipTextEditor = Config.Bind("Text - File Editor", "Show file name tooltip", "Show full name of active file", "Text for show file name toggle tooltip");
             _fileIsValidJsonTextEditor = Config.Bind("Text - File Editor", "File is valid JSON", "File is valid JSON", "Text for JSON validation result");
             _fileIsNotValidJsonTextEditor = Config.Bind("Text - File Editor", "File is not valid JSON", "File is not valid JSON", "Text for JSON validation result");
             _fileIsValidYamlTextEditor = Config.Bind("Text - File Editor", "File is valid YAML", "File is valid YAML", "Text for YAML validation result");

@@ -1,3 +1,6 @@
+# 1.1.3
+* screw you thunderstore :)
+
 # 1.1.2
 * text editor font style settings
 
