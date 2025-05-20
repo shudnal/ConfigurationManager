@@ -1,3 +1,6 @@
+# 1.1.4
+* fixed file editor
+
 # 1.1.3
 * screw you thunderstore :)
 

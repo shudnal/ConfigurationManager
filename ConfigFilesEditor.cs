@@ -442,7 +442,7 @@ namespace ConfigurationManager
             if (_cachedFileTree.TryGetValue(path, out var cachedFiles))
                 return cachedFiles;
 
-            string[] files = Directory.GetFiles(path);
+            string[] files = Directory.Exists(path) ? Directory.GetFiles(path) : Array.Empty<string>();
             _cachedFileTree[path] = files;
             return files;
         }
@@ -460,7 +460,7 @@ namespace ConfigurationManager
             if (_cachedDirectories.TryGetValue(path, out var cachedDirs))
                 return cachedDirs;
 
-            string[] directories = Directory.GetDirectories(path);
+            string[] directories = Directory.Exists(path) ? Directory.GetDirectories(path) : Array.Empty<string>();
             _cachedDirectories[path] = directories;
             return directories;
         }
