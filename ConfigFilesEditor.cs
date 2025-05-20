@@ -185,8 +185,14 @@ namespace ConfigurationManager
 
                 GUI.enabled = true;
 
-                GUILayout.Label(_errorText, GUILayout.ExpandWidth(true));
+                GUILayout.Label(_errorText, GetLabelStyle(isDefaultValue:false), GUILayout.ExpandWidth(true));
 
+                GUILayout.Label(_richTextFontSize.Value, GetLabelStyle(), GUILayout.ExpandWidth(false));
+                if (int.TryParse(GUILayout.TextField(_textEditorFontSize.Value.ToFastString(), GetTextStyle(_textEditorFontSize.Value, (int)_textEditorFontSize.DefaultValue), GUILayout.Width(30)), out int fontSize))
+                    _textEditorFontSize.Value = fontSize;
+
+                _textEditorWordWrap.Value = GUILayout.Toggle(_textEditorWordWrap.Value, _wordWrapTextEditor.Value, GetToggleStyle(), GUILayout.ExpandWidth(false));
+                _textEditorRichText.Value = GUILayout.Toggle(_textEditorRichText.Value, _richTextTextEditor.Value, GetToggleStyle(), GUILayout.ExpandWidth(false));
                 if (GUILayout.Button(_closeText.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
                     IsOpen = false;
             }

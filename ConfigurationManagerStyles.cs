@@ -250,8 +250,12 @@ namespace ConfigurationManager
 
             fileEditorTextArea = new GUIStyle(GUI.skin.textArea);
             fileEditorTextArea.padding = new RectOffset(5, 5, 5, 5);
-            fileEditorTextArea.wordWrap = true;
-            fileEditorTextArea.richText = true;
+            fileEditorTextArea.margin = new RectOffset(1, 1, 3, 3);
+            fileEditorTextArea.wordWrap = _textEditorWordWrap.Value;
+            fileEditorTextArea.richText = _textEditorRichText.Value;
+            fileEditorTextArea.alignment = _textEditorAlignment.Value;
+            fileEditorTextArea.fontSize = _textEditorFontSize.Value;
+            fileEditorTextArea.normal.textColor = _textEditorFontColor.Value;
 
             delimiterLine = new GUIStyle();
             delimiterLine.normal.background = EntryBackground;

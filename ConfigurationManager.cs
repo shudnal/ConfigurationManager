@@ -20,7 +20,7 @@ namespace ConfigurationManager
     {
         public const string GUID = "_shudnal.ConfigurationManager";
         public const string pluginName = "Valheim Configuration Manager";
-        public const string Version = "1.1.1";
+        public const string Version = "1.1.2";
 
         internal static ConfigurationManager instance;
         private static SettingFieldDrawer _fieldDrawer;
@@ -156,6 +156,12 @@ namespace ConfigurationManager
         public static ConfigEntry<bool> _showEmptyFolders;
         public static ConfigEntry<bool> _hideModConfigs;
 
+        public static ConfigEntry<int> _textEditorFontSize;
+        public static ConfigEntry<Color> _textEditorFontColor;
+        public static ConfigEntry<bool> _textEditorWordWrap;
+        public static ConfigEntry<TextAnchor> _textEditorAlignment;
+        public static ConfigEntry<bool> _textEditorRichText;
+
         public static ConfigEntry<string> _searchTextEditor;
         public static ConfigEntry<string> _saveFileTextEditor;
         public static ConfigEntry<string> _windowTitleTextEditor;
@@ -178,6 +184,10 @@ namespace ConfigurationManager
         public static ConfigEntry<string> _fileIsNotValidJsonTextEditor;
         public static ConfigEntry<string> _fileIsValidYamlTextEditor;
         public static ConfigEntry<string> _fileIsNotValidYamlTextEditor;
+        public static ConfigEntry<string> _wordWrapTextEditor;
+        public static ConfigEntry<string> _richTextTextEditor;
+        public static ConfigEntry<string> _richTextFontSize;
+
 
         public static ConfigEntry<Vector2> _windowPositionEditSetting;
         public static ConfigEntry<Vector2> _windowSizeEditSetting;
@@ -301,6 +311,12 @@ namespace ConfigurationManager
 
             _readOnlyStyle.SettingChanged += (sender, args) => BuildSettingList();
 
+            _textEditorFontSize = Config.Bind("File editor - Text style", "Font size", 14, "Font size of text editor");
+            _textEditorFontColor = Config.Bind("File editor - Text style", "Font color", new Color(0.9f, 0.9f, 0.9f, 1f), "Font color of text editor");
+            _textEditorWordWrap = Config.Bind("File editor - Text style", "Word wrap", true, "Word wrap of text editor");
+            _textEditorAlignment = Config.Bind("File editor - Text style", "Text alignment", TextAnchor.UpperLeft, "Text alignment of text editor");
+            _textEditorRichText = Config.Bind("File editor - Text style", "Rich text", true, "Rich text of text editor");
+
             _windowTitle = Config.Bind("Text - Menu", "Window Title", "Configuration Manager", "Window title text");
             _normalText = Config.Bind("Text - Menu", "Normal", "Normal", "Normal settings toggle text");
             _shortcutsText = Config.Bind("Text - Menu", "Keybinds", "Keybinds only", "Keybinds key settings toggle text");
@@ -337,6 +353,10 @@ namespace ConfigurationManager
             _fileIsNotValidJsonTextEditor = Config.Bind("Text - File Editor", "File is not valid JSON", "File is not valid JSON", "Text for JSON validation result");
             _fileIsValidYamlTextEditor = Config.Bind("Text - File Editor", "File is valid YAML", "File is valid YAML", "Text for YAML validation result");
             _fileIsNotValidYamlTextEditor = Config.Bind("Text - File Editor", "File is not valid YAML", "File is not valid YAML", "Text for YAML validation result");
+            
+            _wordWrapTextEditor = Config.Bind("Text - File Editor", "Word wrap", "Word wrap", "Text for word wrap toggle");
+            _richTextTextEditor = Config.Bind("Text - File Editor", "Rich text", "Rich text", "Text for rich text toggle");
+            _richTextFontSize = Config.Bind("Text - File Editor", "Font size", "Font size: ", "Text for font size field");
 
             _defaultValueDescriptionEditWindow = Config.Bind("Text - Edit Window", "Default value description", "Default: ", "Label for default value");
             _pressEscapeHintEditWindow = Config.Bind("Text - Edit Window", "Press Escape hint", "Press Escape to close window", "Hint in window bottom");

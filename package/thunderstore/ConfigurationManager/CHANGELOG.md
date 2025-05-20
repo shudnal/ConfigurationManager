@@ -1,3 +1,6 @@
+# 1.1.2
+* text editor font style settings
+
 # 1.1.1
 * show only keybinds filter
 * field type name included in searching
