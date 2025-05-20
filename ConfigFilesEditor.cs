@@ -6,7 +6,6 @@ using static ConfigurationManager.ConfigurationManager;
 using BepInEx;
 using System;
 using System.Linq;
-using System.Diagnostics;
 using BepInEx.Bootstrap;
 using YamlDotNet.Serialization.NamingConventions;
 using YamlDotNet.Serialization;
