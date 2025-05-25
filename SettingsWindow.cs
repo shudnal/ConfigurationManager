@@ -658,7 +658,8 @@ namespace ConfigurationManager
 
                 GetTooltipStyle().CalcMinMaxWidth(new GUIContent(lines[maxIndex]), out _, out float width);
 
-                var height = GetTooltipStyle().CalcHeight(new GUIContent(GUI.tooltip), width) + 10;
+                width += 2f;
+                var height = GetTooltipStyle().CalcHeight(new GUIContent(GUI.tooltip), width) + 10f;
 
                 var x = currentEvent.mousePosition.x + width > area.width
                     ? area.width - width
