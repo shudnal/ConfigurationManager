@@ -61,3 +61,6 @@ extract ConfigurationManager.dll folder to your BepInEx\Plugins\ folder.
 
 ## Donation
 [Buy Me a Coffee](https://buymeacoffee.com/shudnal)
+
+## Discord
+[Join server](https://discord.gg/e3UtQB8GFK)

@@ -1,3 +1,6 @@
+# 1.1.5
+* Fixed input for decimals with comma(,) used instead of period(.)
+
 # 1.1.4
 * fixed file editor
 

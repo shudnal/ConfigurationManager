@@ -382,7 +382,7 @@ namespace ConfigurationManager
                 }
                 else
                 {
-                    var strVal = value.ToString().Replace(',', '.').AppendZeroIfFloat(setting.SettingType);
+                    var strVal = Convert.ToString(value, CultureInfo.InvariantCulture).Replace(',', '.').AppendZeroIfFloat(setting.SettingType);
                     var strResult = GUILayout.TextField(strVal, GetTextStyle(setting), GUILayout.Width(50));
                     if (strResult != strVal && Utilities.Utils.TryParseFloat(strResult, out float resultVal))
                     {
@@ -426,7 +426,7 @@ namespace ConfigurationManager
             {
                 // Fall back to slow/less reliable method
                 var rawValue = setting.Get();
-                var value = rawValue == null ? "NULL" : rawValue.ToString().AppendZeroIfFloat(setting.SettingType);
+                var value = rawValue == null ? "NULL" : Convert.ToString(rawValue, CultureInfo.InvariantCulture).AppendZeroIfFloat(setting.SettingType);
 
                 if (value.IsNullOrWhiteSpace() && setting.DefaultValue.ToString() != "")
                     GUI.backgroundColor = _fontColorValueChanged.Value;

@@ -653,7 +653,7 @@ namespace ConfigurationManager
             else
             {
                 // Fall back to slow/less reliable method
-                var value = valueToSet == null ? "NULL" : valueToSet.ToString().AppendZeroIfFloat(setting.SettingType);
+                var value = valueToSet == null ? "NULL" : Convert.ToString(valueToSet, CultureInfo.InvariantCulture).AppendZeroIfFloat(setting.SettingType);
 
                 if (CanCovert(value, setting.SettingType))
                 {
