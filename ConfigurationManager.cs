@@ -20,7 +20,7 @@ namespace ConfigurationManager
     {
         public const string GUID = "_shudnal.ConfigurationManager";
         public const string pluginName = "Valheim Configuration Manager";
-        public const string Version = "1.1.5";
+        public const string Version = "1.1.6";
 
         internal static ConfigurationManager instance;
         private static SettingFieldDrawer _fieldDrawer;
@@ -404,8 +404,8 @@ namespace ConfigurationManager
             _headerBackgroundHoverColor.SettingChanged += (s, e) => UpdateBackgrounds();
             _editWindowBackgroundColor.SettingChanged += (s, e) => UpdateBackgrounds();
 
-            _fontColor = Config.Bind("Colors - Font", "Main font", new Color(1f, 0.71f, 0.36f, 1f), "Font color");
-            _fontColorValueDefault = Config.Bind("Colors - Font", "Default value", new Color(1f, 0.71f, 0.36f, 1f), "Font color");
+            _fontColor = Config.Bind("Colors - Font", "Main font", new Color(1f, 0.827f, 0.463f, 1f), "Font color");
+            _fontColorValueDefault = Config.Bind("Colors - Font", "Default value", new Color(1f, 0.827f, 0.463f, 1f), "Font color");
             _fontColorValueChanged = Config.Bind("Colors - Font", "Changed value", new Color(0.9f, 0.9f, 0.9f, 1f), "Font color when value is not default");
 
             currentWindowRect = new Rect(_windowPosition.Value, _windowSize.Value);

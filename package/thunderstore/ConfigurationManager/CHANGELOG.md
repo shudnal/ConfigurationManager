@@ -1,3 +1,8 @@
+# 1.1.6
+* Call To Arms patch
+* default font colors tweaked
+* fixed tooltip behaviour
+
 # 1.1.5
 * Fixed input for decimals with comma(,) used instead of period(.)
 

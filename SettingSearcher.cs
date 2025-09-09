@@ -9,6 +9,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
 using BepInEx.Bootstrap;
+using UnityEngine;
 
 namespace ConfigurationManager
 {
@@ -24,7 +25,7 @@ namespace ConfigurationManager
             // Still look inside Chainloader.PluginInfos in case the BepInEx_Manager GameObject uses HideFlags.HideAndDontSave, which hides it from Object.Find methods.
             return Chainloader.PluginInfos.Values.Select(x => x.Instance)
                               .Where(plugin => plugin != null)
-                              .Union(UnityEngine.Object.FindObjectsOfType(typeof(BaseUnityPlugin)).Cast<BaseUnityPlugin>())
+                              .Union(UnityEngine.Object.FindObjectsByType(typeof(BaseUnityPlugin), FindObjectsSortMode.None).Cast<BaseUnityPlugin>())
                               .ToArray();
         }
 

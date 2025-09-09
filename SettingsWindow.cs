@@ -54,6 +54,8 @@ namespace ConfigurationManager
                 currentWindowRect.size = _windowSize.Value;
                 currentWindowRect.position = _windowPosition.Value;
 
+                GUI.tooltip = "";
+
                 var originalMatrix = GUI.matrix;
                 GUI.matrix = guiMatrix;
 
