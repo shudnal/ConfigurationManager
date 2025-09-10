@@ -20,7 +20,7 @@ namespace ConfigurationManager
     {
         public const string GUID = "_shudnal.ConfigurationManager";
         public const string pluginName = "Valheim Configuration Manager";
-        public const string Version = "1.1.6";
+        public const string Version = "1.1.7";
 
         internal static ConfigurationManager instance;
         private static SettingFieldDrawer _fieldDrawer;
@@ -604,9 +604,12 @@ namespace ConfigurationManager
                             instance._selectedCategory = value ? ID : string.Empty;
                     }
                 }
+                public override string ToString() => Name;
             }
 
             public int Height { get; set; }
+
+            public override string ToString() => $"{Info.Name} {Info.Version}";
         }
     }
 }

@@ -72,6 +72,5 @@ namespace ConfigurationManager
         {
             return ConfigurationManager.hiddenSettings.Value.Contains($"{PluginInfo.GUID}={Entry.Definition.Section}={Entry.Definition.Key}");
         }
-
     }
 }

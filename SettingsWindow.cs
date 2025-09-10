@@ -651,14 +651,15 @@ namespace ConfigurationManager
                 var color = GUI.backgroundColor;
                 GUI.backgroundColor = _tooltipBackgroundColor.Value;
 
-                string[] lines = GUI.tooltip.Split('\n'); 
+                float width = 0f;
+                GUIStyle style = GetTooltipStyle();
 
-                int maxIndex = lines
-                    .Select((line, index) => new { Line = line, Index = index })
-                    .OrderByDescending(select => select.Line.Length)
-                    .First().Index;
-
-                GetTooltipStyle().CalcMinMaxWidth(new GUIContent(lines[maxIndex]), out _, out float width);
+                foreach (string line in GUI.tooltip.Replace("\r\n", "\n").Replace("\r", "\n").Split('\n'))
+                {
+                    style.CalcMinMaxWidth(new GUIContent(line), out _, out float w);
+                    if (w > width)
+                        width = w;
+                }
 
                 width += 2f;
                 var height = GetTooltipStyle().CalcHeight(new GUIContent(GUI.tooltip), width) + 10f;

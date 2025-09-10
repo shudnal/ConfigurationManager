@@ -1,3 +1,6 @@
+# 1.1.7
+* fix for tooptip size calculation
+
 # 1.1.6
 * Call To Arms patch
 * default font colors tweaked

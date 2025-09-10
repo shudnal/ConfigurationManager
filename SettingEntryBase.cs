@@ -265,5 +265,7 @@ namespace ConfigurationManager
             }
 
         }
+
+        public override string ToString() => SettingID;
     }
 }
