@@ -148,7 +148,7 @@ namespace ConfigurationManager
         
         private static readonly FieldInfo[] MyFields = typeof(SettingEntryBase).GetFields(BindingFlags.Instance | BindingFlags.Public);
 
-        internal string SettingID => $"{PluginInfo.GUID}-{Category}-{DispName}";
+        internal string SettingID => PluginInfo == null ? "" : $"{PluginInfo.GUID}-{Category}-{DispName}";
 
         internal void SetFromAttributes(object[] attribs, BaseUnityPlugin pluginInstance)
         {

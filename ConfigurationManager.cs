@@ -609,7 +609,7 @@ namespace ConfigurationManager
 
             public int Height { get; set; }
 
-            public override string ToString() => $"{Info.Name} {Info.Version}";
+            public override string ToString() => Info == null ? "" : $"{Info.Name} {Info.Version}";
         }
     }
 }
