@@ -85,8 +85,8 @@ namespace ConfigurationManager
             PluginListColumnWidth = Mathf.RoundToInt(width * _splitViewListSize.Value);
             SettingsListColumnWidth = Mathf.RoundToInt(SplitView ? width - PluginListColumnWidth : width);
 
-            LeftColumnWidth = Mathf.RoundToInt(Mathf.Clamp(SettingsListColumnWidth * _columnSeparatorPosition.Value, width * 0.1f, width * 0.6f)) - fontSize / 2;
-            RightColumnWidth = Mathf.RoundToInt(SettingsListColumnWidth - LeftColumnWidth - fontSize - 90 - fontSize);
+            LeftColumnWidth = Mathf.Max(200, Mathf.RoundToInt(Mathf.Clamp(SettingsListColumnWidth * _columnSeparatorPosition.Value, width * 0.1f, width * 0.6f)) - fontSize / 2);
+            RightColumnWidth = Mathf.Max(200, Mathf.RoundToInt(Mathf.Clamp(SettingsListColumnWidth - LeftColumnWidth - fontSize - 90 - fontSize, width * 0.3f, width * 0.8f)));
         }
 
         internal void SaveCurrentSizeAndPosition()
@@ -150,7 +150,7 @@ namespace ConfigurationManager
 
             var backgroundColor = GUI.backgroundColor;
             GUI.backgroundColor = _entryBackgroundColor.Value;
-            
+
             if (SplitView)
                 DrawSplitView();
             else
@@ -443,8 +443,14 @@ namespace ConfigurationManager
             if (category.Settings.Any() && (!category.Collapsed || IsSearching))
             {
                 GUILayout.BeginVertical(GetCategoryBackgroundStyle());
-                category.Settings.Do(DrawSingleSetting);
-                GUILayout.EndVertical();
+                try
+                {
+                    category.Settings.Do(DrawSingleSetting);
+                }
+                finally
+                {
+                    GUILayout.EndVertical(); 
+                }
             }
 
             GUI.backgroundColor = backgroundColor;
@@ -633,9 +639,9 @@ namespace ConfigurationManager
 
         private void CalculateDefaultWindowRect()
         {
-            var width = Mathf.Min(Screen.width, DefaultWidth * (SplitView ? 1f + _splitViewListSize.Value : 1f));
-            var height = Mathf.Min(Screen.height, DefaultHeight);
-            var offset = Mathf.RoundToInt(Mathf.Min(Screen.width - width, Screen.height - height)) / 16f;
+            var width = Mathf.Min(ScreenSystemWidth, DefaultWidth * (SplitView ? 1f + _splitViewListSize.Value : 1f));
+            var height = Mathf.Min(ScreenSystemHeight, DefaultHeight);
+            var offset = Mathf.RoundToInt(Mathf.Min(ScreenSystemWidth - width, ScreenSystemHeight - height)) / 16f;
 
             DefaultWindowRect = new Rect(offset, offset, width, height);
 

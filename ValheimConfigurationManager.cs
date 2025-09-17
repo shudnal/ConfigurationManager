@@ -209,8 +209,8 @@ namespace ConfigurationManager
 
         public float GetScreenSizeFactor()
         {
-            float a = (float)Screen.width / GuiScaler.m_minWidth;
-            float b = (float)Screen.height / GuiScaler.m_minHeight;
+            float a = (float)ScreenSystemWidth / GuiScaler.m_minWidth;
+            float b = (float)ScreenSystemHeight / GuiScaler.m_minHeight;
             return Mathf.Min(a, b) * GuiScaler.m_largeGuiScale;
         }
 

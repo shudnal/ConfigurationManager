@@ -71,7 +71,7 @@ namespace ConfigurationManager
                 DrawEnumField(setting);
             else
                 DrawUnknownField(setting, _instance.RightColumnWidth);
-
+                
             GUI.backgroundColor = color;
         }
 
@@ -274,6 +274,7 @@ namespace ConfigurationManager
                     GUILayout.BeginHorizontal();
                     {
                         var currentWidth = 0;
+                        bool drewAny = false;
                         for (; index < allValues.Length; index++)
                         {
                             var value = allValues[index];
@@ -288,10 +289,11 @@ namespace ConfigurationManager
                                 
                                 // Make sure this horizontal group doesn't extend over window width, if it does then start a new horiz group below
                                 var textDimension = (int)style.CalcSize(new GUIContent(value.name)).x;
-                                currentWidth += textDimension;
-                                if (currentWidth > maxWidth)
+                                if (currentWidth + textDimension > maxWidth && drewAny)
                                     break;
 
+                                drewAny = true;
+                                currentWidth += textDimension;
                                 GUI.changed = false;
 
                                 var newVal = GUILayout.Toggle(curr, value.name, style, GUILayout.ExpandWidth(false));
@@ -302,6 +304,10 @@ namespace ConfigurationManager
                                 }
                             }
                         }
+
+                        // Endless cycle protection
+                        if (!drewAny)
+                            index++;
                     }
                     GUILayout.EndHorizontal();
                 }

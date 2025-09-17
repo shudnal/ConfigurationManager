@@ -20,7 +20,7 @@ namespace ConfigurationManager
     {
         public const string GUID = "_shudnal.ConfigurationManager";
         public const string pluginName = "Valheim Configuration Manager";
-        public const string Version = "1.1.7";
+        public const string Version = "1.1.8";
 
         internal static ConfigurationManager instance;
         private static SettingFieldDrawer _fieldDrawer;
@@ -69,7 +69,7 @@ namespace ConfigurationManager
         /// <summary>
         /// Window is visible and is blocking the whole screen. This is true until the user moves the window, which lets it run while user interacts with the game.
         /// </summary>
-        public bool IsWindowFullscreen => DisplayingWindow;
+        public bool IsWindowFullscreen => false;
 
         /// <summary>
         /// Window scale factor
@@ -79,12 +79,18 @@ namespace ConfigurationManager
         /// <summary>
         /// Screen width with scale factor
         /// </summary>
-        public float ScreenWidth => Screen.width / ScaleFactor;
+        public float ScreenWidth => ScreenSystemWidth / ScaleFactor;
 
         /// <summary>
         /// Screen height with scale factor
         /// </summary>
-        public float ScreenHeight => Screen.height / ScaleFactor;
+        public float ScreenHeight => ScreenSystemHeight / ScaleFactor;
+
+        public static bool isTempWindowUnity6000 = true; // Unity 6000+ runs in temporary ~300×200 window when bepinex is loading mods (on Awake)
+
+        public int ScreenSystemWidth => isTempWindowUnity6000 ? Display.main.systemWidth : Screen.width;
+
+        public int ScreenSystemHeight => isTempWindowUnity6000 ? Display.main.systemHeight : Screen.height;
 
         #endregion
 
@@ -418,7 +424,7 @@ namespace ConfigurationManager
         private Vector2 GetDefaultManagerWindowSize() => DefaultWindowRect.size;
 
         private Vector2 GetDefaultTextEditorWindowPosition() => new Vector2(GetDefaultManagerWindowPosition().x + GetDefaultManagerWindowSize().x + 20f, GetDefaultManagerWindowPosition().y);
-        private Vector2 GetDefaultTextEditorWindowSize() => new Vector2(Screen.width - GetDefaultTextEditorWindowPosition().x - GetDefaultManagerWindowPosition().x, GetDefaultManagerWindowSize().y + GetDefaultManagerWindowPosition().y);
+        private Vector2 GetDefaultTextEditorWindowSize() => new Vector2(ScreenSystemWidth - GetDefaultTextEditorWindowPosition().x - GetDefaultManagerWindowPosition().x, GetDefaultManagerWindowSize().y + GetDefaultManagerWindowPosition().y);
 
         private Vector2 GetDefaultEditSettingWindowSize() => new Vector2(500f, 500f);
         private Vector2 GetDefaultEditSettingWindowPosition() => new Vector2(GetDefaultManagerWindowPosition().x + GetDefaultManagerWindowSize().x + 10f, GetDefaultManagerWindowPosition().y + (GetDefaultManagerWindowSize().y - GetDefaultEditSettingWindowSize().y) / 2);
@@ -447,6 +453,8 @@ namespace ConfigurationManager
             try { Config.Save(); }
             catch (IOException ex) { Logger.Log(LogLevel.Message | LogLevel.Warning, "WARNING: Failed to write to config directory, expect issues!\nError message:" + ex.Message); }
             catch (UnauthorizedAccessException ex) { Logger.Log(LogLevel.Message | LogLevel.Warning, "WARNING: Permission denied to write to config directory, expect issues!\nError message:" + ex.Message); }
+
+            isTempWindowUnity6000 = false;
         }
 
         void Update()

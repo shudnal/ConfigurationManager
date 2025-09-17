@@ -1,3 +1,6 @@
+# 1.1.8
+* fixed occasional freeze and crash on manager window activation
+
 # 1.1.7
 * fix for tooltip size calculation
 
