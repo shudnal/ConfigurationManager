@@ -659,8 +659,9 @@ namespace ConfigurationManager
 
                 float width = 0f;
                 GUIStyle style = GetTooltipStyle();
+                string tooltip = GUI.tooltip.Replace("\r\n", "\n").Replace("\r", "\n");
 
-                foreach (string line in GUI.tooltip.Replace("\r\n", "\n").Replace("\r", "\n").Split('\n'))
+                foreach (string line in tooltip.Split('\n'))
                 {
                     style.CalcMinMaxWidth(new GUIContent(line), out _, out float w);
                     if (w > width)
@@ -668,7 +669,7 @@ namespace ConfigurationManager
                 }
 
                 width += 2f;
-                var height = GetTooltipStyle().CalcHeight(new GUIContent(GUI.tooltip), width) + 10f;
+                var height = GetTooltipStyle().CalcHeight(new GUIContent(tooltip), width) + 10f;
 
                 var x = currentEvent.mousePosition.x + width > area.width
                     ? area.width - width
@@ -678,7 +679,7 @@ namespace ConfigurationManager
                     ? currentEvent.mousePosition.y - height
                     : currentEvent.mousePosition.y + 25;
 
-                GUI.Box(new Rect(x, y, width, height), GUI.tooltip, GetTooltipStyle());
+                GUI.Box(new Rect(x, y, width, height), tooltip, GetTooltipStyle());
                 GUI.backgroundColor = color;
             }
         }

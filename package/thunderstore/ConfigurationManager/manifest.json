@@ -1,6 +1,6 @@
 {
   "name": "ConfigurationManager",
-  "version_number": "1.1.8",
+  "version_number": "1.1.9",
   "website_url": "https://github.com/shudnal/ConfigurationManager",
   "description": "Localized, recolored, refined. Split view mode. Config files editor. Setting edit window. Changed values are highlighted. Prevent user input or pause the game while window is open. Window scale depends on game scale.",
   "dependencies": [

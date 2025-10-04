@@ -16,6 +16,8 @@ namespace ConfigurationManager.Utilities
 {
     public static class Utils
     {
+        public static System.Text.StringBuilder sb = new System.Text.StringBuilder(20);
+
         public static string ToProperCase(this string str)
         {
             if (string.IsNullOrEmpty(str)) return string.Empty;
@@ -76,11 +78,6 @@ namespace ConfigurationManager.Utilities
                    || value is double
                    || value is decimal;
 
-        public static string AppendZero(this string s)
-        {
-            return !s.Contains(".") ? s + ".0" : s;
-        }
-
         public static bool TryParseFloat(string input, out float result)
         {
             if (string.IsNullOrWhiteSpace(input))
@@ -89,17 +86,43 @@ namespace ConfigurationManager.Utilities
                 return false;
             }
 
-            return float.TryParse(input.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out result);
+            return float.TryParse(input.KeepDigitsAndFirstDot().AppendLeadingZero(), NumberStyles.Float, CultureInfo.InvariantCulture, out result);
         }
 
-        public static bool IsFloat(Type type)
+        public static string AppendZeroIfFloat(this string s, Type type) => IsFloat(type) ? s.KeepDigitsAndFirstDot().AppendZero().AppendLeadingZero() : s;
+
+        public static bool IsFloat(Type type) => type == typeof(float) || type == typeof(double) || type == typeof(decimal);
+
+        public static string KeepDigitsAndFirstDot(this string input)
         {
-            return type == typeof(float) || type == typeof(double) || type == typeof(decimal);
+            if (string.IsNullOrEmpty(input))
+                return string.Empty;
+
+            bool dotSeen = false;
+            sb.Clear();
+
+            foreach (char c in input.Replace(',', '.'))
+            {
+                if (char.IsDigit(c))
+                    sb.Append(c);
+                else if (!dotSeen && (dotSeen = c == '.'))
+                    sb.Append(c);
+            }
+
+            return sb.ToString();
         }
 
-        public static string AppendZeroIfFloat(this string s, Type type)
+        public static string AppendZero(this string s)
         {
-            return IsFloat(type) ? s.Replace(',', '.').AppendZero() : s;
+            return !s.Contains(".") ? s + ".0" : s;
+        }
+
+        public static string AppendLeadingZero(this string input)
+        {
+            if (string.IsNullOrEmpty(input))
+                return input;
+
+            return char.IsDigit(input[0]) ? input : "0" + input;
         }
 
         public static float RoundWithPrecision(float value, int precision)
@@ -185,6 +208,89 @@ namespace ConfigurationManager.Utilities
         {
             return new GUIStyle(original);
         }
+
+        public static void UpdateHexString(ref string originalHEX, string newHEX)
+        {
+            char[] hexChars = (newHEX.StartsWith("#") ? newHEX : "#" + newHEX).ToUpper().ToCharArray();
+            for (int i = 1; i < hexChars.Length; i++)
+                if (!IsValidHexChar(hexChars[i]))
+                    hexChars[i] = 'F';
+
+            newHEX = new string(hexChars);
+
+            if (originalHEX.Equals(newHEX))
+                return;
+
+            if (originalHEX.Length == newHEX.Length)
+            {
+                // Symbols were replaced without change of string length, just replace string
+                originalHEX = newHEX;
+            }
+            else if (originalHEX.IndexOf(newHEX) == 0)
+            {
+                // Symbols were removed from tail
+                originalHEX = newHEX.PadRight(9, '0');
+            }
+            else if (newHEX.IndexOf(originalHEX) == 0)
+            {
+                // Extra symbols were added, ignore
+                originalHEX = newHEX.Substring(0, 9);
+            }
+            else if (originalHEX.Length > newHEX.Length)
+            {
+                FindStartEndLength(originalHEX, newHEX, out string startString, out string endString);
+
+                // Symbols were removed, concat start + zeroes + end
+                originalHEX = startString + new string('0', originalHEX.Length - newHEX.Length) + endString;
+            }
+            else if (originalHEX.Length < newHEX.Length)
+            {
+                FindStartEndLength(originalHEX, newHEX, out string startString, out string endString);
+
+                int overlap = endString.Length + startString.Length - 9;
+                if (overlap > 0)
+                    endString = endString.Substring(0, endString.Length - overlap);
+
+                // Symbols were added, replace and follow with original string
+                int replacedLength = newHEX.Length - endString.Length - startString.Length;
+
+                originalHEX = newHEX.Substring(0, startString.Length + replacedLength) + newHEX.Substring(startString.Length + replacedLength + (newHEX.Length - 9));
+            }
+
+            originalHEX = originalHEX.PadRight(9, '0');
+        }
+
+        private static void FindStartEndLength(string originalHEX, string newHEX, out string startString, out string endString)
+        {
+            int startLength = -1;
+            int endLength = -1;
+
+            int minLength = Math.Min(originalHEX.Length, newHEX.Length);
+            for (int i = 0; i < minLength; i++)
+            {
+                if (startLength != -1 && endLength != -1)
+                    break;
+
+                if (startLength == -1 && originalHEX[i] != newHEX[i])
+                    startLength = i;
+
+                if (endLength == -1 && originalHEX[originalHEX.Length - 1 - i] != newHEX[newHEX.Length - 1 - i])
+                    endLength = minLength - 1 - i;
+            }
+
+            if (startLength == -1)
+                startLength = minLength;
+
+            if (endLength == -1)
+                endLength = 0;
+
+            endLength = minLength - endLength;
+
+            startString = newHEX.Substring(0, startLength);
+            endString = newHEX.Substring(newHEX.Length - endLength + 1);
+        }
+
+        private static bool IsValidHexChar(char c) => (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F');
 
         #region Resizing
 

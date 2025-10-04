@@ -414,6 +414,7 @@ namespace ConfigurationManager
                 try
                 {
                     setting.Set(valueToSet);
+                    InitializeWindow();
                 }
                 catch (Exception e)
                 {
@@ -594,7 +595,7 @@ namespace ConfigurationManager
                 }
                 else
                 {
-                    var strVal = value.ToString().Replace(',', '.').AppendZeroIfFloat(setting.SettingType);
+                    var strVal = value.ToString().AppendZeroIfFloat(setting.SettingType);
                     var strResult = GUILayout.TextField(strVal, GetTextStyle(setting), GUILayout.Width(50));
                     if (strResult != strVal && Utilities.Utils.TryParseFloat(strResult, out float resultVal))
                     {
@@ -637,7 +638,7 @@ namespace ConfigurationManager
                     }
                     else
                     {
-                        string result = GUILayout.TextArea(text, GetTextStyle(IsValueToSetDefaultValue()), GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
+                        string result = GUILayout.TextArea(text, GetTextStyle(IsValueToSetDefaultValue()), GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true)).AppendZeroIfFloat(setting.SettingType);
                         if (result != text)
                             valueToSet = setting.StrToObj(result);
                     }
@@ -645,7 +646,7 @@ namespace ConfigurationManager
                 }
                 else
                 {
-                    string result = GUILayout.TextArea(text, GetTextStyle(IsValueToSetDefaultValue()), GUILayout.ExpandWidth(true));
+                    string result = GUILayout.TextArea(text, GetTextStyle(IsValueToSetDefaultValue()), GUILayout.ExpandWidth(true)).AppendZeroIfFloat(setting.SettingType);
                     if (result != text)
                         valueToSet = setting.StrToObj(result);
                 }
@@ -657,7 +658,7 @@ namespace ConfigurationManager
 
                 if (CanCovert(value, setting.SettingType))
                 {
-                    var result = GUILayout.TextArea(value, GetTextStyle(IsValueToSetDefaultValue()), GUILayout.ExpandWidth(true));
+                    var result = GUILayout.TextArea(value, GetTextStyle(IsValueToSetDefaultValue()), GUILayout.ExpandWidth(true)).AppendZeroIfFloat(setting.SettingType);
                     if (result != value)
                         try
                         {
@@ -670,7 +671,7 @@ namespace ConfigurationManager
                 }
                 else
                 {
-                    valueToSet = GUILayout.TextArea(value, GetTextStyle(IsValueToSetDefaultValue()), GUILayout.ExpandWidth(true));
+                    valueToSet = GUILayout.TextArea(value, GetTextStyle(IsValueToSetDefaultValue()), GUILayout.ExpandWidth(true)).AppendZeroIfFloat(setting.SettingType);
                 }
             }
         }
@@ -771,7 +772,16 @@ namespace ConfigurationManager
             {
                 if (DrawResetButton())
                 {
-                    valueToSet = setting.SettingType == typeof(Color) ? Utilities.Utils.RoundColorToHEX((Color)setting.DefaultValue) : setting.DefaultValue;
+                    if (setting.SettingType == typeof(Color))
+                    {
+                        valueToSet = Utilities.Utils.RoundColorToHEX((Color)setting.DefaultValue);
+                        colorAsHEX = $"#{ColorUtility.ToHtmlStringRGBA((Color)valueToSet)}";
+                    }
+                    else
+                    {
+                        valueToSet = setting.DefaultValue;
+                    }
+
                     if (dummyCustomDrawerConfigEntry != null)
                         dummyCustomDrawerConfigEntry.BoxedValue = setting.DefaultValue;
                     InitListIndex();
@@ -969,11 +979,11 @@ namespace ConfigurationManager
                 _ => ""
             };
 
-            bool isDefaultValue = float.TryParse(vectorParts[position], NumberStyles.Any, CultureInfo.InvariantCulture, out var x) && vectorDefault[position] == x;
+            bool isDefaultValue = Utilities.Utils.TryParseFloat(vectorParts[position], out var x) && vectorDefault[position] == x;
 
             GUILayout.BeginHorizontal();
             GUILayout.Label($"{label} ", GetLabelStyle(), GUILayout.ExpandWidth(false));
-            vectorParts[position] = GUILayout.TextField(vectorParts[position], GetTextStyle(isDefaultValue), GUILayout.ExpandWidth(true)).Replace(',', '.');
+            vectorParts[position] = GUILayout.TextField(vectorParts[position], GetTextStyle(isDefaultValue), GUILayout.ExpandWidth(true)).KeepDigitsAndFirstDot();
             GUILayout.EndHorizontal();
         }
 
@@ -983,7 +993,7 @@ namespace ConfigurationManager
                 DrawVectorPart(i);
 
             for (int i = 0; i < vectorParts.Count; i++)
-                if (float.TryParse(vectorParts[i], NumberStyles.Any, CultureInfo.InvariantCulture, out var x))
+                if (Utilities.Utils.TryParseFloat(vectorParts[i], out var x))
                     vectorFloats[i] = x;
 
             if (setting.SettingType == typeof(Vector2))
@@ -1063,7 +1073,7 @@ namespace ConfigurationManager
         private bool DrawHexField(ref Color value, Color defaultValue)
         {
             GUIStyle style = GetTextStyle(value, defaultValue);
-            UpdateHexString(ref colorAsHEX, GUILayout.TextField(colorAsHEX, style, GUILayout.Width(style.CalcSize(new GUIContent("#CCCCCCCC.")).x), GUILayout.ExpandWidth(false)));
+            Utilities.Utils.UpdateHexString(ref colorAsHEX, GUILayout.TextField(colorAsHEX, style, GUILayout.Width(style.CalcSize(new GUIContent("#CCCCCCCC.")).x), GUILayout.ExpandWidth(false)));
 
             bool enabled = GUI.enabled;
             GUI.enabled = !colorAsHEX.Replace("#", "").Equals(ColorUtility.ToHtmlStringRGBA(value), StringComparison.OrdinalIgnoreCase);
@@ -1076,84 +1086,6 @@ namespace ConfigurationManager
             return IsEqualColorConfig(value, defaultValue);
         }
 
-        void UpdateHexString(ref string originalHEX, string newHEX)
-        {
-            char[] hexChars = (newHEX.StartsWith("#") ? newHEX : "#" + newHEX).ToUpper().ToCharArray();
-            for (int i = 1; i < hexChars.Length; i++)
-                if (!IsValidHexChar(hexChars[i]))
-                    hexChars[i] = 'F';
-
-            newHEX = new string(hexChars);
-
-            if (originalHEX.Equals(newHEX))
-                return;
-
-            if (originalHEX.Length == newHEX.Length)
-            {
-                // Symbols were replaced without change of string length, just replace string
-                originalHEX = newHEX;
-            }
-            else if (originalHEX.IndexOf(newHEX) == 0)
-            {
-                // Symbols were removed from tail
-                originalHEX = newHEX.PadRight(9, '0');
-            }
-            else if (newHEX.IndexOf(originalHEX) == 0)
-            {
-                // Extra symbols were added, ignore
-                originalHEX = newHEX.Substring(0, 9);
-            }
-            else if (originalHEX.Length > newHEX.Length)
-            {
-                FindStartEndLength(originalHEX, newHEX, out string startString, out string endString);
-
-                // Symbols were removed, concat start + zeroes + end
-                originalHEX = startString + new string('0', originalHEX.Length - newHEX.Length) + endString;
-            }
-            else if (originalHEX.Length < newHEX.Length)
-            {
-                FindStartEndLength(originalHEX, newHEX, out string startString, out string endString);
-
-                // Symbols were added, replace and follow with original string
-                int replacedLength = newHEX.Length - endString.Length - startString.Length;
-                originalHEX = newHEX.Substring(0, startString.Length + replacedLength) + newHEX.Substring(startString.Length + replacedLength + (newHEX.Length - 9));
-            }
-
-            originalHEX = originalHEX.PadRight(9, '0');
-        }
-
-        void FindStartEndLength(string originalHEX, string newHEX, out string startString, out string endString)
-        {
-            int startLength = -1;
-            int endLength = -1;
-
-            int minLength = Math.Min(originalHEX.Length, newHEX.Length);
-            for (int i = 0; i < minLength; i++)
-            {
-                if (startLength != -1 && endLength != -1)
-                    break;
-
-                if (startLength == -1 && originalHEX[i] != newHEX[i])
-                    startLength = i;
-
-                if (endLength == -1 && originalHEX[originalHEX.Length - 1 - i] != newHEX[newHEX.Length - 1 - i])
-                    endLength = minLength - 1 - i;
-            }
-
-            if (startLength == -1)
-                startLength = minLength;
-
-            if (endLength == -1)
-                endLength = 0;
-
-            endLength = minLength - endLength;
-
-            startString = newHEX.Substring(0, startLength);
-            endString = newHEX.Substring(newHEX.Length - endLength + 1);
-        }
-
-        bool IsValidHexChar(char c) => (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F');
-
         private void DrawColorField(string fieldLabel, ref Color settingColor, ref float settingValue, bool isDefaultValue)
         {
             GUILayout.BeginHorizontal();
@@ -1163,9 +1095,17 @@ namespace ConfigurationManager
             Vector2 size = style.CalcSize(new GUIContent("0,000."));
 
             string currentText = Utilities.Utils.RoundWithPrecision(settingValue, 3).ToString("0.000");
-            SetColorValue(ref settingColor, float.Parse(GUILayout.TextField(currentText, style, GUILayout.Width(size.x), GUILayout.ExpandWidth(false)).Replace('.', ',')));
 
-            SetColorValue(ref settingColor, byte.Parse(GUILayout.TextField((Utilities.Utils.RoundWithPrecision(settingValue, 3) * 255).ToString("F0"), style, GUILayout.Width(style.CalcSize(new GUIContent("000.")).x), GUILayout.ExpandWidth(false))) / 255f);
+            string valueString = GUILayout.TextField(currentText, style, GUILayout.Width(size.x), GUILayout.ExpandWidth(false));
+            if (valueString.StartsWith('1'))
+                SetColorValue(ref settingColor, 1f);
+            else if (valueString.StartsWith('0') && settingValue == 1f)
+                SetColorValue(ref settingColor, 0f);
+            else if (Utilities.Utils.TryParseFloat(valueString, out float value))
+                SetColorValue(ref settingColor, value);
+
+            if (byte.TryParse(GUILayout.TextField((Utilities.Utils.RoundWithPrecision(settingValue, 3) * 255).ToString("F0"), style, GUILayout.Width(style.CalcSize(new GUIContent("000.")).x), GUILayout.ExpandWidth(false)), out byte valueByte))
+                SetColorValue(ref settingColor, valueByte / 255f);
 
             SetColorValue(ref settingColor, DrawCenteredHorizontalSlider(settingValue, 0f, 1f, size.y));
 
@@ -1193,7 +1133,9 @@ namespace ConfigurationManager
             Vector2 size = style.CalcSize(new GUIContent("000,00."));
 
             string currentText = Utilities.Utils.RoundWithPrecision(settingValue, fieldLabel == "Hue" ? 2 : 4).ToString(fieldLabel == "Hue" ? "000.00" : "0.0000");
-            SetColorValue(ref settingColor, float.Parse(GUILayout.TextField(currentText, style, GUILayout.Width(size.x), GUILayout.ExpandWidth(false)).Replace('.', ',')));
+
+            if (Utilities.Utils.TryParseFloat(GUILayout.TextField(currentText, style, GUILayout.Width(size.x), GUILayout.ExpandWidth(false)), out float value))
+                SetColorValue(ref settingColor, value);
 
             SetColorValue(ref settingColor, DrawCenteredHorizontalSlider(settingValue, 0f, fieldLabel == "Hue" ? 360f : 1f, size.y));
 

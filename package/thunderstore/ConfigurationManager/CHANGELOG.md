@@ -1,3 +1,8 @@
+# 1.1.9
+* improved handling of Color config HEX field
+* rich text tags inside config entry definition will not break tooltip now
+* improved handling of floats in Vector and Color
+
 # 1.1.8
 * fixed occasional freeze and crash on manager window activation
 

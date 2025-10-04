@@ -212,12 +212,12 @@ namespace ConfigurationManager
             tooltipStyle = new GUIStyle(GUI.skin.box);
             tooltipStyle.normal.textColor = _fontColor.Value;
             tooltipStyle.fontSize = fontSize;
-            tooltipStyle.wordWrap = false;
+            tooltipStyle.wordWrap = true;
             tooltipStyle.alignment = TextAnchor.MiddleLeft;
             tooltipStyle.normal.background = TooltipBackground;
             tooltipStyle.padding.left = 10;
             tooltipStyle.padding.right = 10;
-            tooltipStyle.richText = true;
+            tooltipStyle.richText = false;
 
             sliderStyle = new GUIStyle(GUI.skin.horizontalSlider);
 

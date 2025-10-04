@@ -388,7 +388,7 @@ namespace ConfigurationManager
                 }
                 else
                 {
-                    var strVal = Convert.ToString(value, CultureInfo.InvariantCulture).Replace(',', '.').AppendZeroIfFloat(setting.SettingType);
+                    var strVal = Convert.ToString(value, CultureInfo.InvariantCulture).AppendZeroIfFloat(setting.SettingType);
                     var strResult = GUILayout.TextField(strVal, GetTextStyle(setting), GUILayout.Width(50));
                     if (strResult != strVal && Utilities.Utils.TryParseFloat(strResult, out float resultVal))
                     {
@@ -597,11 +597,11 @@ namespace ConfigurationManager
         {
             GUILayout.Label(label, GetLabelStyle(), GUILayout.ExpandWidth(false));
             int precision = _vectorDynamicPrecision.Value && integerValuesOnly ? 0 : Math.Abs(_vectorPrecision.Value);
-            string value = GUILayout.TextField(setting.ToString("F" + precision, CultureInfo.InvariantCulture), GetTextStyle(setting, defaultValue), GUILayout.ExpandWidth(true)).Replace(',', '.');
-            if (precision == 0 && value.EndsWith('.'))
+            string value = GUILayout.TextField(setting.ToString("F" + precision, CultureInfo.InvariantCulture), GetTextStyle(setting, defaultValue), GUILayout.ExpandWidth(true));
+            if (precision == 0 && (value.EndsWith('.') || value.EndsWith(',')))
                 value = string.Concat(value, string.Empty.PadRight(Math.Abs(_vectorPrecision.Value - 1), '0'), 1);
 
-            float.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var x);
+            Utilities.Utils.TryParseFloat(value, out var x);
             return x;
         }
 
@@ -665,8 +665,8 @@ namespace ConfigurationManager
         {
             GUIStyle style = GetTextStyle(value, defaultValue);
             string currentText = $"#{ColorUtility.ToHtmlStringRGBA(value)}";
-            string textValue = GUILayout.TextField(currentText, style, GUILayout.Width(style.CalcSize(new GUIContent("#CCCCCCCC.")).x), GUILayout.ExpandWidth(false));
-            if (textValue != currentText && ColorUtility.TryParseHtmlString(textValue, out Color color))
+            Utilities.Utils.UpdateHexString(ref currentText, GUILayout.TextField(currentText, style, GUILayout.Width(style.CalcSize(new GUIContent("#CCCCCCCC.")).x), GUILayout.ExpandWidth(false)));
+            if (ColorUtility.TryParseHtmlString(currentText, out Color color))
                 value = color;
 
             return IsEqualColorConfig(value, defaultValue);
@@ -679,7 +679,13 @@ namespace ConfigurationManager
             GUILayout.Label(fieldLabel, GetLabelStyle(), GUILayout.ExpandWidth(true));
 
             string currentText = Utilities.Utils.RoundWithPrecision(settingValue, 3).ToString("0.000");
-            SetColorValue(ref settingColor, float.Parse(GUILayout.TextField(currentText, GetTextStyle(isDefaultValue), GUILayout.MaxWidth(45f), GUILayout.ExpandWidth(true))));
+            string valueString = GUILayout.TextField(currentText, GetTextStyle(isDefaultValue), GUILayout.MaxWidth(45f), GUILayout.ExpandWidth(true));
+            if (valueString.StartsWith('1'))
+                SetColorValue(ref settingColor, 1f);
+            else if (valueString.StartsWith('0') && settingValue == 1f)
+                SetColorValue(ref settingColor, 0f);
+            else if (Utilities.Utils.TryParseFloat(valueString, out float value))
+                SetColorValue(ref settingColor, value);
 
             GUILayout.EndHorizontal();
             GUILayout.Space(1f);
