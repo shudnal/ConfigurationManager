@@ -1,3 +1,6 @@
+# 1.1.10
+* improved float field handling
+
 # 1.1.9
 * improved handling of Color config HEX field
 * rich text tags inside config entry definition will not break tooltip now

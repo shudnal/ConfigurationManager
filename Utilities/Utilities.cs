@@ -95,11 +95,14 @@ namespace ConfigurationManager.Utilities
 
         public static string KeepDigitsAndFirstDot(this string input)
         {
-            if (string.IsNullOrEmpty(input))
-                return string.Empty;
+            if (input.IsNullOrWhiteSpace())
+                return "0";
 
             bool dotSeen = false;
             sb.Clear();
+
+            if (input.StartsWith('-'))
+                sb.Append('-');
 
             foreach (char c in input.Replace(',', '.'))
             {
@@ -109,7 +112,7 @@ namespace ConfigurationManager.Utilities
                     sb.Append(c);
             }
 
-            return sb.ToString();
+            return sb.Length > 0 ? sb.ToString() : "0";
         }
 
         public static string AppendZero(this string s)
@@ -122,7 +125,7 @@ namespace ConfigurationManager.Utilities
             if (string.IsNullOrEmpty(input))
                 return input;
 
-            return char.IsDigit(input[0]) ? input : "0" + input;
+            return input.StartsWith('-') || char.IsDigit(input[0]) ? input : "0" + input;
         }
 
         public static float RoundWithPrecision(float value, int precision)

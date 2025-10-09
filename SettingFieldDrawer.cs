@@ -424,7 +424,7 @@ namespace ConfigurationManager
                 if (text.IsNullOrWhiteSpace() && setting.DefaultValue.ToString() != "")
                     GUI.backgroundColor = _fontColorValueChanged.Value;
 
-                var result = GUILayout.TextArea(text, GetTextStyle(setting), GUILayout.MaxWidth(rightColumnWidth));
+                var result = GUILayout.TextArea(text, GetTextStyle(setting), GUILayout.MaxWidth(rightColumnWidth)).AppendZeroIfFloat(setting.SettingType);
                 if (result != text)
                     setting.Set(setting.StrToObj(result));
             }
@@ -439,7 +439,7 @@ namespace ConfigurationManager
 
                 if (CanCovert(value, setting.SettingType))
                 {
-                    var result = GUILayout.TextField(value, GetTextStyle(setting), GUILayout.MaxWidth(rightColumnWidth));
+                    var result = GUILayout.TextField(value, GetTextStyle(setting), GUILayout.MaxWidth(rightColumnWidth)).AppendZeroIfFloat(setting.SettingType);
                     if (result != value)
                         try
                         {
