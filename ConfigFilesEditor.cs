@@ -509,7 +509,7 @@ namespace ConfigurationManager
                 return string.Empty;
 
             string ext = extension.Trim().ToLower();
-            return ext.StartsWith('.') ? ext : "." + ext;
+            return ext.StartsWith(".") ? ext : "." + ext;
         }
 
         private bool DirectoryContainsValidFiles(string path)
