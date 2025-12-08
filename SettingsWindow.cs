@@ -668,7 +668,8 @@ namespace ConfigurationManager
                         width = w;
                 }
 
-                width += 2f;
+                width = Mathf.Min(width + 2f, area.width * 0.8f);
+
                 var height = GetTooltipStyle().CalcHeight(new GUIContent(tooltip), width) + 10f;
 
                 var x = currentEvent.mousePosition.x + width > area.width

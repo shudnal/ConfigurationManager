@@ -1,3 +1,6 @@
+# 1.1.11
+* tooltip content should now always be visible and always fit window size
+
 # 1.1.10
 * improved float field handling
 
