@@ -1,3 +1,6 @@
+# 1.1.12
+* fixed main menu button not available for gamepad
+
 # 1.1.11
 * tooltip content should now always be visible and always fit window size
 

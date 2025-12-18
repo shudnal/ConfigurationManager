@@ -1,14 +1,14 @@
-﻿using HarmonyLib;
-using System.Collections.Generic;
-using System.Reflection;
-using UnityEngine;
-using UnityEngine.UI;
+﻿using BepInEx;
 using BepInEx.Configuration;
-using BepInEx;
+using HarmonyLib;
 using ServerSync;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
 using YamlDotNet.Serialization;
 
 namespace ConfigurationManager
@@ -179,18 +179,17 @@ namespace ConfigurationManager
                 FejdStartup.instance.m_menuButtons = FejdStartup.instance.m_menuList.GetComponentsInChildren<Button>();
             }
 
-
             if (Menu.instance)
                 SetupMainMenuButton(Menu.instance.m_menuDialog.Find("MenuEntries"));
         }
 
         private void SetupMainMenuButton(Transform menuEntries)
         {
+            Transform settings = menuEntries.Find("Settings");
+
             GameObject menuButton = menuEntries.Find(menuButtonName)?.gameObject;
             if (menuButton == null)
             {
-                Transform settings = menuEntries.Find("Settings");
-
                 menuButton = Instantiate(settings.gameObject, menuEntries);
                 menuButton.transform.SetSiblingIndex(settings.GetSiblingIndex() + 1);
                 menuButton.name = menuButtonName;
@@ -201,10 +200,36 @@ namespace ConfigurationManager
                 {
                     ToggleWindow();
                 });
+
+                var navigation = button.navigation;
+                navigation.selectOnUp = settings.GetComponent<Button>();
+                button.navigation = navigation;
             }
+
+            Button modButton = menuButton.GetComponent<Button>();
 
             menuButton.GetComponentInChildren<TMP_Text>().text = _mainMenuButtonCaption.Value;
             menuButton.SetActive(_showMainMenuButton.Value);
+
+            Button previousButton = settings.GetComponent<Button>();
+            var previousNavigation = previousButton.navigation;
+
+            Button nextButton = modButton.navigation.selectOnDown as Button;
+            var nextNavigation = nextButton.navigation;
+
+            if (_showMainMenuButton.Value)
+            {
+                previousNavigation.selectOnDown = modButton;
+                nextNavigation.selectOnUp = modButton;
+            }
+            else
+            {
+                previousNavigation.selectOnDown = modButton.navigation.selectOnDown;
+                nextNavigation.selectOnUp = modButton.navigation.selectOnUp;
+            }
+
+            previousButton.navigation = previousNavigation;
+            nextButton.navigation = nextNavigation;
         }
 
         public float GetScreenSizeFactor()
@@ -339,19 +364,19 @@ namespace ConfigurationManager
         [HarmonyPatch(typeof(FejdStartup), nameof(FejdStartup.Start))]
         public static class FejdStartup_Start_MenuButton
         {
-            public static void Postfix()
-            {
-                instance.SetupMenuButton();
-            }
+            public static void Postfix() => instance.SetupMenuButton();
         }
 
         [HarmonyPatch(typeof(Menu), nameof(Menu.Start))]
         public static class Menu_Start_MenuButton
         {
-            public static void Postfix()
-            {
-                instance.SetupMenuButton();
-            }
+            public static void Postfix() => instance.SetupMenuButton();
+        }
+
+        [HarmonyPatch(typeof(Menu), nameof(Menu.UpdateNavigation))]
+        public static class Menu_UpdateNavigation_MenuButton
+        {
+            public static void Postfix() => instance.SetupMenuButton();
         }
     }
 }
