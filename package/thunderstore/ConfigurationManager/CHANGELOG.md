@@ -1,3 +1,6 @@
+# 1.1.13
+* setting edit window can now be resized to almost full screen height
+
 # 1.1.12
 * fixed main menu button not available for gamepad
 

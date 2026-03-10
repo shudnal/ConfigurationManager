@@ -257,7 +257,7 @@ namespace ConfigurationManager
 
         internal void SaveCurrentSizeAndPosition()
         {
-            _windowSizeEditSetting.Value = new Vector2(Mathf.Clamp(_windowRect.size.x, 200f, instance.ScreenWidth / 2), Mathf.Clamp(_windowRect.size.y, 200f, instance.ScreenHeight / 2));
+            _windowSizeEditSetting.Value = new Vector2(Mathf.Clamp(_windowRect.size.x, 200f, instance.ScreenWidth / 2), Mathf.Clamp(_windowRect.size.y, 200f, instance.ScreenHeight * 0.9f));
             _windowPositionEditSetting.Value = new Vector2(Mathf.Clamp(_windowRect.position.x, 0f, instance.ScreenWidth - _windowSize.Value.x / 4f), Mathf.Clamp(_windowRect.position.y, 0f, instance.ScreenHeight - HeaderSize * 2));
             instance.Config.Save();
         }
@@ -286,8 +286,12 @@ namespace ConfigurationManager
 
             if (setting.DefaultValue != null)
             {
+                var style = GetLabelStyle();
+                var content = new GUIContent(_defaultValueDescriptionEditWindow.Value);
+                float width = style.CalcSize(content).x + 3f;
+
                 GUILayout.BeginHorizontal(GUILayout.ExpandHeight(false));
-                GUILayout.Label(_defaultValueDescriptionEditWindow.Value, GetLabelStyle(), GUILayout.ExpandWidth(false));
+                GUILayout.Label(_defaultValueDescriptionEditWindow.Value, style, GUILayout.Width(width));
                 GUILayout.Label($"{GetValueRepresentation(setting.DefaultValue, setting.SettingType)}", GetLabelStyleInfo(), GUILayout.ExpandWidth(true));
                 GUILayout.EndHorizontal();
             }
