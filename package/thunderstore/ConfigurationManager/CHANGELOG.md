@@ -1,3 +1,9 @@
+# 1.1.14
+* fixed hidden settings file detection
+* fixed readonly color of text
+* improved handling of color values
+* migration to ConditionalConfigSync
+
 # 1.1.13
 * setting edit window can now be resized to almost full screen height
 

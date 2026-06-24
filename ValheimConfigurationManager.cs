@@ -1,7 +1,7 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
-using ServerSync;
+using ConditionalConfigSync;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -24,7 +24,7 @@ namespace ConfigurationManager
 
         internal const string menuButtonName = "Configuration Manager";
 
-        internal static string hiddenSettingsFileName = $"{GUID}.hiddensettings.json";
+        internal static string[] hiddenSettingsFileNames = new[] { $"{GUID}.hiddensettings.json", "shudnal.ConfigurationManager.hiddensettings.json" };
 
         public static ConfigEntry<bool> _pauseGame;
         public static ConfigEntry<PreventInput> _preventInput;
@@ -81,23 +81,26 @@ namespace ConfigurationManager
 
         private static void SetupHiddenSettingsWatcher()
         {
-            FileSystemWatcher fileSystemWatcherPlugin = new FileSystemWatcher(pluginDirectory.FullName, hiddenSettingsFileName);
-            fileSystemWatcherPlugin.Changed += new FileSystemEventHandler(ReadConfigs);
-            fileSystemWatcherPlugin.Created += new FileSystemEventHandler(ReadConfigs);
-            fileSystemWatcherPlugin.Renamed += new RenamedEventHandler(ReadConfigs);
-            fileSystemWatcherPlugin.Deleted += new FileSystemEventHandler(ReadConfigs);
-            fileSystemWatcherPlugin.IncludeSubdirectories = true;
-            fileSystemWatcherPlugin.SynchronizingObject = ThreadingHelper.SynchronizingObject;
-            fileSystemWatcherPlugin.EnableRaisingEvents = true;
+            foreach (string hiddenSettingsFileName in hiddenSettingsFileNames)
+            {
+                FileSystemWatcher fileSystemWatcherPlugin = new FileSystemWatcher(pluginDirectory.FullName, hiddenSettingsFileName);
+                fileSystemWatcherPlugin.Changed += new FileSystemEventHandler(ReadConfigs);
+                fileSystemWatcherPlugin.Created += new FileSystemEventHandler(ReadConfigs);
+                fileSystemWatcherPlugin.Renamed += new RenamedEventHandler(ReadConfigs);
+                fileSystemWatcherPlugin.Deleted += new FileSystemEventHandler(ReadConfigs);
+                fileSystemWatcherPlugin.IncludeSubdirectories = true;
+                fileSystemWatcherPlugin.SynchronizingObject = ThreadingHelper.SynchronizingObject;
+                fileSystemWatcherPlugin.EnableRaisingEvents = true;
 
-            FileSystemWatcher fileSystemWatcherConfig = new FileSystemWatcher(configDirectory.FullName, hiddenSettingsFileName);
-            fileSystemWatcherConfig.Changed += new FileSystemEventHandler(ReadConfigs);
-            fileSystemWatcherConfig.Created += new FileSystemEventHandler(ReadConfigs);
-            fileSystemWatcherConfig.Renamed += new RenamedEventHandler(ReadConfigs);
-            fileSystemWatcherConfig.Deleted += new FileSystemEventHandler(ReadConfigs);
-            fileSystemWatcherConfig.IncludeSubdirectories = true;
-            fileSystemWatcherConfig.SynchronizingObject = ThreadingHelper.SynchronizingObject;
-            fileSystemWatcherConfig.EnableRaisingEvents = true;
+                FileSystemWatcher fileSystemWatcherConfig = new FileSystemWatcher(configDirectory.FullName, hiddenSettingsFileName);
+                fileSystemWatcherConfig.Changed += new FileSystemEventHandler(ReadConfigs);
+                fileSystemWatcherConfig.Created += new FileSystemEventHandler(ReadConfigs);
+                fileSystemWatcherConfig.Renamed += new RenamedEventHandler(ReadConfigs);
+                fileSystemWatcherConfig.Deleted += new FileSystemEventHandler(ReadConfigs);
+                fileSystemWatcherConfig.IncludeSubdirectories = true;
+                fileSystemWatcherConfig.SynchronizingObject = ThreadingHelper.SynchronizingObject;
+                fileSystemWatcherConfig.EnableRaisingEvents = true;
+            }
 
             ReadConfigs();
         }
@@ -106,7 +109,12 @@ namespace ConfigurationManager
         {
             List<string> hiddenSettingsList = new List<string>();
 
-            foreach (FileInfo file in pluginDirectory.GetFiles(hiddenSettingsFileName, SearchOption.AllDirectories).AddRangeToArray(configDirectory.GetFiles(hiddenSettingsFileName, SearchOption.AllDirectories)))
+            List<FileInfo> hiddenSettingsFiles = new List<FileInfo>();
+
+            hiddenSettingsFileNames.Do(filename => hiddenSettingsFiles.AddRange(pluginDirectory.GetFiles(filename, SearchOption.AllDirectories)));
+            hiddenSettingsFileNames.Do(filename => hiddenSettingsFiles.AddRange(configDirectory.GetFiles(filename, SearchOption.AllDirectories)));
+
+            foreach (FileInfo file in hiddenSettingsFiles)
             {
                 LogInfo($"Loading {file.FullName}");
 

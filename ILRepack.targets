@@ -1,18 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-	<Target Name="RepackThunderstore" AfterTargets="Build">
-		<ItemGroup>
-			<InputAssemblies Include="$(TargetPath)" />
-			<InputAssemblies Include="$(OutputPath)ServerSync.dll" />
-		</ItemGroup>
-		<ILRepack Parallel="true" DebugInfo="true" Internalize="true" InputAssemblies="@(InputAssemblies)" OutputFile="$(TargetDir)thunderstore\$(TargetFileName)" TargetKind="SameAsPrimaryAssembly" LibraryPath="$(OutputPath)" />
-	</Target>
-	<Target Name="CopyDLLThunderstore" AfterTargets="RepackThunderstore">
-		<Copy SourceFiles="$(TargetDir)\thunderstore\$(TargetFileName)" DestinationFolder="$(ProjectDir)package\thunderstore\$(SolutionName)\" />
+	<Target Name="CopyDLLThunderstore" AfterTargets="Build">
+		<Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ProjectDir)package\thunderstore\$(SolutionName)\" />
 		<Message Text="Copied to thunderstore package folder." Importance="High" />
 	</Target>
 	<Target Name="RepackNexus" AfterTargets="CopyDLLThunderstore">
 		<ItemGroup>
+			<InputAssemblies Include="$(TargetPath)" />
 			<InputAssemblies Include="$(OutputPath)Newtonsoft.Json.dll" />
 			<InputAssemblies Include="$(OutputPath)YamlDotNet.dll" />
 		</ItemGroup>

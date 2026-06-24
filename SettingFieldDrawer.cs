@@ -607,7 +607,8 @@ namespace ConfigurationManager
 
         private static void DrawColor(SettingEntryBase obj)
         {
-            Color setting = Utilities.Utils.RoundColorToHEX((Color)obj.Get());
+            Color currentSetting = (Color)obj.Get();
+            Color setting = Utilities.Utils.RoundColorToHEX(currentSetting);
             Color defaultColor = Utilities.Utils.RoundColorToHEX((Color)obj.DefaultValue);
 
             GUILayout.BeginVertical();
@@ -647,11 +648,19 @@ namespace ConfigurationManager
             GUILayout.Space(3f);
             DrawColorField("A", ref setting, ref setting.a, Utilities.Utils.RoundColor(setting.a) == Utilities.Utils.RoundColor(defaultColor.a));
 
-            if (setting != cacheEntry.Last)
+            Color normalizedSetting = Utilities.Utils.RoundColorToHEX(setting);
+
+            // Opening the UI can slightly change float channels while keeping the same HEX value.
+            // Only write back when the effective config color actually changed.
+            if (!IsEqualColorConfig(normalizedSetting, currentSetting))
             {
-                obj.Set(setting);
-                cacheEntry.Tex.FillTexture(setting);
-                cacheEntry.Last = setting;
+                obj.Set(normalizedSetting);
+            }
+
+            if (!IsEqualColorConfig(normalizedSetting, cacheEntry.Last))
+            {
+                cacheEntry.Tex.FillTexture(normalizedSetting);
+                cacheEntry.Last = normalizedSetting;
             }
 
             GUILayout.EndHorizontal();

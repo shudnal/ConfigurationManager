@@ -302,7 +302,16 @@ namespace ConfigurationManager
         public static GUIStyle GetFileEditorTextArea() => fileEditorTextArea;
         public static GUIStyle GetDelimiterLine() => delimiterLine;
         public static GUIStyle GetPlaceholderTextStyle() => placeholderText;
-        public static bool IsEqualColorConfig(Color setting, Color defaultValue) => ColorUtility.ToHtmlStringRGBA(setting) == ColorUtility.ToHtmlStringRGBA(defaultValue);
+        // Config colors are stored as 8-bit RGBA HEX values, so sub-byte float differences are not meaningful.
+        public static bool IsEqualColorConfig(Color setting, Color defaultValue)
+        {
+            Color32 setting32 = setting;
+            Color32 default32 = defaultValue;
+            return setting32.r == default32.r
+                   && setting32.g == default32.g
+                   && setting32.b == default32.b
+                   && setting32.a == default32.a;
+        }
         internal static bool IsDefaultValue(SettingEntryBase setting)
         {
             if (setting?.DefaultValue == null || setting.Get() == null)

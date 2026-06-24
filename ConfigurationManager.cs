@@ -400,7 +400,7 @@ namespace ConfigurationManager
             _headerBackgroundHoverColor = Config.Bind("Colors", "Header hover background color", new Color(0.88f, 0.46f, 0f, 0.8f), "Header hover background color");
             _widgetBackgroundColor = Config.Bind("Colors", "Widget color", new Color(0.88f, 0.46f, 0, 0.8f), "Widget color");
             _enabledBackgroundColor = Config.Bind("Colors", "Enabled toggle color", new Color(0.88f, 0.46f, 0f, 1f), "Color of enabled toggle");
-            _readOnlyColor = Config.Bind("Colors", "Readonly color", Color.gray, "Color of readonly setting");
+            _readOnlyColor = Config.Bind("Colors", "Readonly color", new Color(0.851f, 0.851f, 0.851f, 1f), "Color of readonly setting");
             _editWindowBackgroundColor = Config.Bind("Colors", "Setting window background color", new Color(0.55f, 0.5f, 0.5f, 0.65f), "Setting window background color");
 
             _windowBackgroundColor.SettingChanged += (s, e) => UpdateBackgrounds();

@@ -1063,12 +1063,13 @@ namespace ConfigurationManager
 
             value = hsl;
 
-            if (value != cacheEntry.Last)
+            Color normalizedValue = Utilities.Utils.RoundColorToHEX(value);
+            if (!IsEqualColorConfig(normalizedValue, cacheEntry.Last))
             {
-                valueToSet = value;
-                cacheEntry.Tex.FillTexture(value);
-                cacheEntry.Last = value;
-                colorAsHEX = $"#{ColorUtility.ToHtmlStringRGBA(value)}";
+                valueToSet = normalizedValue;
+                cacheEntry.Tex.FillTexture(normalizedValue);
+                cacheEntry.Last = normalizedValue;
+                colorAsHEX = $"#{ColorUtility.ToHtmlStringRGBA(normalizedValue)}";
             }
 
             GUILayout.EndVertical();
