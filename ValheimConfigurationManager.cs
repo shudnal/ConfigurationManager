@@ -181,18 +181,21 @@ namespace ConfigurationManager
 
         private void SetupMenuButton()
         {
-            if (FejdStartup.instance)
+            if (FejdStartup.instance && FejdStartup.instance.m_menuList && FejdStartup.instance.m_menuButtons != null && FejdStartup.instance.m_menuButtons.Length > 0)
             {
                 SetupMainMenuButton(FejdStartup.instance.m_menuList.transform.Find("MenuEntries"));
                 FejdStartup.instance.m_menuButtons = FejdStartup.instance.m_menuList.GetComponentsInChildren<Button>();
             }
 
             if (Menu.instance)
-                SetupMainMenuButton(Menu.instance.m_menuDialog.Find("MenuEntries"));
+                SetupMainMenuButton(Menu.instance.m_menuDialog?.Find("MenuEntries"));
         }
 
         private void SetupMainMenuButton(Transform menuEntries)
         {
+            if (menuEntries == null)
+                return;
+
             Transform settings = menuEntries.Find("Settings");
 
             GameObject menuButton = menuEntries.Find(menuButtonName)?.gameObject;
