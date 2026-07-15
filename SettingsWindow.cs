@@ -26,6 +26,7 @@ namespace ConfigurationManager
 
         private ConfigFilesEditor _configFilesEditor;
         private SettingEditWindow _configSettingWindow;
+        private int _dynamicAttributesRefreshFrame = -1;
 
         internal string _selectedCategory;
         internal string _selectedPlugin;
@@ -142,6 +143,8 @@ namespace ConfigurationManager
 
         private void SettingsWindow(int id)
         {
+            RefreshDynamicSettingAttributes();
+
             var headerRect = new Rect(0, 0, currentWindowRect.width, HeaderSize);
             HandleHeaderDblClick(headerRect);
 
@@ -165,6 +168,23 @@ namespace ConfigurationManager
 
             if (sizeChanged)
                 SaveCurrentSizeAndPosition();
+        }
+
+        private void RefreshDynamicSettingAttributes()
+        {
+            if (_allSettings == null || _dynamicAttributesRefreshFrame == Time.frameCount)
+                return;
+
+            _dynamicAttributesRefreshFrame = Time.frameCount;
+            bool filterStateChanged = false;
+            for (int index = 0; index < _allSettings.Count; ++index)
+            {
+                if (_allSettings[index] is ConfigSettingEntry setting && setting.RefreshDynamicAttributes())
+                    filterStateChanged = true;
+            }
+
+            if (filterStateChanged)
+                BuildFilteredSettingList();
         }
 
         private void DrawSplitView()
@@ -628,7 +648,7 @@ namespace ConfigurationManager
 
         public void BuildFilteredSettingList()
         {
-            IEnumerable<SettingEntryBase> results = _allSettings;
+            IEnumerable<SettingEntryBase> results = _allSettings.Where(x => x.Browsable != false);
 
             if (_readOnlyStyle.Value == ReadOnlyStyle.Hidden)
                 results = results.Where(x => x.ReadOnly != true);

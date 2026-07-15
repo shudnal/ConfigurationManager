@@ -15,6 +15,7 @@ namespace ConfigurationManager
     {
         public ConfigEntryBase Entry { get; }
         private readonly ConfigSynchronizationInfo synchronizationInfo;
+        private readonly List<DynamicAttributeSource> dynamicAttributeSources = new List<DynamicAttributeSource>();
 
         public ConfigSettingEntry(ConfigEntryBase entry, BaseUnityPlugin owner)
         {
@@ -38,6 +39,7 @@ namespace ConfigurationManager
             DefaultValue = entry.DefaultValue;
 
             SetFromAttributes(entry.Description?.Tags, owner);
+            InitializeDynamicAttributeSources(entry.Description?.Tags);
             synchronizationInfo = ConfigSynchronizationInfo.Create(entry);
         }
 
@@ -55,6 +57,112 @@ namespace ConfigurationManager
                 var maxProp = t.GetProperty(nameof(AcceptableValueRange<bool>.MaxValue), BindingFlags.Instance | BindingFlags.Public);
                 if (minProp != null && maxProp != null)
                     AcceptableValueRange = new KeyValuePair<object, object>(minProp.GetValue(values, null), maxProp.GetValue(values, null));
+            }
+        }
+
+
+        private void InitializeDynamicAttributeSources(object[] tags)
+        {
+            if (tags == null)
+                return;
+
+            foreach (object tag in tags)
+            {
+                if (tag == null)
+                    continue;
+
+                Type tagType = tag.GetType();
+                if (tagType.Name != "ConfigurationManagerAttributes")
+                    continue;
+
+                PropertyInfo readOnlyProperty = tagType.GetProperty(nameof(ReadOnly), BindingFlags.Instance | BindingFlags.Public);
+                FieldInfo readOnlyField = tagType.GetField(nameof(ReadOnly), BindingFlags.Instance | BindingFlags.Public);
+                PropertyInfo browsableProperty = tagType.GetProperty(nameof(Browsable), BindingFlags.Instance | BindingFlags.Public);
+                FieldInfo browsableField = tagType.GetField(nameof(Browsable), BindingFlags.Instance | BindingFlags.Public);
+
+                if (readOnlyProperty != null || readOnlyField != null || browsableProperty != null || browsableField != null)
+                {
+                    dynamicAttributeSources.Add(new DynamicAttributeSource(
+                        tag,
+                        tagType,
+                        readOnlyProperty,
+                        readOnlyField,
+                        browsableProperty,
+                        browsableField));
+                }
+            }
+        }
+
+        internal override bool RefreshDynamicAttributes()
+        {
+            bool? previousReadOnly = ReadOnly;
+            bool? previousBrowsable = Browsable;
+
+            foreach (DynamicAttributeSource source in dynamicAttributeSources)
+            {
+                try
+                {
+                    if (source.TryGetReadOnly(out bool readOnly))
+                        ReadOnly = readOnly;
+                    if (source.TryGetBrowsable(out bool browsable))
+                        Browsable = browsable;
+                }
+                catch (Exception ex)
+                {
+                    ConfigurationManager.LogInfo($"Failed to refresh dynamic attributes from {source.SourceType.FullName} - {ex.Message}");
+                }
+            }
+
+            return previousReadOnly != ReadOnly || previousBrowsable != Browsable;
+        }
+
+        private sealed class DynamicAttributeSource
+        {
+            private readonly object source;
+            private readonly PropertyInfo readOnlyProperty;
+            private readonly FieldInfo readOnlyField;
+            private readonly PropertyInfo browsableProperty;
+            private readonly FieldInfo browsableField;
+
+            internal DynamicAttributeSource(
+                object source,
+                Type sourceType,
+                PropertyInfo readOnlyProperty,
+                FieldInfo readOnlyField,
+                PropertyInfo browsableProperty,
+                FieldInfo browsableField)
+            {
+                this.source = source;
+                SourceType = sourceType;
+                this.readOnlyProperty = readOnlyProperty;
+                this.readOnlyField = readOnlyField;
+                this.browsableProperty = browsableProperty;
+                this.browsableField = browsableField;
+            }
+
+            internal Type SourceType { get; }
+
+            internal bool TryGetReadOnly(out bool value)
+            {
+                return TryGetBoolean(readOnlyProperty, readOnlyField, out value);
+            }
+
+            internal bool TryGetBrowsable(out bool value)
+            {
+                return TryGetBoolean(browsableProperty, browsableField, out value);
+            }
+
+            private bool TryGetBoolean(PropertyInfo property, FieldInfo field, out bool value)
+            {
+                object memberValue = property != null ? property.GetValue(source, null) : field?.GetValue(source);
+                if (memberValue is bool booleanValue)
+                {
+                    value = booleanValue;
+                    return true;
+                }
+
+                value = false;
+                return false;
             }
         }
 

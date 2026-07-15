@@ -125,8 +125,18 @@ namespace ConfigurationManager
         /// </summary>
         public void Set(object newVal)
         {
+            RefreshDynamicAttributes();
             if (ReadOnly != true)
                 SetValue(newVal);
+        }
+
+        /// <summary>
+        /// Refreshes attributes that may change while the configuration manager window remains open.
+        /// </summary>
+        /// <returns>True when a filtering-relevant attribute changed.</returns>
+        internal virtual bool RefreshDynamicAttributes()
+        {
+            return false;
         }
 
         /// <summary>

@@ -96,6 +96,19 @@ namespace ConfigurationManager
             if (!IsOpen)
                 return;
 
+            setting.RefreshDynamicAttributes();
+            if (setting.Browsable == false)
+            {
+                IsOpen = false;
+                return;
+            }
+
+            if (setting.ReadOnly == true)
+            {
+                valueToSet = setting.Get();
+                errorOnSetting = string.Empty;
+            }
+
             _windowRect.size = _windowSizeEditSetting.Value;
             _windowRect.position = _windowPositionEditSetting.Value;
 
@@ -300,7 +313,10 @@ namespace ConfigurationManager
 
             GUILayout.Space(5f);
 
+            bool settingControlsEnabled = GUI.enabled;
+            GUI.enabled = settingControlsEnabled && setting.ReadOnly != true;
             DrawSettingValue();
+            GUI.enabled = settingControlsEnabled;
 
             if (!errorOnSetting.IsNullOrWhiteSpace())
                 GUILayout.Label(errorOnSetting, GetLabelStyle());
@@ -389,17 +405,20 @@ namespace ConfigurationManager
 
         private void DrawMenuButtons()
         {
+            setting.RefreshDynamicAttributes();
+            bool readOnly = setting.ReadOnly == true;
+
             GUILayout.BeginHorizontal();
             {
                 var enabled = GUI.enabled;
-                GUI.enabled = enabled && !IsValueToSetDefaultValue();
+                GUI.enabled = enabled && !readOnly && !IsValueToSetDefaultValue();
                 DrawDefaultButton();
                 GUI.enabled = enabled;
 
                 GUILayout.Label(_pressEscapeHintEditWindow.Value, GetLabelStyleInfo(), GUILayout.ExpandWidth(true));
 
                 enabled = GUI.enabled;
-                GUI.enabled = enabled && !IsEqualConfigValues(setting.SettingType, valueToSet, setting.Get());
+                GUI.enabled = enabled && !readOnly && !IsEqualConfigValues(setting.SettingType, valueToSet, setting.Get());
                 if (GUILayout.Button(_applyButtonEditWindow.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
                     ApplySettingValue();
 
