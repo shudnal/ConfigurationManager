@@ -16,7 +16,7 @@ using UnityEngine;
 namespace ConfigurationManager
 {
     [BepInPlugin(GUID, pluginName, Version)]
-    [BepInDependency(PluginInfoCCS.PluginGuid, PluginInfoCCS.PluginVersion)]
+    [BepInDependency(PluginInfoCCS.PluginGuid, "1.0.2")]
     [BepInIncompatibility("com.bepis.bepinex.configurationmanager")]
     public partial class ConfigurationManager : BaseUnityPlugin
     {

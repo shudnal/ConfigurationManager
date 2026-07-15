@@ -5,7 +5,7 @@ It is distributed under the [GPLv3](https://www.gnu.org/licenses/gpl-3.0.html) a
 That fork have additions from other similar mods
 * Coloring and localization are based on aedenthorn's https://github.com/aedenthorn/BepInEx.ConfigurationManager
 * Color drawer is based on Azumatt's https://github.com/AzumattDev/BepInEx.ConfigurationManager (dev branch)
-* Everything taken was improved and refined
+* Everything taken was improved and refined in various places
 
 ## How to use
 Press hotkey button in game (default `F1`) to open mod window and change configuration of mods.
@@ -20,7 +20,9 @@ Press hotkey button in game (default `F1`) to open mod window and change configu
 * Dropdown menu style refined
 * Lots of minor refinements and improvements
 * Readonly entries (locked from server) could be colored, disabled or completely hidden
-* Window can be scaled to better fit 4K screens
+* Dynamic `ReadOnly` and `Browsable` attributes are refreshed while the window remains open and rechecked immediately before a setting write
+* Synchronization state buttons with hover details for Jotunn, ServerSync and Conditional Config Sync settings; `S` means server-controlled and `C` means client-controlled. Conditional settings use the normal font color while their mod default is active and blue after server policy changes the ownership. Authorized administrators can toggle CCS Conditional ownership directly.
+* Optional compact config list layout applies uniform reduced vertical spacing to every setting row, is enabled by default and is switchable from the window header
 * default view is Split View where plugins and categories are showed as a tree in left column
 * File Editor for configuration files
 * Setting Edit Window for more detailed setting configuration
@@ -53,14 +55,12 @@ Said file could also be placed on server to push that hidden settings to clients
 ## Compatibility
 The mod is incompatible with original configuration manager and will not be loaded in that case.
 
+Conditional Config Sync 1.0.2 or newer is required.
+
 ## Installation (manual)
-extract ConfigurationManager.dll folder to your BepInEx\Plugins\ folder.
+Install Conditional Config Sync 1.0.2 or newer, then place ConfigurationManager.dll in your BepInEx\Plugins\ folder.
 
 ## Mirrors
 [Nexus](https://www.nexusmods.com/valheim/mods/2746)
 
-## Donation
-[Buy Me a Coffee](https://buymeacoffee.com/shudnal)
-
-## Discord
-[Join server](https://discord.gg/e3UtQB8GFK)
+[Thunderstore](https://thunderstore.io/c/valheim/p/shudnal/ConfigurationManager/)

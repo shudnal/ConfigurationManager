@@ -1,35 +1,150 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-	<Target Name="CopyDLLThunderstore" AfterTargets="Build">
-		<Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ProjectDir)package\thunderstore\$(SolutionName)\" />
-		<Message Text="Copied to thunderstore package folder." Importance="High" />
-	</Target>
-	<Target Name="RepackNexus" AfterTargets="CopyDLLThunderstore">
-		<ItemGroup>
-			<InputAssemblies Include="$(TargetPath)" />
-			<InputAssemblies Include="$(OutputPath)Newtonsoft.Json.dll" />
-			<InputAssemblies Include="$(OutputPath)YamlDotNet.dll" />
-		</ItemGroup>
-		<ILRepack Parallel="true" DebugInfo="true" Internalize="true" InputAssemblies="@(InputAssemblies)" OutputFile="$(TargetPath)" TargetKind="SameAsPrimaryAssembly" LibraryPath="$(OutputPath)" />
-	</Target>
-	<Target Name="CopyDLLNexus" AfterTargets="RepackNexus">
-		<Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ProjectDir)package\nexus\$(SolutionName)\" />
-		<Message Text="Copied to nexus package folder." Importance="High" />
-	</Target>
-	<Target Name="ZipNexus" AfterTargets="CopyDLLNexus">
-		<ZipDirectory
-				SourceDirectory="$(ProjectDir)package\nexus\$(SolutionName)\"
-				DestinationFile="$(ProjectDir)package\nexus\$(SolutionName).zip"
-				Overwrite="true"/>
-	</Target>
-	<Target Name="ZipThunderstore" AfterTargets="CopyDLLThunderstore">
-		<ZipDirectory
-				SourceDirectory="$(ProjectDir)package\thunderstore\$(SolutionName)\"
-				DestinationFile="$(ProjectDir)package\thunderstore\$(SolutionName).zip"
-				Overwrite="true"/>
-	</Target>
-	<Target Name="CopyDLLPlugins" AfterTargets="CopyDLLThunderstore">
-		<Copy SourceFiles="$(TargetPath)" DestinationFolder="D:\r2modman\Valheim\profiles\beta\BepInEx\plugins\shudnal-$(SolutionName)\" />
-		<Message Text="Copied to r2 folder." Importance="High" />
-	</Target>
+
+  <PropertyGroup>
+    <ModName>ConfigurationManager</ModName>
+  </PropertyGroup>
+
+  <Target Name="InitializeConfigurationManagerPackageProperties">
+    <PropertyGroup>
+      <EffectiveModName Condition="'$(ModName)' != ''">$(ModName)</EffectiveModName>
+      <EffectiveModName Condition="'$(EffectiveModName)' == '' and '$(TargetName)' != ''">$(TargetName)</EffectiveModName>
+      <EffectiveModName Condition="'$(EffectiveModName)' == '' and '$(AssemblyName)' != ''">$(AssemblyName)</EffectiveModName>
+      <EffectiveModName Condition="'$(EffectiveModName)' == '' and '$(MSBuildProjectName)' != ''">$(MSBuildProjectName)</EffectiveModName>
+
+      <ResolvedR2ModManProfilePluginsDir Condition="'$(R2ModManProfilePluginsDir)' != ''">$(R2ModManProfilePluginsDir)</ResolvedR2ModManProfilePluginsDir>
+      <ResolvedR2ModManProfilePluginsDir Condition="'$(ResolvedR2ModManProfilePluginsDir)' == ''">D:\r2modman\Valheim\profiles\beta\BepInEx\plugins\shudnal-$(EffectiveModName)\</ResolvedR2ModManProfilePluginsDir>
+
+      <ThunderstorePackageDir>$(ProjectDir)package\thunderstore\$(EffectiveModName)\</ThunderstorePackageDir>
+      <ThunderstoreZipPath>$(ProjectDir)package\thunderstore\$(EffectiveModName).zip</ThunderstoreZipPath>
+      <ThunderstoreManifestPath>$(ThunderstorePackageDir)manifest.json</ThunderstoreManifestPath>
+      <NexusPackageDir>$(ProjectDir)package\nexus\$(EffectiveModName)\</NexusPackageDir>
+      <NexusZipPath>$(ProjectDir)package\nexus\$(EffectiveModName).zip</NexusZipPath>
+      <NexusDllPath>$(NexusPackageDir)$(TargetFileName)</NexusDllPath>
+    </PropertyGroup>
+
+    <Error Condition="'$(EffectiveModName)' == ''" Text="Mod name was not resolved." />
+    <Error Condition="'$(ResolvedR2ModManProfilePluginsDir)' == ''" Text="r2modman profile plugins directory was not resolved." />
+  </Target>
+
+  <Target
+    Name="ReadConfigurationManagerPackageVersion"
+    DependsOnTargets="InitializeConfigurationManagerPackageProperties">
+
+    <Error Condition="!Exists('$(TargetPath)')" Text="Built mod DLL was not found: $(TargetPath)" />
+
+    <GetAssemblyIdentity AssemblyFiles="$(TargetPath)">
+      <Output TaskParameter="Assemblies" ItemName="_ConfigurationManagerPackageAssemblyIdentity" />
+    </GetAssemblyIdentity>
+
+    <PropertyGroup>
+      <PackageVersion>%(_ConfigurationManagerPackageAssemblyIdentity.Version)</PackageVersion>
+    </PropertyGroup>
+
+    <Error Condition="'$(PackageVersion)' == ''" Text="Package version was not resolved from $(TargetPath)." />
+    <Message Text="Detected package version from DLL: $(PackageVersion)" Importance="High" />
+  </Target>
+
+  <Target
+    Name="PrepareConfigurationManagerThunderstorePackage"
+    DependsOnTargets="ReadConfigurationManagerPackageVersion">
+
+    <MakeDir Directories="$(ThunderstorePackageDir)" />
+
+    <Copy
+      SourceFiles="$(TargetPath)"
+      DestinationFolder="$(ThunderstorePackageDir)"
+      OverwriteReadOnlyFiles="true" />
+
+    <Copy
+      SourceFiles="$(ProjectDir)README.md;$(ProjectDir)CHANGELOG.md"
+      DestinationFolder="$(ThunderstorePackageDir)"
+      OverwriteReadOnlyFiles="true" />
+
+    <Message Text="Thunderstore package directory updated: $(ThunderstorePackageDir)" Importance="High" />
+  </Target>
+
+  <Target
+    Name="UpdateConfigurationManagerThunderstoreManifest"
+    DependsOnTargets="PrepareConfigurationManagerThunderstorePackage">
+
+    <Error Condition="!Exists('$(ProjectDir)UpdateThunderstoreManifest.ps1')" Text="UpdateThunderstoreManifest.ps1 was not found in $(ProjectDir)." />
+    <Error Condition="!Exists('$(ThunderstoreManifestPath)')" Text="Thunderstore manifest was not found: $(ThunderstoreManifestPath)" />
+
+    <Exec
+      WorkingDirectory="$(ProjectDir)"
+      Command="powershell -ExecutionPolicy Bypass -NoProfile -File &quot;$(ProjectDir)UpdateThunderstoreManifest.ps1&quot; -ManifestPath &quot;$(ThunderstoreManifestPath)&quot; -Version &quot;$(PackageVersion)&quot;" />
+  </Target>
+
+  <Target
+    Name="ZipConfigurationManagerThunderstorePackage"
+    DependsOnTargets="UpdateConfigurationManagerThunderstoreManifest">
+
+    <ZipDirectory
+      SourceDirectory="$(ThunderstorePackageDir)"
+      DestinationFile="$(ThunderstoreZipPath)"
+      Overwrite="true" />
+
+    <Message Text="Thunderstore archive created: $(ThunderstoreZipPath)" Importance="High" />
+  </Target>
+
+  <Target
+    Name="CopyConfigurationManagerToR2ModMan"
+    DependsOnTargets="ZipConfigurationManagerThunderstorePackage">
+
+    <MakeDir Directories="$(ResolvedR2ModManProfilePluginsDir)" />
+
+    <Copy
+      SourceFiles="$(TargetPath)"
+      DestinationFolder="$(ResolvedR2ModManProfilePluginsDir)"
+      OverwriteReadOnlyFiles="true" />
+
+    <Message Text="Copied ConfigurationManager.dll to r2modman profile: $(ResolvedR2ModManProfilePluginsDir)" Importance="High" />
+  </Target>
+
+  <Target
+    Name="PrepareConfigurationManagerNexusPackage"
+    DependsOnTargets="CopyConfigurationManagerToR2ModMan">
+
+    <Error Condition="!Exists('$(TargetDir)Newtonsoft.Json.dll')" Text="Newtonsoft.Json.dll was not found in $(TargetDir)." />
+    <Error Condition="!Exists('$(TargetDir)YamlDotNet.dll')" Text="YamlDotNet.dll was not found in $(TargetDir)." />
+
+    <MakeDir Directories="$(NexusPackageDir)" />
+
+    <ItemGroup>
+      <_ConfigurationManagerNexusInputAssemblies Include="$(TargetPath)" />
+      <_ConfigurationManagerNexusInputAssemblies Include="$(TargetDir)Newtonsoft.Json.dll" />
+      <_ConfigurationManagerNexusInputAssemblies Include="$(TargetDir)YamlDotNet.dll" />
+    </ItemGroup>
+
+    <ILRepack
+      Parallel="true"
+      DebugInfo="true"
+      Internalize="true"
+      InputAssemblies="@(_ConfigurationManagerNexusInputAssemblies)"
+      OutputFile="$(NexusDllPath)"
+      TargetKind="SameAsPrimaryAssembly"
+      LibraryPath="$(TargetDir)" />
+
+    <Message Text="Nexus DLL created without embedding ConditionalConfigSync: $(NexusDllPath)" Importance="High" />
+  </Target>
+
+  <Target
+    Name="ZipConfigurationManagerNexusPackage"
+    DependsOnTargets="PrepareConfigurationManagerNexusPackage">
+
+    <ZipDirectory
+      SourceDirectory="$(NexusPackageDir)"
+      DestinationFile="$(NexusZipPath)"
+      Overwrite="true" />
+
+    <Message Text="Nexus archive created: $(NexusZipPath)" Importance="High" />
+  </Target>
+
+  <Target
+    Name="PublishConfigurationManagerAfterBuild"
+    AfterTargets="Build"
+    Condition="'$(DesignTimeBuild)' != 'true'"
+    DependsOnTargets="ZipConfigurationManagerNexusPackage" />
+
 </Project>

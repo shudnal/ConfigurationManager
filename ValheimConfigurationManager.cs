@@ -34,7 +34,13 @@ namespace ConfigurationManager
 
         private static readonly Harmony harmony = new Harmony(GUID);
 
-        internal static readonly ConfigSync configSync = new ConfigSync(GUID) { DisplayName = pluginName, CurrentVersion = Version, MinimumRequiredVersion = Version };
+        internal static readonly ConfigSync configSync = new ConfigSync(GUID)
+        {
+            DisplayName = pluginName,
+            CurrentVersion = Version,
+            MinimumRequiredVersion = Version,
+            ModRequired = false
+        };
 
         internal static readonly CustomSyncedValue<List<string>> hiddenSettings = new CustomSyncedValue<List<string>>(configSync, "Hidden settings", new List<string>());
         
