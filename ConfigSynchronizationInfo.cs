@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Reflection;
 using BepInEx.Configuration;
@@ -160,9 +160,8 @@ namespace ConfigurationManager
             private ConfigSyncMode lastMode;
             private bool lastDefaultServerControlled;
             private bool lastServerControlled;
-            private bool lastPolicyStateInitialized;
             private bool lastOverridden;
-            private bool lastCanChangePolicy;
+            private ConfigSyncPolicyControlState lastPolicyControlState;
             private bool hasCachedState;
             private ConfigSynchronizationState cachedState;
 
@@ -177,15 +176,15 @@ namespace ConfigurationManager
                 bool isOverridden = entry.IsSynchronizationOverridden;
                 bool isServerControlled = entry.IsServerControlled;
                 bool serverControlledByDefault = entry.ServerControlledByDefault;
-                bool canChangePolicy = entry.CanChangeSynchronizationPolicy;
+                ConfigSyncPolicyControlState policyControlState = entry.SynchronizationPolicyControlState;
+                bool canChangePolicy = policyControlState == ConfigSyncPolicyControlState.Available;
 
                 if (hasCachedState
                     && lastMode == entry.SyncMode
                     && lastDefaultServerControlled == serverControlledByDefault
                     && lastServerControlled == isServerControlled
-                    && lastPolicyStateInitialized == entry.IsPolicyStateInitialized
                     && lastOverridden == isOverridden
-                    && lastCanChangePolicy == canChangePolicy)
+                    && lastPolicyControlState == policyControlState)
                 {
                     return cachedState;
                 }
@@ -199,12 +198,24 @@ namespace ConfigurationManager
                     tooltip += $"\nMod default: {FormatOwnership(serverControlledByDefault)}";
                     if (isOverridden)
                         tooltip += $"\nServer policy override: {entry.EffectiveOverride}";
-                    else if (!entry.IsPolicyStateInitialized)
-                        tooltip += "\nPolicy state: Not initialized for a server session";
+                    else
+                        tooltip += "\nServer policy: No override; using mod default";
 
-                    tooltip += canChangePolicy
-                        ? $"\nClick to switch policy to {FormatOwnership(!isServerControlled)}"
-                        : "\nPolicy control: Requires a compatible active server session and administrator access";
+                    switch (policyControlState)
+                    {
+                        case ConfigSyncPolicyControlState.Available:
+                            tooltip += $"\nClick to switch policy to {FormatOwnership(!isServerControlled)}";
+                            break;
+                        case ConfigSyncPolicyControlState.RequiresAdministratorAccess:
+                            tooltip += "\nPolicy control: Requires administrator access";
+                            break;
+                        case ConfigSyncPolicyControlState.RequiresCompatibleServerSession:
+                            tooltip += "\nPolicy control: Requires a compatible active server session";
+                            break;
+                        default:
+                            tooltip += "\nPolicy control: Fixed by the mod";
+                            break;
+                    }
                 }
                 else
                 {
@@ -221,9 +232,8 @@ namespace ConfigurationManager
                 lastMode = entry.SyncMode;
                 lastDefaultServerControlled = serverControlledByDefault;
                 lastServerControlled = isServerControlled;
-                lastPolicyStateInitialized = entry.IsPolicyStateInitialized;
                 lastOverridden = isOverridden;
-                lastCanChangePolicy = canChangePolicy;
+                lastPolicyControlState = policyControlState;
                 hasCachedState = true;
                 return cachedState;
             }
