@@ -29,8 +29,10 @@ namespace ConfigurationManager
         private static GUIStyle categoryHeaderStyleChanged;
         private static GUIStyle pluginHeaderStyle;
         private static GUIStyle pluginHeaderStyleActive;
+        private static GUIStyle pluginSplitViewContainerStyle;
         private static GUIStyle pluginHeaderStyleSplitView;
         private static GUIStyle pluginHeaderStyleSplitViewActive;
+        private static GUIStyle pluginHeaderSplitViewBackgroundStyle;
         private static GUIStyle pluginCategoryStyleSplitView;
         private static GUIStyle pluginCategoryStyleSplitViewActive;
         private static GUIStyle backgroundStyle;
@@ -50,11 +52,15 @@ namespace ConfigurationManager
         private static GUIStyle fileEditorTextArea;
         private static GUIStyle delimiterLine;
         private static GUIStyle placeholderText;
+        private static GUIStyle synchronizationIndicatorStyle;
+        private static GUIStyle settingRowStyle;
 
         public static int fontSize = 14;
 
         public static void CreateStyles()
         {
+            bool compactConfigList = _compactConfigList.Value;
+
             _textSize.Value = Mathf.Clamp(_textSize.Value, 10, 30);
             if (fontSize != _textSize.Value)
             {
@@ -70,6 +76,8 @@ namespace ConfigurationManager
             labelStyle = new GUIStyle(GUI.skin.label);
             labelStyle.normal.textColor = _fontColor.Value;
             labelStyle.fontSize = fontSize;
+            if (compactConfigList)
+                labelStyle.margin.top = labelStyle.margin.bottom = 1;
 
             labelStyleSettingName = new GUIStyle(labelStyle);
             labelStyleSettingName.wordWrap = true;
@@ -88,6 +96,9 @@ namespace ConfigurationManager
             textStyle.normal.textColor = _fontColor.Value;
             textStyle.fontSize = fontSize;
 
+            if (compactConfigList)
+                textStyle.margin.top = textStyle.margin.bottom = 1;
+
             textStyleValueDefault = new GUIStyle(textStyle);
             textStyleValueDefault.normal.textColor = _fontColorValueDefault.Value;
 
@@ -98,6 +109,9 @@ namespace ConfigurationManager
             buttonStyle.normal.textColor = _fontColor.Value;
             buttonStyle.onNormal.textColor = _fontColorValueChanged.Value;
             buttonStyle.fontSize = fontSize;
+
+            if (compactConfigList)
+                buttonStyle.margin.top = buttonStyle.margin.bottom = 1;
 
             buttonStyleValueDefault = new GUIStyle(buttonStyle);
             buttonStyleValueDefault.normal.textColor = _fontColorValueDefault.Value;
@@ -124,19 +138,49 @@ namespace ConfigurationManager
             pluginHeaderStyleActive = new GUIStyle(pluginHeaderStyle);
             pluginHeaderStyleActive.normal.textColor = _fontColorValueChanged.Value;
 
-            pluginHeaderStyleSplitView = new GUIStyle(labelStyle);
-            pluginHeaderStyleSplitView.margin.top = pluginHeaderStyleSplitView.margin.bottom = 2;
-            pluginHeaderStyleSplitView.padding = new RectOffset();
-            pluginHeaderStyleSplitView.alignment = TextAnchor.MiddleLeft;
-            pluginHeaderStyleSplitView.wordWrap = false;
+
+            pluginSplitViewContainerStyle = new GUIStyle(GUIStyle.none)
+            {
+                stretchWidth = true,
+                padding = new RectOffset(),
+                // Keep an explicit two-pixel separator between neighboring plugins in both modes.
+                margin = new RectOffset(0, 0, 0, 2),
+            };
+
+            pluginHeaderStyleSplitView = new GUIStyle(labelStyle)
+            {
+                alignment = TextAnchor.MiddleLeft,
+                clipping = TextClipping.Clip,
+                wordWrap = false,
+                stretchWidth = true,
+                // Use the previous regular-mode header spacing as the compact baseline.
+                padding = new RectOffset(4, 2, compactConfigList ? 1 : 2, compactConfigList ? 1 : 2),
+                // Regular mode differs only by one extra pixel before each plugin name.
+                margin = new RectOffset()
+            };
+
+            if (compactConfigList)
+                pluginHeaderStyleSplitView.normal.background = EntryBackground;
+
+            // Keep hover on the actual button in both modes. In regular mode the surrounding
+            // header container also has the legacy hover background, so its padded area reacts too.
+            pluginHeaderStyleSplitView.hover.background = TooltipBackground;
+            pluginHeaderStyleSplitView.active.background = TooltipBackground;
+            pluginHeaderStyleSplitView.hover.textColor = _fontColor.Value;
+            pluginHeaderStyleSplitView.active.textColor = _fontColor.Value;
 
             pluginHeaderStyleSplitViewActive = new GUIStyle(pluginHeaderStyleSplitView);
             pluginHeaderStyleSplitViewActive.normal.textColor = _fontColorValueChanged.Value;
             pluginHeaderStyleSplitViewActive.onNormal.textColor = _fontColorValueChanged.Value;
+            pluginHeaderStyleSplitViewActive.hover.textColor = _fontColorValueChanged.Value;
+            pluginHeaderStyleSplitViewActive.active.textColor = _fontColorValueChanged.Value;
             pluginHeaderStyleSplitViewActive.fontStyle = FontStyle.Bold;
 
-            pluginCategoryStyleSplitView = new GUIStyle(pluginHeaderStyleSplitView);
+            pluginCategoryStyleSplitView = new GUIStyle(labelStyle);
             pluginCategoryStyleSplitView.margin.top = pluginCategoryStyleSplitView.margin.bottom = 2;
+            pluginCategoryStyleSplitView.padding = new RectOffset();
+            pluginCategoryStyleSplitView.alignment = TextAnchor.MiddleLeft;
+            pluginCategoryStyleSplitView.wordWrap = false;
             pluginCategoryStyleSplitView.clipping = TextClipping.Clip;
             pluginCategoryStyleSplitView.hover.textColor = _fontColorValueChanged.Value;
             pluginCategoryStyleSplitView.hover.background = HeaderBackground;
@@ -153,7 +197,7 @@ namespace ConfigurationManager
             toggleStyle.imagePosition = ImagePosition.ImageLeft;
             toggleStyle.padding.top = 2;
             toggleStyle.padding.left = 16;
-            toggleStyle.margin.top = 5;
+            toggleStyle.margin.top = _compactConfigList.Value ? 2 : 5;
 
             toggleStyleValueDefault = new GUIStyle(toggleStyle);
             toggleStyleValueDefault.normal.textColor = _fontColorValueDefault.Value;
@@ -189,6 +233,17 @@ namespace ConfigurationManager
             backgroundStyleWithHover = new GUIStyle(backgroundStyle);
             backgroundStyleWithHover.hover.background = TooltipBackground;
 
+            // Use a dedicated split-view header container instead of the skin box defaults.
+            // The default box has comparatively large vertical padding and margins, which
+            // made the non-compact plugin list much looser than intended.
+            pluginHeaderSplitViewBackgroundStyle = new GUIStyle(backgroundStyleWithHover)
+            {
+                margin = new RectOffset(),
+                // Header geometry is owned by the button style in both modes. This keeps
+                // compact and regular rendering identical except for the explicit top pixel.
+                padding = new RectOffset(),
+            };
+
             categoryBackgroundStyle = new GUIStyle(backgroundStyle);
             categoryBackgroundStyle.margin.bottom = 6;
             categoryBackgroundStyle.margin.top = 0;
@@ -205,9 +260,13 @@ namespace ConfigurationManager
             settingWindowBackgroundStyle = new GUIStyle(backgroundStyle);
             settingWindowBackgroundStyle.normal.background = SettingWindowBackground;
 
-            categorySplitViewBackgroundStyle = new GUIStyle(backgroundStyleWithHover);
-            categorySplitViewBackgroundStyle.padding = new RectOffset();
-            categorySplitViewBackgroundStyle.margin = new RectOffset(20, 4, 2, 2);
+            categorySplitViewBackgroundStyle = new GUIStyle(backgroundStyleWithHover)
+            {
+                padding = new RectOffset(),
+                margin = compactConfigList
+                    ? new RectOffset(20, 4, 2, 0)
+                    : new RectOffset(20, 4, 2, 2)
+            };
 
             tooltipStyle = new GUIStyle(GUI.skin.box);
             tooltipStyle.normal.textColor = _fontColor.Value;
@@ -263,12 +322,35 @@ namespace ConfigurationManager
 
             placeholderText = new GUIStyle(textStyleValueDefault);
             placeholderText.normal.textColor = Color.gray;
+
+            synchronizationIndicatorStyle = new GUIStyle(buttonStyle);
+            synchronizationIndicatorStyle.alignment = TextAnchor.MiddleCenter;
+            synchronizationIndicatorStyle.richText = true;
+            synchronizationIndicatorStyle.wordWrap = false;
+            synchronizationIndicatorStyle.stretchWidth = false;
+            synchronizationIndicatorStyle.stretchHeight = false;
+            synchronizationIndicatorStyle.padding.left = 3;
+            synchronizationIndicatorStyle.padding.right = 3;
+
+            settingRowStyle = new GUIStyle(GUIStyle.none)
+            {
+                stretchWidth = true,
+                stretchHeight = false,
+                padding = new RectOffset(),
+                margin = new RectOffset(
+                    0,
+                    0,
+                    _compactConfigList.Value ? 0 : 1,
+                    1),
+            };
         }
 
         public static GUIStyle GetWindowStyle() => windowStyle;
         public static GUIStyle GetCategoryStyle(bool isDefaultStyle = true) => isDefaultStyle ? categoryHeaderStyleDefault : categoryHeaderStyleChanged;
         public static GUIStyle GetHeaderStyle(bool isActive) => isActive ? pluginHeaderStyleActive : pluginHeaderStyle;
+        public static GUIStyle GetPluginSplitViewContainerStyle() => pluginSplitViewContainerStyle;
         public static GUIStyle GetHeaderSplitViewStyle(bool isActivePlugin = false) => isActivePlugin ? pluginHeaderStyleSplitViewActive : pluginHeaderStyleSplitView;
+        public static GUIStyle GetPluginHeaderSplitViewBackgroundStyle() => pluginHeaderSplitViewBackgroundStyle;
         public static GUIStyle GetCategorySplitViewStyle(bool isActiveCategory = false) => isActiveCategory ? pluginCategoryStyleSplitViewActive : pluginCategoryStyleSplitView;
         public static GUIStyle GetCategorySplitViewBackgroundStyle() => categorySplitViewBackgroundStyle;
         public static GUIStyle GetSliderStyle() => sliderStyle;
@@ -302,6 +384,8 @@ namespace ConfigurationManager
         public static GUIStyle GetFileEditorTextArea() => fileEditorTextArea;
         public static GUIStyle GetDelimiterLine() => delimiterLine;
         public static GUIStyle GetPlaceholderTextStyle() => placeholderText;
+        public static GUIStyle GetSynchronizationIndicatorStyle() => synchronizationIndicatorStyle;
+        public static GUIStyle GetSettingRowStyle() => settingRowStyle;
         // Config colors are stored as 8-bit RGBA HEX values, so sub-byte float differences are not meaningful.
         public static bool IsEqualColorConfig(Color setting, Color defaultValue)
         {

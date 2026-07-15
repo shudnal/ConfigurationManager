@@ -14,6 +14,7 @@ namespace ConfigurationManager
     internal sealed class ConfigSettingEntry : SettingEntryBase
     {
         public ConfigEntryBase Entry { get; }
+        private readonly ConfigSynchronizationInfo synchronizationInfo;
 
         public ConfigSettingEntry(ConfigEntryBase entry, BaseUnityPlugin owner)
         {
@@ -37,6 +38,7 @@ namespace ConfigurationManager
             DefaultValue = entry.DefaultValue;
 
             SetFromAttributes(entry.Description?.Tags, owner);
+            synchronizationInfo = ConfigSynchronizationInfo.Create(entry);
         }
 
         private void GetAcceptableValues(AcceptableValueBase values)
@@ -66,6 +68,16 @@ namespace ConfigurationManager
         protected override void SetValue(object newVal)
         {
             Entry.BoxedValue = newVal;
+        }
+
+        internal ConfigSynchronizationState GetSynchronizationState()
+        {
+            return synchronizationInfo.GetState();
+        }
+
+        internal bool ToggleSynchronizationPolicy()
+        {
+            return synchronizationInfo.TogglePolicy();
         }
 
         internal bool ShouldBeHidden()

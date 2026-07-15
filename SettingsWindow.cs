@@ -169,6 +169,20 @@ namespace ConfigurationManager
 
         private void DrawSplitView()
         {
+            // Resolve and initialize the selected plugin before building either pane. Changing the
+            // selection after the left pane has already been laid out makes its control tree differ
+            // between Layout and Repaint, which can abort IMGUI with a GUILayoutGroup exception.
+            var plugin = _filteredSetings.FirstOrDefault(plg => plg.Selected) ?? _filteredSetings.FirstOrDefault();
+            if (plugin != null)
+            {
+                plugin.Collapsed = false;
+                if (!plugin.Selected)
+                {
+                    plugin.Selected = true;
+                    plugin.ShowCategories = true;
+                }
+            }
+
             GUILayout.BeginHorizontal();
             {
                 GUILayout.BeginVertical(GUILayout.Width(PluginListColumnWidth));
@@ -192,14 +206,8 @@ namespace ConfigurationManager
 
                 GUILayout.Space(5f);
 
-                var plugin = _filteredSetings.FirstOrDefault(plg => plg.Selected) ?? _filteredSetings.FirstOrDefault();
-
                 if (plugin != null)
                 {
-                    plugin.Collapsed = false;
-                    if (plugin.Selected != (plugin.Selected = true))
-                        plugin.ShowCategories = true;
-
                     GUILayout.BeginVertical(GUILayout.MaxWidth(SettingsListColumnWidth));
 
                     bool hasCollapsedCategories = plugin.Categories.Any(cat => cat.Collapsed);
@@ -300,6 +308,14 @@ namespace ConfigurationManager
 
                 GUI.enabled = enabled;
 
+                bool compactConfigList = GUILayout.Toggle(
+                    _compactConfigList.Value,
+                    new GUIContent(_compactListText.Value, _compactListTextTooltip.Value),
+                    GetToggleStyle(),
+                    GUILayout.ExpandWidth(false));
+                if (_compactConfigList.Value != compactConfigList)
+                    _compactConfigList.Value = compactConfigList;
+
                 GUILayout.Space(15f);
 
                 DrawSearchBox();
@@ -376,24 +392,38 @@ namespace ConfigurationManager
             var backgroundColor = GUI.backgroundColor;
             GUI.backgroundColor = _entryBackgroundColor.Value;
 
-            GUILayout.BeginHorizontal(GetBackgroundStyle(withHover: true));
-
-            if (SettingFieldDrawer.DrawPluginHeaderSplitViewList(GetPluginHeaderName(plugin), plugin.Selected))
+            GUILayout.BeginVertical(GetPluginSplitViewContainerStyle());
+            try
             {
-                plugin.Selected = true;
-                plugin.ShowCategories = !plugin.ShowCategories;
+                // Keep the same group tree in both modes to avoid Layout/Repaint mismatches.
+                // Compact mode lets the button provide the background; regular mode uses a
+                // dedicated tightly-spaced container with the same full-row hover behavior.
+                GUILayout.BeginHorizontal(_compactConfigList.Value ? GUIStyle.none : GetPluginHeaderSplitViewBackgroundStyle());
+                try
+                {
+                    if (SettingFieldDrawer.DrawPluginHeaderSplitViewList(GetPluginHeaderName(plugin), plugin.Selected))
+                    {
+                        plugin.Selected = true;
+                        plugin.ShowCategories = !plugin.ShowCategories;
+                    }
+                }
+                finally
+                {
+                    GUILayout.EndHorizontal();
+                }
+
+                if (IsSearching || plugin.Selected && plugin.ShowCategories && (plugin.Categories.Count > 1))
+                {
+                    GUILayout.BeginVertical(GetCategorySplitViewBackgroundStyle());
+                    plugin.Categories.Do(DrawPluginCategorySplitViewCollapsableList);
+                    GUILayout.EndVertical();
+                }
             }
-
-            GUILayout.EndHorizontal();
-
-            if (IsSearching || plugin.Selected && plugin.ShowCategories && (plugin.Categories.Count > 1))
+            finally
             {
-                GUILayout.BeginVertical(GetCategorySplitViewBackgroundStyle());
-                plugin.Categories.Do(DrawPluginCategorySplitViewCollapsableList);
                 GUILayout.EndVertical();
+                GUI.backgroundColor = backgroundColor;
             }
-
-            GUI.backgroundColor = backgroundColor;
 
             void DrawPluginCategorySplitViewCollapsableList(PluginSettingsData.PluginSettingsGroupData category)
             {
@@ -470,11 +500,11 @@ namespace ConfigurationManager
                     GUI.contentColor = _readOnlyColor.Value;
             }
 
-            GUILayout.BeginHorizontal(GUILayout.MaxWidth(SettingsListColumnWidth));
-            
+            GUILayout.BeginHorizontal(GetSettingRowStyle(), GUILayout.MaxWidth(SettingsListColumnWidth));
+
             try
             {
-                DrawSettingName(setting);
+                DrawSettingName(setting, guiEnabled);
                 _fieldDrawer.DrawSettingValue(setting);
                 DrawDefaultButton(setting);
             }
@@ -496,7 +526,7 @@ namespace ConfigurationManager
             GUI.contentColor = contentColor;
         }
 
-        private void DrawSettingName(SettingEntryBase setting)
+        private void DrawSettingName(SettingEntryBase setting, bool interactionEnabled)
         {
             if (setting.HideSettingName) return;
             
@@ -505,6 +535,7 @@ namespace ConfigurationManager
 
             GUILayout.BeginHorizontal(GUILayout.Width(LeftColumnWidth), GUILayout.MaxWidth(LeftColumnWidth));
             GUILayout.Label(new GUIContent(setting.DispName.TrimStart('!'), setting.Description), GetLabelStyleSettingName(), GUILayout.ExpandWidth(true));
+            DrawSynchronizationIndicator(setting, interactionEnabled);
             if (_showEditButton.Value)
                 //if (setting.CustomDrawer == null && setting.CustomHotkeyDrawer == null || SettingFieldDrawer.IsSettingFailedToCustomDraw(setting))
                     if (GUILayout.Button(new GUIContent(_editText.Value, setting.Description), GetButtonStyle(), GUILayout.ExpandWidth(false)))
@@ -513,6 +544,47 @@ namespace ConfigurationManager
             GUILayout.EndHorizontal();
 
             GUI.backgroundColor = color;
+        }
+
+        private static void DrawSynchronizationIndicator(SettingEntryBase setting, bool interactionEnabled)
+        {
+            if (!(setting is ConfigSettingEntry configSetting))
+                return;
+
+            ConfigSynchronizationState state = configSetting.GetSynchronizationState();
+            if (!state.IsVisible)
+                return;
+
+            string symbol = state.IsServerControlled ? "S" : "C";
+            Color symbolColor = state.IsConditional && state.IsOverridden
+                ? _changedSynchronizationPolicyColor.Value
+                : _fontColor.Value;
+            symbol = ColorizeSynchronizationSymbol(symbol, symbolColor);
+
+            bool enabled = GUI.enabled;
+            Color contentColor = GUI.contentColor;
+            try
+            {
+                GUI.enabled = interactionEnabled && state.CanChangePolicy;
+                GUI.contentColor = Color.white;
+                if (GUILayout.Button(
+                        new GUIContent(symbol, state.Tooltip),
+                        GetSynchronizationIndicatorStyle(),
+                        GUILayout.ExpandWidth(false)))
+                {
+                    configSetting.ToggleSynchronizationPolicy();
+                }
+            }
+            finally
+            {
+                GUI.contentColor = contentColor;
+                GUI.enabled = enabled;
+            }
+        }
+
+        private static string ColorizeSynchronizationSymbol(string symbol, Color color)
+        {
+            return $"<color=#{ColorUtility.ToHtmlStringRGBA(color)}>{symbol}</color>";
         }
 
         internal static void DrawDefaultButton(SettingEntryBase setting)

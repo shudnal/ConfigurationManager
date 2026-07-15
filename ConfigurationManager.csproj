@@ -37,6 +37,7 @@
   <ItemGroup>
     <Compile Include="ConfigFilesEditor.cs" />
     <Compile Include="ConfigSettingEntry.cs" />
+    <Compile Include="ConfigSynchronizationInfo.cs" />
     <Compile Include="SettingEditWindow.cs" />
     <Compile Include="LegacySettingEntry.cs" />
     <Compile Include="PropertySettingEntry.cs" />
@@ -77,7 +78,7 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>F:\Steam\steamapps\common\Valheim\BepInEx\core\BepInEx.dll</HintPath>
     </Reference>
-    <Reference Include="ConditionalConfigSync, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+    <Reference Include="ConditionalConfigSync, Version=1.0.2.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\Assemblies\Managers\ConditionalConfigSync.dll</HintPath>
     </Reference>

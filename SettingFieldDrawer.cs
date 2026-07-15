@@ -406,7 +406,7 @@ namespace ConfigurationManager
         private static float DrawCenteredHorizontalSlider(float converted, float leftValue, float rightValue, float height)
         {
             GUILayout.BeginVertical(GUILayout.Height(height));
-            GUILayout.Space(height * 0.45f);
+            GUILayout.Space(height * (_compactConfigList.Value ? 0.3f : 0.45f));
             var result = GUILayout.HorizontalSlider(converted, leftValue, rightValue, GetSliderStyle(), GetThumbStyle(), GUILayout.ExpandWidth(true));
             GUILayout.EndVertical();
             return result;
@@ -415,7 +415,8 @@ namespace ConfigurationManager
         private void DrawUnknownField(SettingEntryBase setting, int rightColumnWidth)
         {
             GUILayout.BeginVertical();
-            GUILayout.Space(4f);
+            if (!_compactConfigList.Value)
+                GUILayout.Space(4f);
 
             // Try to use user-supplied converters
             if (setting.ObjToStr != null && setting.StrToObj != null)
@@ -618,7 +619,9 @@ namespace ConfigurationManager
 
             GUILayout.Space(3f);
             GUIHelper.BeginColor(setting);
-            GUILayout.Label(string.Empty, GUILayout.ExpandWidth(true));
+            // Use the same layout metrics as the adjacent HEX field so the preview stays
+            // vertically aligned when compact mode changes text field margins.
+            GUILayout.Label(string.Empty, GetTextStyle(isDefaultValue), GUILayout.ExpandWidth(true));
 
             if (!ColorCache.TryGetValue(obj, out var cacheEntry))
             {
