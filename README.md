@@ -32,6 +32,11 @@ The game does not take input while the window is open (only player input by defa
 
 The game will be paused (if it can be paused) while the window is open (disabled by default).
 
+### Configuration Manager settings and server policy
+All settings belonging to Configuration Manager itself are registered with Conditional Config Sync as policy-controlled settings. They remain client-controlled by default, preserving each player's local UI, input, window, text, color, and file-editor preferences.
+
+When Configuration Manager is also installed on the server, administrators can use the CCS synchronization policy to force individual settings or complete sections to server-controlled ownership. `Lock Configuration` is always server-controlled. Configuration Manager remains optional on remote peers (`ModRequired = false`), so clients without the mod can still connect.
+
 ### Hidden settings
 Create file `shudnal.ConfigurationManager.hiddensettings.json` and place next to plugin dll or in \BepInEx\config folder.
 

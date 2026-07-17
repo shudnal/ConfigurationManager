@@ -22,7 +22,7 @@ namespace ConfigurationManager
     {
         public const string GUID = "_shudnal.ConfigurationManager";
         public const string pluginName = "Valheim Configuration Manager";
-        public const string Version = "1.1.14";
+        public const string Version = "1.1.15";
 
         internal static ConfigurationManager instance;
         private static SettingFieldDrawer _fieldDrawer;
@@ -273,144 +273,144 @@ namespace ConfigurationManager
 
             _fieldDrawer = new SettingFieldDrawer(this);
 
-            _keybind = Config.Bind("General", "Show config manager", new KeyboardShortcut(KeyCode.F1),
+            _keybind = config("General", "Show config manager", new KeyboardShortcut(KeyCode.F1),
                 "The shortcut used to toggle the config manager window on and off.\n" +
                                       "The key can be overridden by a game-specific plugin if necessary, in that case this setting is ignored.");
 
-            _hideSingleSection = Config.Bind("General", "Hide single sections", false, "Show section title for plugins with only one section");
-            _loggingEnabled = Config.Bind("General", "Logging enabled", false, "Enable logging");
-            _pluginConfigCollapsedDefault = Config.Bind("General", "Plugin collapsed default", true, "If set to true plugins will be collapsed when opening the configuration manager window");
-            _textSize = Config.Bind("General", "Font size", 14, "Font size");
-            _orderPluginByGuid = Config.Bind("General", "Order plugins by GUID", false, "Default order is by plugin name");
-            _rangePrecision = Config.Bind("General", "Range field precision", 3, new ConfigDescription("Number of symbols after comma in floating-point numbers", new AcceptableValueRange<int>(2, 5)));
-            _vectorPrecision = Config.Bind("General", "Vector field precision", 2, new ConfigDescription("Number of symbols after comma in vectors", new AcceptableValueRange<int>(2, 5)));
-            _vectorDynamicPrecision = Config.Bind("General", "Vector field dynamic precision", true, "If every value in vector is integer .0 part will be omitted. Type \",\" or \".\" in vector field to enable precision back.");
-            _keybindResetPosition = Config.Bind("General", "Reset position and size", new KeyboardShortcut(KeyCode.F1, KeyCode.LeftControl), "Set configuration manager window size and position to default values.");
-            _keybindResetScale = Config.Bind("General", "Reset scale", new KeyboardShortcut(KeyCode.F1, KeyCode.LeftShift), "Set configuration manager window scale to default value.");
+            _hideSingleSection = config("General", "Hide single sections", false, "Show section title for plugins with only one section");
+            _loggingEnabled = config("General", "Logging enabled", false, "Enable logging");
+            _pluginConfigCollapsedDefault = config("General", "Plugin collapsed default", true, "If set to true plugins will be collapsed when opening the configuration manager window");
+            _textSize = config("General", "Font size", 14, "Font size");
+            _orderPluginByGuid = config("General", "Order plugins by GUID", false, "Default order is by plugin name");
+            _rangePrecision = config("General", "Range field precision", 3, new ConfigDescription("Number of symbols after comma in floating-point numbers", new AcceptableValueRange<int>(2, 5)));
+            _vectorPrecision = config("General", "Vector field precision", 2, new ConfigDescription("Number of symbols after comma in vectors", new AcceptableValueRange<int>(2, 5)));
+            _vectorDynamicPrecision = config("General", "Vector field dynamic precision", true, "If every value in vector is integer .0 part will be omitted. Type \",\" or \".\" in vector field to enable precision back.");
+            _keybindResetPosition = config("General", "Reset position and size", new KeyboardShortcut(KeyCode.F1, KeyCode.LeftControl), "Set configuration manager window size and position to default values.");
+            _keybindResetScale = config("General", "Reset scale", new KeyboardShortcut(KeyCode.F1, KeyCode.LeftShift), "Set configuration manager window scale to default value.");
 
             _orderPluginByGuid.SettingChanged += (sender, args) => BuildSettingList();
 
-            _splitView = Config.Bind("General - Window", "Split View", true, "If enabled - plugins will be shown in the left column and plugin settings will be shown in the right column.");
-            _scaleFactor = Config.Bind("General - Window", "Scale factor", 1f, new ConfigDescription("Scale factor of configuration manager window. Triple click on configuration manager window title to reset scale.", new AcceptableValueRange<float>(0.5f, 2.5f)));
-            _splitViewListSize = Config.Bind("General - Window", "Split View list relative size", 0.33f, new ConfigDescription("Relative size (percentage of window width) of split view plugin names list", new AcceptableValueRange<float>(0.1f, 0.5f)));
-            _columnSeparatorPosition = Config.Bind("General - Window", "Setting name relative size", 0.4f, new ConfigDescription("Relative position of virtual line separating setting name from value", new AcceptableValueRange<float>(0.2f, 0.6f)));
+            _splitView = config("General - Window", "Split View", true, "If enabled - plugins will be shown in the left column and plugin settings will be shown in the right column.");
+            _scaleFactor = config("General - Window", "Scale factor", 1f, new ConfigDescription("Scale factor of configuration manager window. Triple click on configuration manager window title to reset scale.", new AcceptableValueRange<float>(0.5f, 2.5f)));
+            _splitViewListSize = config("General - Window", "Split View list relative size", 0.33f, new ConfigDescription("Relative size (percentage of window width) of split view plugin names list", new AcceptableValueRange<float>(0.1f, 0.5f)));
+            _columnSeparatorPosition = config("General - Window", "Setting name relative size", 0.4f, new ConfigDescription("Relative position of virtual line separating setting name from value", new AcceptableValueRange<float>(0.2f, 0.6f)));
 
             CalculateDefaultWindowRect();
 
-            _windowPosition = Config.Bind("General - Window", "Window position", GetDefaultManagerWindowPosition(), "Window position. Double click on window title to reset position.");
-            _windowSize = Config.Bind("General - Window", "Window size", GetDefaultManagerWindowSize(), "Window size. Double click on window title to reset size.");
-            _showEditButton = Config.Bind("General - Window", "Show Edit button next to config values", true, "Show hoverable block to get tooltip.");
-            _compactConfigList = Config.Bind("General - Window", "Compact config list", true, "Reduce vertical spacing between configuration rows.");
+            _windowPosition = config("General - Window", "Window position", GetDefaultManagerWindowPosition(), "Window position. Double click on window title to reset position.");
+            _windowSize = config("General - Window", "Window size", GetDefaultManagerWindowSize(), "Window size. Double click on window title to reset size.");
+            _showEditButton = config("General - Window", "Show Edit button next to config values", true, "Show hoverable block to get tooltip.");
+            _compactConfigList = config("General - Window", "Compact config list", true, "Reduce vertical spacing between configuration rows.");
 
-            _editableExtensions = Config.Bind("General - File Editor", "Editable files", "json,yaml,yml,cfg", "Comma separated list of extensions");
-            _hideModConfigs = Config.Bind("General - File Editor", "Hide mod configs", true, "Hide .cfg files with mod configurations generated by BepInEx" +
+            _editableExtensions = config("General - File Editor", "Editable files", "json,yaml,yml,cfg", "Comma separated list of extensions");
+            _hideModConfigs = config("General - File Editor", "Hide mod configs", true, "Hide .cfg files with mod configurations generated by BepInEx" +
                                                                                                                 "\nIt is meant to be edited in configuration manager main window." +
                                                                                                                 "\nConfigurations from inactive mod will be loaded anyway");
-            _showEmptyFolders = Config.Bind("General - File Editor", "Show empty folders", false, "Hide or show directories with no files");
-            _windowPositionTextEditor = Config.Bind("General - File Editor", "Window position", GetDefaultTextEditorWindowPosition(), "Window position. Double click on window title to reset position.");
-            _windowSizeTextEditor = Config.Bind("General - File Editor", "Window size", GetDefaultTextEditorWindowSize(), "Window size. Double click on window title to reset size.");
-            _showTrashBin = Config.Bind("General - File Editor", "Show Trash Bin in file editor", true, "Show configuration manager trash bin folder in list.");
-            _showFullName = Config.Bind("General - File Editor", "Show full name of active file", true, "Show full name of active file.");
+            _showEmptyFolders = config("General - File Editor", "Show empty folders", false, "Hide or show directories with no files");
+            _windowPositionTextEditor = config("General - File Editor", "Window position", GetDefaultTextEditorWindowPosition(), "Window position. Double click on window title to reset position.");
+            _windowSizeTextEditor = config("General - File Editor", "Window size", GetDefaultTextEditorWindowSize(), "Window size. Double click on window title to reset size.");
+            _showTrashBin = config("General - File Editor", "Show Trash Bin in file editor", true, "Show configuration manager trash bin folder in list.");
+            _showFullName = config("General - File Editor", "Show full name of active file", true, "Show full name of active file.");
 
-            _windowPositionEditSetting = Config.Bind("General - Setting Edit Window", "Window position", GetDefaultEditSettingWindowPosition(), "Window position. Double click on window title to reset position.");
-            _windowSizeEditSetting = Config.Bind("General - Setting Edit Window", "Window size", GetDefaultEditSettingWindowSize(), "Window size. Double click on window title to reset size.");
+            _windowPositionEditSetting = config("General - Setting Edit Window", "Window position", GetDefaultEditSettingWindowPosition(), "Window position. Double click on window title to reset position.");
+            _windowSizeEditSetting = config("General - Setting Edit Window", "Window size", GetDefaultEditSettingWindowSize(), "Window size. Double click on window title to reset size.");
 
-            _sortCategoriesByName = Config.Bind("General - Categories", "Sort by name", false, "If disabled, categories will be sorted in the order in which they were declared by the mod author.");
-            _categoriesCollapseable = Config.Bind("General - Categories", "Collapsable categories", true, "Categories can be collapsed to reduce lagging and to ease scrolling.");
-            _categoriesCollapsedDefault = Config.Bind("General - Categories", "Collapsed by default", true, "If set to true plugin categories will be collapsed by default if plugin has more than 20 categories." +
+            _sortCategoriesByName = config("General - Categories", "Sort by name", false, "If disabled, categories will be sorted in the order in which they were declared by the mod author.");
+            _categoriesCollapseable = config("General - Categories", "Collapsable categories", true, "Categories can be collapsed to reduce lagging and to ease scrolling.");
+            _categoriesCollapsedDefault = config("General - Categories", "Collapsed by default", true, "If set to true plugin categories will be collapsed by default if plugin has more than 20 categories." +
                                                                                                             "\nCategories with non default values will not be collapsed.");
 
             _sortCategoriesByName.SettingChanged += (sender, args) => BuildSettingList();
             _categoriesCollapseable.SettingChanged += (sender, args) => BuildSettingList();
             _categoriesCollapsedDefault.SettingChanged += (sender, args) => BuildSettingList();
 
-            _showAdvanced = Config.Bind("Filtering", "Show advanced", false);
-            _showKeybinds = Config.Bind("Filtering", "Show only keybinds", false);
-            _readOnlyStyle = Config.Bind("Filtering", "Style readonly entries", ReadOnlyStyle.Colored, "Entries marked as readonly are not available for change.");
+            _showAdvanced = config("Filtering", "Show advanced", false, "Show only configs with Advanced tag");
+            _showKeybinds = config("Filtering", "Show only keybinds", false, "Show only KeyboardShortcut configs");
+            _readOnlyStyle = config("Filtering", "Style readonly entries", ReadOnlyStyle.Colored, "Entries marked as readonly are not available for change.");
 
             _readOnlyStyle.SettingChanged += (sender, args) => BuildSettingList();
 
-            _textEditorFontSize = Config.Bind("File editor - Text style", "Font size", 14, "Font size of text editor");
-            _textEditorFontColor = Config.Bind("File editor - Text style", "Font color", new Color(0.9f, 0.9f, 0.9f, 1f), "Font color of text editor");
-            _textEditorWordWrap = Config.Bind("File editor - Text style", "Word wrap", true, "Word wrap of text editor");
-            _textEditorAlignment = Config.Bind("File editor - Text style", "Text alignment", TextAnchor.UpperLeft, "Text alignment of text editor");
-            _textEditorRichText = Config.Bind("File editor - Text style", "Rich text", true, "Rich text of text editor");
+            _textEditorFontSize = config("File editor - Text style", "Font size", 14, "Font size of text editor");
+            _textEditorFontColor = config("File editor - Text style", "Font color", new Color(0.9f, 0.9f, 0.9f, 1f), "Font color of text editor");
+            _textEditorWordWrap = config("File editor - Text style", "Word wrap", true, "Word wrap of text editor");
+            _textEditorAlignment = config("File editor - Text style", "Text alignment", TextAnchor.UpperLeft, "Text alignment of text editor");
+            _textEditorRichText = config("File editor - Text style", "Rich text", true, "Rich text of text editor");
 
-            _windowTitle = Config.Bind("Text - Menu", "Window Title", "Configuration Manager", "Window title text");
-            _normalText = Config.Bind("Text - Menu", "Normal", "Normal", "Normal settings toggle text");
-            _shortcutsText = Config.Bind("Text - Menu", "Keybinds", "Keybinds only", "Keybinds key settings toggle text");
-            _shortcutsTextTooltip = Config.Bind("Text - Menu", "Keybinds tooltip", "Show only plugins and settings with keybind shortcuts", "Keybinds toolip toggle text");
-            _advancedText = Config.Bind("Text - Menu", "Advanced", "Advanced", "Advanced settings toggle text");
-            _advancedTextTooltip = Config.Bind("Text - Menu", "Advanced tooltip", "Show plugins and settings marked by author as advanced." +
+            _windowTitle = config("Text - Menu", "Window Title", "Configuration Manager", "Window title text");
+            _normalText = config("Text - Menu", "Normal", "Normal", "Normal settings toggle text");
+            _shortcutsText = config("Text - Menu", "Keybinds", "Keybinds only", "Keybinds key settings toggle text");
+            _shortcutsTextTooltip = config("Text - Menu", "Keybinds tooltip", "Show only plugins and settings with keybind shortcuts", "Keybinds toolip toggle text");
+            _advancedText = config("Text - Menu", "Advanced", "Advanced", "Advanced settings toggle text");
+            _advancedTextTooltip = config("Text - Menu", "Advanced tooltip", "Show plugins and settings marked by author as advanced." +
                 "\nFor example BepInEx settings are marked as advanced.", "Advanced settings toggle tooltip");
-            _compactListText = Config.Bind("Text - Menu", "Compact list", "Compact", "Compact config list toggle text");
-            _compactListTextTooltip = Config.Bind("Text - Menu", "Compact list tooltip", "Reduce vertical spacing between configuration rows.", "Compact config list toggle tooltip");
-            _closeText = Config.Bind("Text - Menu", "Close", "Close", "Close button text");
-            _searchText = Config.Bind("Text - Menu", "Search placeholder", "Search settings", "Search placeholder text");
-            _noOptionsPluginsText = Config.Bind("Text - Menu", "Plugins without options", "Plugins with no options available", "Text in footer");
-            _viewModeListViewText = Config.Bind("Text - Menu", "List View", "List View", "Text for button to change to single column legacy view mode");
-            _viewModeSplitViewText = Config.Bind("Text - Menu", "Split View", "Split View", "Text for button to change to split view mode");
-            _editText = Config.Bind("Text - Menu", "Edit", "Edit", "Text for button to open edit setting window");
+            _compactListText = config("Text - Menu", "Compact list", "Compact", "Compact config list toggle text");
+            _compactListTextTooltip = config("Text - Menu", "Compact list tooltip", "Reduce vertical spacing between configuration rows.", "Compact config list toggle tooltip");
+            _closeText = config("Text - Menu", "Close", "Close", "Close button text");
+            _searchText = config("Text - Menu", "Search placeholder", "Search settings", "Search placeholder text");
+            _noOptionsPluginsText = config("Text - Menu", "Plugins without options", "Plugins with no options available", "Text in footer");
+            _viewModeListViewText = config("Text - Menu", "List View", "List View", "Text for button to change to single column legacy view mode");
+            _viewModeSplitViewText = config("Text - Menu", "Split View", "Split View", "Text for button to change to split view mode");
+            _editText = config("Text - Menu", "Edit", "Edit", "Text for button to open edit setting window");
 
-            _toggleTextEditorText = Config.Bind("Text - File Editor", "Open button", "Show File Editor", "Open file editor label text");
-            _searchTextEditor = Config.Bind("Text - File Editor", "Search", "Search:", "Search label text");
-            _saveFileTextEditor = Config.Bind("Text - File Editor", "Save", "Save", "Save changes in file");
-            _windowTitleTextEditor = Config.Bind("Text - File Editor", "Title", "Configuration Files Editor", "Window title");
-            _extensionsTitleTextEditor = Config.Bind("Text - File Editor", "Extensions label", "Files:", "Label for extension list");
-            _validateJsonTextEditor = Config.Bind("Text - File Editor", "JSON validation button", "Validate JSON", "Button for JSON validation");
-            _validateYamlTextEditor = Config.Bind("Text - File Editor", "YAML validation button", "Validate YAML", "Button for YAML validation");
-            _newFileLabelTextEditor = Config.Bind("Text - File Editor", "New file label", "File:", "Label for new file name");
-            _newFolderLabelTextEditor = Config.Bind("Text - File Editor", "New folder label", "Folder:", "Label for new folder name");
-            _newEntryOKButtonTextEditor = Config.Bind("Text - File Editor", "New object confirmation button", "OK", "Label for confirmation button");
-            _fileExistsTextEditor = Config.Bind("Text - File Editor", "Error text file exists", "File already exists", "Error text if file already exists");
-            _newFolderButtonTextEditor = Config.Bind("Text - File Editor", "New folder", "New folder", "Text for new folder button");
-            _newFileButtonTextEditor = Config.Bind("Text - File Editor", "New file", "New file", "Text for new file button");
-            _renameFileButtonTextEditor = Config.Bind("Text - File Editor", "Rename", "Rename", "Text for Rename button");
-            _deleteFileButtonTextEditor = Config.Bind("Text - File Editor", "Delete", "Delete", "Text for Delete button");
-            _deleteFileTooltipTextEditor = Config.Bind("Text - File Editor", "Delete tooltip", "File will be moved into Trash Bin", "Tooltip for Delete button");
-            _showEmptyTextEditor = Config.Bind("Text - File Editor", "Show empty folders", "Show empty folders", "Text for show empty folders toggle");
-            _showTrashBinTextEditor = Config.Bind("Text - File Editor", "Show Trash Bin", "Show Trash Bin", "Text for show trash bin toggle");
-            _showFullNameTextEditor = Config.Bind("Text - File Editor", "Show file name", "Show file name", "Text for show file name toggle");
-            _showFullNameTooltipTextEditor = Config.Bind("Text - File Editor", "Show file name tooltip", "Show full name of active file", "Text for show file name toggle tooltip");
-            _fileIsValidJsonTextEditor = Config.Bind("Text - File Editor", "File is valid JSON", "File is valid JSON", "Text for JSON validation result");
-            _fileIsNotValidJsonTextEditor = Config.Bind("Text - File Editor", "File is not valid JSON", "File is not valid JSON", "Text for JSON validation result");
-            _fileIsValidYamlTextEditor = Config.Bind("Text - File Editor", "File is valid YAML", "File is valid YAML", "Text for YAML validation result");
-            _fileIsNotValidYamlTextEditor = Config.Bind("Text - File Editor", "File is not valid YAML", "File is not valid YAML", "Text for YAML validation result");
+            _toggleTextEditorText = config("Text - File Editor", "Open button", "Show File Editor", "Open file editor label text");
+            _searchTextEditor = config("Text - File Editor", "Search", "Search:", "Search label text");
+            _saveFileTextEditor = config("Text - File Editor", "Save", "Save", "Save changes in file");
+            _windowTitleTextEditor = config("Text - File Editor", "Title", "Configuration Files Editor", "Window title");
+            _extensionsTitleTextEditor = config("Text - File Editor", "Extensions label", "Files:", "Label for extension list");
+            _validateJsonTextEditor = config("Text - File Editor", "JSON validation button", "Validate JSON", "Button for JSON validation");
+            _validateYamlTextEditor = config("Text - File Editor", "YAML validation button", "Validate YAML", "Button for YAML validation");
+            _newFileLabelTextEditor = config("Text - File Editor", "New file label", "File:", "Label for new file name");
+            _newFolderLabelTextEditor = config("Text - File Editor", "New folder label", "Folder:", "Label for new folder name");
+            _newEntryOKButtonTextEditor = config("Text - File Editor", "New object confirmation button", "OK", "Label for confirmation button");
+            _fileExistsTextEditor = config("Text - File Editor", "Error text file exists", "File already exists", "Error text if file already exists");
+            _newFolderButtonTextEditor = config("Text - File Editor", "New folder", "New folder", "Text for new folder button");
+            _newFileButtonTextEditor = config("Text - File Editor", "New file", "New file", "Text for new file button");
+            _renameFileButtonTextEditor = config("Text - File Editor", "Rename", "Rename", "Text for Rename button");
+            _deleteFileButtonTextEditor = config("Text - File Editor", "Delete", "Delete", "Text for Delete button");
+            _deleteFileTooltipTextEditor = config("Text - File Editor", "Delete tooltip", "File will be moved into Trash Bin", "Tooltip for Delete button");
+            _showEmptyTextEditor = config("Text - File Editor", "Show empty folders", "Show empty folders", "Text for show empty folders toggle");
+            _showTrashBinTextEditor = config("Text - File Editor", "Show Trash Bin", "Show Trash Bin", "Text for show trash bin toggle");
+            _showFullNameTextEditor = config("Text - File Editor", "Show file name", "Show file name", "Text for show file name toggle");
+            _showFullNameTooltipTextEditor = config("Text - File Editor", "Show file name tooltip", "Show full name of active file", "Text for show file name toggle tooltip");
+            _fileIsValidJsonTextEditor = config("Text - File Editor", "File is valid JSON", "File is valid JSON", "Text for JSON validation result");
+            _fileIsNotValidJsonTextEditor = config("Text - File Editor", "File is not valid JSON", "File is not valid JSON", "Text for JSON validation result");
+            _fileIsValidYamlTextEditor = config("Text - File Editor", "File is valid YAML", "File is valid YAML", "Text for YAML validation result");
+            _fileIsNotValidYamlTextEditor = config("Text - File Editor", "File is not valid YAML", "File is not valid YAML", "Text for YAML validation result");
             
-            _wordWrapTextEditor = Config.Bind("Text - File Editor", "Word wrap", "Word wrap", "Text for word wrap toggle");
-            _richTextTextEditor = Config.Bind("Text - File Editor", "Rich text", "Rich text", "Text for rich text toggle");
-            _richTextFontSize = Config.Bind("Text - File Editor", "Font size", "Font size: ", "Text for font size field");
+            _wordWrapTextEditor = config("Text - File Editor", "Word wrap", "Word wrap", "Text for word wrap toggle");
+            _richTextTextEditor = config("Text - File Editor", "Rich text", "Rich text", "Text for rich text toggle");
+            _richTextFontSize = config("Text - File Editor", "Font size", "Font size: ", "Text for font size field");
 
-            _defaultValueDescriptionEditWindow = Config.Bind("Text - Edit Window", "Default value description", "Default: ", "Label for default value");
-            _pressEscapeHintEditWindow = Config.Bind("Text - Edit Window", "Press Escape hint", "Press Escape to close window", "Hint in window bottom");
-            _applyButtonEditWindow = Config.Bind("Text - Edit Window", "Apply button", "Apply", "Apply button label");
-            _editAsLabelEditWindow = Config.Bind("Text - Edit Window", "Edit as label", "Edit as: ", "Label for edit as element");
-            _editAsTextEditWindow = Config.Bind("Text - Edit Window", "Edit as text", "Text", "Label for edit as Text button");
-            _editAsListEditWindow = Config.Bind("Text - Edit Window", "Edit as list", "List", "Label for edit as List button");
-            _separatorLabelEditWindow = Config.Bind("Text - Edit Window", "Separator lable", "Separator: ", "Label for separator field");
-            _trimWhitespaceButtonEditWindow = Config.Bind("Text - Edit Window", "Trim whitespace button", "Trim whitespace", "Text for trim whitespace button");
-            _rangeLabelEditWindow = Config.Bind("Text - Edit Window", "Range label", "Range: ", "Label for Range field");
-            _addButtonEditWindow = Config.Bind("Text - Edit Window", "Add button", "Add", "Label for add button");
-            _newValuePlaceholderEditWindow = Config.Bind("Text - Edit Window", "New value placeholder", "Enter new value", "Label for new value placeholder in list view");
-            _precisionLabelEditWindow = Config.Bind("Text - Edit Window", "Precision label", "Precision", "Label for vector precision field");
+            _defaultValueDescriptionEditWindow = config("Text - Edit Window", "Default value description", "Default: ", "Label for default value");
+            _pressEscapeHintEditWindow = config("Text - Edit Window", "Press Escape hint", "Press Escape to close window", "Hint in window bottom");
+            _applyButtonEditWindow = config("Text - Edit Window", "Apply button", "Apply", "Apply button label");
+            _editAsLabelEditWindow = config("Text - Edit Window", "Edit as label", "Edit as: ", "Label for edit as element");
+            _editAsTextEditWindow = config("Text - Edit Window", "Edit as text", "Text", "Label for edit as Text button");
+            _editAsListEditWindow = config("Text - Edit Window", "Edit as list", "List", "Label for edit as List button");
+            _separatorLabelEditWindow = config("Text - Edit Window", "Separator lable", "Separator: ", "Label for separator field");
+            _trimWhitespaceButtonEditWindow = config("Text - Edit Window", "Trim whitespace button", "Trim whitespace", "Text for trim whitespace button");
+            _rangeLabelEditWindow = config("Text - Edit Window", "Range label", "Range: ", "Label for Range field");
+            _addButtonEditWindow = config("Text - Edit Window", "Add button", "Add", "Label for add button");
+            _newValuePlaceholderEditWindow = config("Text - Edit Window", "New value placeholder", "Enter new value", "Label for new value placeholder in list view");
+            _precisionLabelEditWindow = config("Text - Edit Window", "Precision label", "Precision", "Label for vector precision field");
 
-            _resetSettingText = Config.Bind("Text - Config", "Setting Reset", "Reset", "Reset setting text");
-            _clearText = Config.Bind("Text - Config", "Setting Clear", "Clear", "Clear search text");
-            _cancelText = Config.Bind("Text - Config", "Setting Cancel", "Cancel", "Cancel button text");
-            _enabledText = Config.Bind("Text - Config", "Toggle True", "Enabled", "Text on enabled toggle");
-            _disabledText = Config.Bind("Text - Config", "Toggle False", "Disabled", "Text on disabled toggle");
-            _shortcutKeyText = Config.Bind("Text - Config", "Shortcut key single", "Set", "Text when waiting for key press");
-            _shortcutKeysText = Config.Bind("Text - Config", "Shortcut keys combination", "Press any key", "Text when waiting for key combination");
+            _resetSettingText = config("Text - Config", "Setting Reset", "Reset", "Reset setting text");
+            _clearText = config("Text - Config", "Setting Clear", "Clear", "Clear search text");
+            _cancelText = config("Text - Config", "Setting Cancel", "Cancel", "Cancel button text");
+            _enabledText = config("Text - Config", "Toggle True", "Enabled", "Text on enabled toggle");
+            _disabledText = config("Text - Config", "Toggle False", "Disabled", "Text on disabled toggle");
+            _shortcutKeyText = config("Text - Config", "Shortcut key single", "Set", "Text when waiting for key press");
+            _shortcutKeysText = config("Text - Config", "Shortcut keys combination", "Press any key", "Text when waiting for key combination");
 
-            _windowBackgroundColor = Config.Bind("Colors", "Window background color", new Color(0, 0, 0, 1), "Window background color");
-            _entryBackgroundColor = Config.Bind("Colors", "Entry background color", new Color(0.55f, 0.5f, 0.5f, 0.94f), "Entry background color");
-            _tooltipBackgroundColor = Config.Bind("Colors", "Tooltip background color", new Color(0.55f, 0.5f, 0.45f, 0.95f), "Tooltip background color");
-            _headerBackgroundColor = Config.Bind("Colors", "Header background color", new Color(0.74f, 0.54f, 0.37f, 0.8f), "Header background color");
-            _headerBackgroundHoverColor = Config.Bind("Colors", "Header hover background color", new Color(0.88f, 0.46f, 0f, 0.8f), "Header hover background color");
-            _widgetBackgroundColor = Config.Bind("Colors", "Widget color", new Color(0.88f, 0.46f, 0, 0.8f), "Widget color");
-            _enabledBackgroundColor = Config.Bind("Colors", "Enabled toggle color", new Color(0.88f, 0.46f, 0f, 1f), "Color of enabled toggle");
-            _readOnlyColor = Config.Bind("Colors", "Readonly color", new Color(0.851f, 0.851f, 0.851f, 1f), "Color of readonly setting");
-            _editWindowBackgroundColor = Config.Bind("Colors", "Setting window background color", new Color(0.55f, 0.5f, 0.5f, 0.65f), "Setting window background color");
+            _windowBackgroundColor = config("Colors", "Window background color", new Color(0, 0, 0, 1), "Window background color");
+            _entryBackgroundColor = config("Colors", "Entry background color", new Color(0.55f, 0.5f, 0.5f, 0.94f), "Entry background color");
+            _tooltipBackgroundColor = config("Colors", "Tooltip background color", new Color(0.55f, 0.5f, 0.45f, 0.95f), "Tooltip background color");
+            _headerBackgroundColor = config("Colors", "Header background color", new Color(0.74f, 0.54f, 0.37f, 0.8f), "Header background color");
+            _headerBackgroundHoverColor = config("Colors", "Header hover background color", new Color(0.88f, 0.46f, 0f, 0.8f), "Header hover background color");
+            _widgetBackgroundColor = config("Colors", "Widget color", new Color(0.88f, 0.46f, 0, 0.8f), "Widget color");
+            _enabledBackgroundColor = config("Colors", "Enabled toggle color", new Color(0.88f, 0.46f, 0f, 1f), "Color of enabled toggle");
+            _readOnlyColor = config("Colors", "Readonly color", new Color(0.851f, 0.851f, 0.851f, 1f), "Color of readonly setting");
+            _editWindowBackgroundColor = config("Colors", "Setting window background color", new Color(0.55f, 0.5f, 0.5f, 0.65f), "Setting window background color");
 
             _windowBackgroundColor.SettingChanged += (s, e) => UpdateBackgrounds();
             _entryBackgroundColor.SettingChanged += (s, e) => UpdateBackgrounds();
@@ -419,16 +419,46 @@ namespace ConfigurationManager
             _headerBackgroundHoverColor.SettingChanged += (s, e) => UpdateBackgrounds();
             _editWindowBackgroundColor.SettingChanged += (s, e) => UpdateBackgrounds();
 
-            _fontColor = Config.Bind("Colors - Font", "Main font", new Color(1f, 0.827f, 0.463f, 1f), "Font color");
-            _fontColorValueDefault = Config.Bind("Colors - Font", "Default value", new Color(1f, 0.827f, 0.463f, 1f), "Font color");
-            _fontColorValueChanged = Config.Bind("Colors - Font", "Changed value", new Color(0.9f, 0.9f, 0.9f, 1f), "Font color when value is not default");
-            _changedSynchronizationPolicyColor = Config.Bind("Colors - Font", "Changed synchronization policy", new Color(0.45f, 0.82f, 1f, 1f), "Color of the synchronization state button when server policy changed the mod-defined behavior");
+            _fontColor = config("Colors - Font", "Main font", new Color(1f, 0.827f, 0.463f, 1f), "Font color");
+            _fontColorValueDefault = config("Colors - Font", "Default value", new Color(1f, 0.827f, 0.463f, 1f), "Font color");
+            _fontColorValueChanged = config("Colors - Font", "Changed value", new Color(0.9f, 0.9f, 0.9f, 1f), "Font color when value is not default");
+            _changedSynchronizationPolicyColor = config("Colors - Font", "Changed synchronization policy", new Color(0.45f, 0.82f, 1f, 1f), "Color of the synchronization state button when server policy changed the mod-defined behavior");
 
             currentWindowRect = new Rect(_windowPosition.Value, _windowSize.Value);
 
             _configFilesEditor = new ConfigFilesEditor();
             _configSettingWindow = new SettingEditWindow();
         }
+
+#pragma warning disable IDE1006 // Naming Styles
+        ConfigEntry<T> config<T>(string group, string name, T defaultValue, ConfigDescription description, bool synchronizedSetting = false)
+        {
+            return configSync.AddConfigEntry(
+                Config,
+                group,
+                name,
+                defaultValue,
+                description,
+                syncMode: ConfigSyncMode.Conditional,
+                serverControlledByDefault: synchronizedSetting).SourceConfig;
+        }
+
+        ConfigEntry<T> serverConfig<T>(string group, string name, T defaultValue, ConfigDescription description)
+        {
+            return configSync.AddConfigEntry(
+                Config,
+                group,
+                name,
+                defaultValue,
+                description,
+                syncMode: ConfigSyncMode.AlwaysServerControlled,
+                serverControlledByDefault: true).SourceConfig;
+        }
+
+        ConfigEntry<T> config<T>(string group, string name, T defaultValue, string description, bool synchronizedSetting = false) => config(group, name, defaultValue, new ConfigDescription(description), synchronizedSetting);
+
+        ConfigEntry<T> serverConfig<T>(string group, string name, T defaultValue, string description) => serverConfig(group, name, defaultValue, new ConfigDescription(description));
+#pragma warning restore IDE1006 // Naming Styles
 
         private Vector2 GetDefaultManagerWindowPosition() => DefaultWindowRect.position;
         private Vector2 GetDefaultManagerWindowSize() => DefaultWindowRect.size;

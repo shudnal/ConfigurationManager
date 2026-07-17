@@ -1,3 +1,8 @@
+# 1.1.15
+* Configuration Manager's own settings are now registered as Conditional Config Sync settings and remain client-controlled by default
+* server administrators can force individual Configuration Manager settings or complete sections to server-controlled ownership through CCS policy when the mod is installed on the server
+* `Lock Configuration` remains fixed server-controlled, while the mod itself remains optional on remote peers (`ModRequired = false`)
+
 # 1.1.14
 * clarified Conditional synchronization tooltips by showing mod-default policy usage and separate server-session or administrator-access requirements
 * new feature: Compact mode (enabled by default)

@@ -26,6 +26,7 @@ namespace ConfigurationManager
 
         internal static string[] hiddenSettingsFileNames = new[] { $"{GUID}.hiddensettings.json", "shudnal.ConfigurationManager.hiddensettings.json" };
 
+        public static ConfigEntry<bool> _configLocked;
         public static ConfigEntry<bool> _pauseGame;
         public static ConfigEntry<PreventInput> _preventInput;
         public static ConfigEntry<bool> _showMainMenuButton;
@@ -49,17 +50,20 @@ namespace ConfigurationManager
 
         void OnEnable()
         {
-            _pauseGame = Config.Bind("Valheim", "Pause game", false, new ConfigDescription("Pause the game (if game can be paused) when window is open"));
-            _preventInput = Config.Bind("Valheim", "Prevent input", PreventInput.Player, new ConfigDescription("Prevent input when window is open" +
-                                                                                                                        "\n Off - everything goes through" +
-                                                                                                                        "\n Player - prevent player controls and HUD buttons (console will still operate)" +
-                                                                                                                        "\n All - prevent all input events"));
-            _showMainMenuButton = Config.Bind("Valheim", "Main menu button", true, new ConfigDescription("Add button in main menu to open/close configuration manager window"));
-            _mainMenuButtonCaption = Config.Bind("Valheim", "Main menu button caption", "Mods settings", new ConfigDescription("Main menu button caption"));
-            _useValheimGuiScaleFactor = Config.Bind("Valheim", "Use Valheim GUI scaling", true, new ConfigDescription("Use Valheim scale factor from Accessibility - Scale GUI"));
+            _configLocked = serverConfig("Valheim", "Lock Configuration", defaultValue: true, "Configuration is locked and can be changed by server admins only.");
+            _pauseGame = config("Valheim", "Pause game", false, "Pause the game (if game can be paused) when window is open");
+            _preventInput = config("Valheim", "Prevent input", PreventInput.Player, "Prevent input when window is open" +
+                                                                                    "\n Off - everything goes through" +
+                                                                                    "\n Player - prevent player controls and HUD buttons (console will still operate)" +
+                                                                                    "\n All - prevent all input events");
+            _showMainMenuButton = config("Valheim", "Main menu button", true, "Add button in main menu to open/close configuration manager window");
+            _mainMenuButtonCaption = config("Valheim", "Main menu button caption", "Mods settings", "Main menu button caption");
+            _useValheimGuiScaleFactor = config("Valheim", "Use Valheim GUI scaling", true, "Use Valheim scale factor from Accessibility - Scale GUI");
 
             _showMainMenuButton.SettingChanged += (sender, args) => SetupMenuButton();
             _mainMenuButtonCaption.SettingChanged += (sender, args) => SetupMenuButton();
+
+            _ = configSync.AddLockingConfigEntry(_configLocked);
 
             harmony.PatchAll();
 
