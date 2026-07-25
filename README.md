@@ -55,15 +55,15 @@ In given file entries 1 and 2 are here for format example. 3rd string will hide 
 
 To get mod GUID ingame you can enable "Debug mode" toggle in mods header. Now mod GUID will be presented in mod tooltip on hover.
 
-Said file could also be placed on server to push that hidden settings to clients. Combined with preconfigured modpack configs you can prevent users from changing values of client-sided mods easily. Yet they can still edit files manually.
+Said file could also be placed on server to push that hidden settings to clients. Combined with preconfigured modpack configs you can prevent users from changing values of client-sided mods easily. Yet they can still edit files manually. Server administrators are identified through Conditional Config Sync's effective administrator state, so hidden settings are not applied to an authorized administrator because of delayed or stale vanilla `AdminList` data.
 
 ## Compatibility
 The mod is incompatible with original configuration manager and will not be loaded in that case.
 
-Conditional Config Sync 1.0.2 or newer is required.
+Conditional Config Sync 1.0.4 or newer is required.
 
 ## Installation (manual)
-Install Conditional Config Sync 1.0.2 or newer, then place ConfigurationManager.dll in your BepInEx\Plugins\ folder.
+Install Conditional Config Sync 1.0.4 or newer, then place ConfigurationManager.dll in your BepInEx\Plugins\ folder.
 
 ## Mirrors
 [Nexus](https://www.nexusmods.com/valheim/mods/2746)

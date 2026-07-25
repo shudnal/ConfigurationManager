@@ -186,7 +186,7 @@ namespace ConfigurationManager
 
         private bool HideSettings()
         {
-            return hiddenSettings.Value.Count > 0 && ZNet.instance != null && !ZNet.instance.LocalPlayerIsAdminOrHost();
+            return hiddenSettings.Value.Count > 0 && !configSync.IsAdmin;
         }
 
         private void SetupMenuButton()

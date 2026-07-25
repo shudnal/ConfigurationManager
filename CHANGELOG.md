@@ -1,3 +1,6 @@
+# 1.1.16
+* use Conditional Config Sync's effective administrator state when deciding whether server-provided hidden settings apply, avoiding stale vanilla `AdminList` state
+
 # 1.1.15
 * Configuration Manager's own settings are now registered as Conditional Config Sync settings and remain client-controlled by default
 * server administrators can force individual Configuration Manager settings or complete sections to server-controlled ownership through CCS policy when the mod is installed on the server
