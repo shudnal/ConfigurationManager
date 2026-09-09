@@ -1,3 +1,8 @@
+# 1.1.17
+* Updated for the Valheim 1.0.7 release.
+* Updated required dependencies to BepInExPack Valheim 5.4.2350 and ConditionalConfigSync 1.0.5.
+* Removed the legacy synchronization-provider adapter; synchronization metadata now uses Conditional Config Sync or Jotunn.
+
 # 1.1.16
 * use Conditional Config Sync's effective administrator state when deciding whether server-provided hidden settings apply, avoiding stale vanilla `AdminList` state
 

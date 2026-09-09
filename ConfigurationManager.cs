@@ -16,13 +16,13 @@ using UnityEngine;
 namespace ConfigurationManager
 {
     [BepInPlugin(GUID, pluginName, Version)]
-    [BepInDependency(PluginInfoCCS.PluginGuid, "1.0.2")]
+    [BepInDependency("_shudnal.ConditionalConfigSync", "1.0.5")]
     [BepInIncompatibility("com.bepis.bepinex.configurationmanager")]
     public partial class ConfigurationManager : BaseUnityPlugin
     {
         public const string GUID = "_shudnal.ConfigurationManager";
         public const string pluginName = "Valheim Configuration Manager";
-        public const string Version = "1.1.16";
+        public const string Version = "1.1.17";
 
         internal static ConfigurationManager instance;
         private static SettingFieldDrawer _fieldDrawer;

@@ -288,7 +288,8 @@ namespace ConfigurationManager
             private static IEnumerable<MethodBase> TargetMethods()
             {
                 yield return AccessTools.Method(typeof(InventoryGrid), nameof(InventoryGrid.OnLeftClick));
-                yield return AccessTools.Method(typeof(InventoryGrid), nameof(InventoryGrid.OnRightClick));
+                yield return AccessTools.Method(typeof(InventoryGrid), nameof(InventoryGrid.OnLeftDown));
+                yield return AccessTools.Method(typeof(InventoryGrid), nameof(InventoryGrid.OnRightDown));
                 yield return AccessTools.Method(typeof(InventoryGui), nameof(InventoryGui.OnSelectedItem));
                 yield return AccessTools.Method(typeof(InventoryGui), nameof(InventoryGui.OnRightClickItem));
                 yield return AccessTools.Method(typeof(Toggle), nameof(Toggle.OnSubmit));

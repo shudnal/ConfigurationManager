@@ -18,9 +18,6 @@
       <ThunderstorePackageDir>$(ProjectDir)package\thunderstore\$(EffectiveModName)\</ThunderstorePackageDir>
       <ThunderstoreZipPath>$(ProjectDir)package\thunderstore\$(EffectiveModName).zip</ThunderstoreZipPath>
       <ThunderstoreManifestPath>$(ThunderstorePackageDir)manifest.json</ThunderstoreManifestPath>
-      <NexusPackageDir>$(ProjectDir)package\nexus\$(EffectiveModName)\</NexusPackageDir>
-      <NexusZipPath>$(ProjectDir)package\nexus\$(EffectiveModName).zip</NexusZipPath>
-      <NexusDllPath>$(NexusPackageDir)$(TargetFileName)</NexusDllPath>
     </PropertyGroup>
 
     <Error Condition="'$(EffectiveModName)' == ''" Text="Mod name was not resolved." />
@@ -103,48 +100,9 @@
   </Target>
 
   <Target
-    Name="PrepareConfigurationManagerNexusPackage"
-    DependsOnTargets="CopyConfigurationManagerToR2ModMan">
-
-    <Error Condition="!Exists('$(TargetDir)Newtonsoft.Json.dll')" Text="Newtonsoft.Json.dll was not found in $(TargetDir)." />
-    <Error Condition="!Exists('$(TargetDir)YamlDotNet.dll')" Text="YamlDotNet.dll was not found in $(TargetDir)." />
-
-    <MakeDir Directories="$(NexusPackageDir)" />
-
-    <ItemGroup>
-      <_ConfigurationManagerNexusInputAssemblies Include="$(TargetPath)" />
-      <_ConfigurationManagerNexusInputAssemblies Include="$(TargetDir)Newtonsoft.Json.dll" />
-      <_ConfigurationManagerNexusInputAssemblies Include="$(TargetDir)YamlDotNet.dll" />
-    </ItemGroup>
-
-    <ILRepack
-      Parallel="true"
-      DebugInfo="true"
-      Internalize="true"
-      InputAssemblies="@(_ConfigurationManagerNexusInputAssemblies)"
-      OutputFile="$(NexusDllPath)"
-      TargetKind="SameAsPrimaryAssembly"
-      LibraryPath="$(TargetDir)" />
-
-    <Message Text="Nexus DLL created without embedding ConditionalConfigSync: $(NexusDllPath)" Importance="High" />
-  </Target>
-
-  <Target
-    Name="ZipConfigurationManagerNexusPackage"
-    DependsOnTargets="PrepareConfigurationManagerNexusPackage">
-
-    <ZipDirectory
-      SourceDirectory="$(NexusPackageDir)"
-      DestinationFile="$(NexusZipPath)"
-      Overwrite="true" />
-
-    <Message Text="Nexus archive created: $(NexusZipPath)" Importance="High" />
-  </Target>
-
-  <Target
     Name="PublishConfigurationManagerAfterBuild"
     AfterTargets="Build"
     Condition="'$(DesignTimeBuild)' != 'true'"
-    DependsOnTargets="ZipConfigurationManagerNexusPackage" />
+    DependsOnTargets="CopyConfigurationManagerToR2ModMan" />
 
 </Project>
