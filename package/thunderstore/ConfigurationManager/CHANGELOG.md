@@ -1,4 +1,4 @@
-﻿# 1.1.18
+# 1.1.18
 * Stopped writing window geometry on every IMGUI pass while dragging or resizing; manager, file editor, and setting editor now keep geometry in memory during pointer movement and persist it once after release.
 * Batched Configuration Manager window geometry changes into a single physical `Config.Save()` instead of triggering one auto-save per config entry plus an additional explicit save.
 * Fixed dropdowns appearing at the window origin after hover isolation; popup anchoring no longer depends on the temporarily masked pointer.
