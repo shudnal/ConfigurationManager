@@ -52,6 +52,8 @@ namespace ConfigurationManager
 
         private bool _isOpen;
         private bool _clearCache;
+        private bool _windowGeometryDirty;
+        private Vector2? _pendingWindowSize;
 
         private void SetFileEditState(FileEditState newState)
         {
@@ -77,8 +79,20 @@ namespace ConfigurationManager
             get => _isOpen;
             set
             {
-                if (_isOpen != (_isOpen = value))
-                    ClearCache();
+                if (_isOpen == value)
+                    return;
+
+                if (_isOpen && !value && _windowGeometryDirty)
+                    SaveCurrentSizeAndPosition();
+
+                _isOpen = value;
+                if (_isOpen)
+                {
+                    _windowRect = new Rect(_windowPositionTextEditor.Value, _windowSizeTextEditor.Value);
+                    _windowGeometryDirty = false;
+                    _pendingWindowSize = null;
+                }
+                ClearCache();
             }
         }
 
@@ -87,19 +101,30 @@ namespace ConfigurationManager
             if (!IsOpen)
                 return;
 
-            _windowRect.size = _windowSizeTextEditor.Value;
-            _windowRect.position = _windowPositionTextEditor.Value;
+            if (!_windowGeometryDirty)
+            {
+                _windowRect.size = _windowSizeTextEditor.Value;
+                _windowRect.position = _windowPositionTextEditor.Value;
+            }
 
             Color color = GUI.backgroundColor;
             GUI.backgroundColor = _windowBackgroundColor.Value;
 
-            _windowRect = GUI.Window(WindowId, _windowRect, DrawWindow,
+            Rect drawnWindowRect = GUI.Window(WindowId, _windowRect, DrawWindow,
                 _activeFile.IsNullOrWhiteSpace()
                     ? _windowTitleTextEditor.Value
                     : "..." + _activeFile.Replace(Path.GetDirectoryName(Paths.BepInExRootPath) ?? string.Empty, ""), GetWindowStyle());
+            if (_pendingWindowSize.HasValue)
+            {
+                drawnWindowRect.size = _pendingWindowSize.Value;
+                _pendingWindowSize = null;
+            }
+            _windowRect = drawnWindowRect;
 
-            if (!UnityInput.Current.GetKeyDown(KeyCode.Mouse0) &&
-                (_windowRect.position != _windowPositionTextEditor.Value))
+            if (_windowRect.position != _windowPositionTextEditor.Value)
+                _windowGeometryDirty = true;
+
+            if (_windowGeometryDirty && !UnityInput.Current.GetMouseButton(0))
                 SaveCurrentSizeAndPosition();
 
             GUI.backgroundColor = color;
@@ -107,9 +132,22 @@ namespace ConfigurationManager
 
         internal void SaveCurrentSizeAndPosition()
         {
-            _windowSizeTextEditor.Value = new Vector2(Mathf.Clamp(_windowRect.size.x, 1000f / instance.ScaleFactor, instance.ScreenWidth), Mathf.Clamp(_windowRect.size.y, 600f / instance.ScaleFactor, instance.ScreenHeight));
-            _windowPositionTextEditor.Value = new Vector2(Mathf.Clamp(_windowRect.position.x, 0f, instance.ScreenWidth - _windowSize.Value.x / 4f), Mathf.Clamp(_windowRect.position.y, 0f, instance.ScreenHeight - HeaderSize * 2));
-            instance.Config.Save();
+            Vector2 windowSize = new Vector2(
+                Mathf.Clamp(_windowRect.size.x, 1000f / instance.ScaleFactor, instance.ScreenWidth),
+                Mathf.Clamp(_windowRect.size.y, 600f / instance.ScaleFactor, instance.ScreenHeight));
+            Vector2 windowPosition = new Vector2(
+                Mathf.Clamp(_windowRect.position.x, 0f, instance.ScreenWidth - windowSize.x / 4f),
+                Mathf.Clamp(_windowRect.position.y, 0f, instance.ScreenHeight - HeaderSize * 2));
+
+            instance.SaveOwnConfigChanges(() =>
+            {
+                _windowSizeTextEditor.Value = windowSize;
+                _windowPositionTextEditor.Value = windowPosition;
+            });
+
+            _windowRect = new Rect(windowPosition, windowSize);
+            _windowGeometryDirty = false;
+            _pendingWindowSize = null;
         }
 
         private void DrawFilters()
@@ -118,13 +156,13 @@ namespace ConfigurationManager
             {
                 string label = _extensionsTitleTextEditor.Value;
                 GUILayout.Label(label, GetLabelStyle(), GUILayout.Width(GetLabelStyle().CalcSize(new GUIContent(label)).x + 2));
-                _editableExtensions.Value = GUILayout.TextField(_editableExtensions.Value, GetTextStyle(), GUILayout.ExpandWidth(true));
+                _editableExtensions.Value = GUILayout.TextField(_editableExtensions.Value, GetTextStyle(), Utilities.GUIHelper.ExpandWidth);
 
                 Color color = GUI.backgroundColor;
                 if (_hideModConfigs.Value)
                     GUI.backgroundColor = _enabledBackgroundColor.Value;
 
-                _hideModConfigs.Value = GUILayout.Toggle(_hideModConfigs.Value, new GUIContent(_hideModConfigs.Definition.Key, _hideModConfigs.Description.Description), GetToggleStyle(), GUILayout.ExpandWidth(false));
+                _hideModConfigs.Value = Utilities.GUITooltips.Toggle(_hideModConfigs.Value, new GUIContent(_hideModConfigs.Definition.Key, _hideModConfigs.Description.Description), GetToggleStyle(), Utilities.GUIHelper.FixedWidth);
                 GUI.backgroundColor = color;
             }
             GUILayout.EndHorizontal();
@@ -137,7 +175,7 @@ namespace ConfigurationManager
                 GUILayout.Label(_searchTextEditor.Value, GetLabelStyle(), GUILayout.Width(GetLabelStyle().CalcSize(new GUIContent(_searchTextEditor.Value)).x + 4));
 
                 GUI.SetNextControlName(SearchBoxName);
-                SearchString = GUILayout.TextField(SearchString, GetTextStyle(), GUILayout.ExpandWidth(true));
+                SearchString = GUILayout.TextField(SearchString, GetTextStyle(), Utilities.GUIHelper.ExpandWidth);
 
                 if (_focusSearchBox)
                 {
@@ -147,13 +185,13 @@ namespace ConfigurationManager
                 }
                 Color color = GUI.backgroundColor;
                 GUI.backgroundColor = _widgetBackgroundColor.Value;
-                if (GUILayout.Button(_clearText.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
+                if (GUILayout.Button(_clearText.Value, GetButtonStyle(), Utilities.GUIHelper.FixedWidth))
                     SearchString = string.Empty;
                 GUI.backgroundColor = color;
             }
             GUILayout.EndHorizontal();
         }
-        
+
         private void DrawContentButtons()
         {
             GUILayout.BeginHorizontal();
@@ -162,8 +200,8 @@ namespace ConfigurationManager
                 try
                 {
                     GUI.enabled = fileIsActive && _fileContent != File.ReadAllText(_activeFile);
-                    
-                    if (GUILayout.Button(_saveFileTextEditor.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
+
+                    if (GUILayout.Button(_saveFileTextEditor.Value, GetButtonStyle(), Utilities.GUIHelper.FixedWidth))
                         File.WriteAllText(_activeFile, _fileContent);
                 }
                 catch (Exception e)
@@ -176,23 +214,23 @@ namespace ConfigurationManager
                 }
 
                 GUI.enabled = fileIsActive;
-                
-                if (GUILayout.Button(_validateJsonTextEditor.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
+
+                if (GUILayout.Button(_validateJsonTextEditor.Value, GetButtonStyle(), Utilities.GUIHelper.FixedWidth))
                     _errorText = IsValidJSON(_fileContent);
-                if (GUILayout.Button(_validateYamlTextEditor.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
+                if (GUILayout.Button(_validateYamlTextEditor.Value, GetButtonStyle(), Utilities.GUIHelper.FixedWidth))
                     _errorText = IsValidYAML(_fileContent);
 
                 GUI.enabled = true;
 
-                GUILayout.Label(_errorText, GetLabelStyle(isDefaultValue:false), GUILayout.ExpandWidth(true));
+                GUILayout.Label(_errorText, GetLabelStyle(isDefaultValue:false), Utilities.GUIHelper.ExpandWidth);
 
-                GUILayout.Label(_richTextFontSize.Value, GetLabelStyle(), GUILayout.ExpandWidth(false));
+                GUILayout.Label(_richTextFontSize.Value, GetLabelStyle(), Utilities.GUIHelper.FixedWidth);
                 if (int.TryParse(GUILayout.TextField(_textEditorFontSize.Value.ToFastString(), GetTextStyle(_textEditorFontSize.Value, (int)_textEditorFontSize.DefaultValue), GUILayout.Width(30)), out int fontSize))
                     _textEditorFontSize.Value = fontSize;
 
-                _textEditorWordWrap.Value = GUILayout.Toggle(_textEditorWordWrap.Value, _wordWrapTextEditor.Value, GetToggleStyle(), GUILayout.ExpandWidth(false));
-                _textEditorRichText.Value = GUILayout.Toggle(_textEditorRichText.Value, _richTextTextEditor.Value, GetToggleStyle(), GUILayout.ExpandWidth(false));
-                if (GUILayout.Button(_closeText.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
+                _textEditorWordWrap.Value = GUILayout.Toggle(_textEditorWordWrap.Value, _wordWrapTextEditor.Value, GetToggleStyle(), Utilities.GUIHelper.FixedWidth);
+                _textEditorRichText.Value = GUILayout.Toggle(_textEditorRichText.Value, _richTextTextEditor.Value, GetToggleStyle(), Utilities.GUIHelper.FixedWidth);
+                if (GUILayout.Button(_closeText.Value, GetButtonStyle(), Utilities.GUIHelper.FixedWidth))
                     IsOpen = false;
             }
             GUILayout.EndHorizontal();
@@ -200,66 +238,79 @@ namespace ConfigurationManager
 
         private void DrawWindow(int windowID)
         {
-            GUILayout.BeginHorizontal();
+            Utilities.GUITooltips.BeginWindow(_windowRect);
+            Utilities.ComboBox.BeginWindow(windowID, _windowRect);
+            try
             {
-                var backgroundColor = GUI.backgroundColor;
-                GUI.backgroundColor = _entryBackgroundColor.Value;
-
-                // Tree
-                GUILayout.BeginVertical(GetBackgroundStyle(), GUILayout.MaxWidth(GetFileListWidth()));
+                GUILayout.BeginHorizontal();
                 {
-                    DrawFilters();
+                    var backgroundColor = GUI.backgroundColor;
+                    GUI.backgroundColor = _entryBackgroundColor.Value;
 
-                    DrawSearchBox();
-
-                    _scrollPosition = GUILayout.BeginScrollView(_scrollPosition, GUILayout.Width(_windowRect.width * 0.3f));
-                    _directoryDepth = 0;
-                    DrawDirectories(_directories);
-                    GUILayout.EndScrollView();
-                    DrawDirectoriesMenu();
-                }
-                GUILayout.EndVertical();
-
-                // Content
-                GUILayout.BeginVertical(GetBackgroundStyle(), GUILayout.MaxWidth(_windowRect.width * 0.7f));
-                {
-                    DrawContentButtons();
-
-                    _textScrollPosition = GUILayout.BeginScrollView(_textScrollPosition);
-
-                    GUI.enabled = File.Exists(_activeFile);
-                    
-                    GUI.SetNextControlName(TextEditorControlName);
-                    _fileContent = GUILayout.TextArea(_fileContent, GetFileEditorTextArea(), GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(true));
-                    
-                    if (_focusTextArea || GUI.GetNameOfFocusedControl() == TextEditorControlName)
+                    // Tree
+                    GUILayout.BeginVertical(GetBackgroundStyle(), GUILayout.MaxWidth(GetFileListWidth()));
                     {
-                        GUI.FocusWindow(WindowId);
-                        GUI.FocusControl(TextEditorControlName);
-                        _focusTextArea = false;
+                        DrawFilters();
+
+                        DrawSearchBox();
+
+                        _scrollPosition = Utilities.GUITooltips.BeginScrollView(_scrollPosition, GUILayout.Width(_windowRect.width * 0.3f));
+                        _directoryDepth = 0;
+                        DrawDirectories(_directories);
+                        Utilities.GUITooltips.EndScrollView();
+                        DrawDirectoriesMenu();
                     }
+                    GUILayout.EndVertical();
 
-                    GUI.enabled = true;
-                    GUILayout.EndScrollView();
+                    // Content
+                    GUILayout.BeginVertical(GetBackgroundStyle(), GUILayout.MaxWidth(_windowRect.width * 0.7f));
+                    {
+                        DrawContentButtons();
 
-                    if (_showFullName.Value)
-                        GUILayout.TextField(_activeFile, GetTextStyle(), GUILayout.ExpandWidth(true));
+                        _textScrollPosition = Utilities.GUITooltips.BeginScrollView(_textScrollPosition);
+
+                        GUI.enabled = File.Exists(_activeFile);
+
+                        GUI.SetNextControlName(TextEditorControlName);
+                        _fileContent = GUILayout.TextArea(_fileContent, GetFileEditorTextArea(), GUILayout.ExpandHeight(true), Utilities.GUIHelper.ExpandWidthOption);
+
+                        if (_focusTextArea || GUI.GetNameOfFocusedControl() == TextEditorControlName)
+                        {
+                            GUI.FocusWindow(WindowId);
+                            GUI.FocusControl(TextEditorControlName);
+                            _focusTextArea = false;
+                        }
+
+                        GUI.enabled = true;
+                        Utilities.GUITooltips.EndScrollView();
+
+                        if (_showFullName.Value)
+                            GUILayout.TextField(_activeFile, GetTextStyle(), Utilities.GUIHelper.ExpandWidth);
+                    }
+                    GUILayout.EndVertical();
+
+                    GUI.backgroundColor = backgroundColor;
                 }
-                GUILayout.EndVertical();
+                GUILayout.EndHorizontal();
 
-                GUI.backgroundColor = backgroundColor;
+                GUI.DragWindow(new Rect(0, 0, _windowRect.width, HeaderSize));
+
+                if (!SettingFieldDrawer.DrawCurrentDropdown())
+                    DrawTooltip(_windowRect);
+
+                Rect resizedWindowRect = Utilities.Utils.ResizeWindow(windowID, _windowRect, out bool sizeChanged);
+                if (sizeChanged)
+                {
+                    _windowRect = resizedWindowRect;
+                    _pendingWindowSize = resizedWindowRect.size;
+                    _windowGeometryDirty = true;
+                }
             }
-            GUILayout.EndHorizontal();
-
-            GUI.DragWindow(new Rect(0, 0, _windowRect.width, HeaderSize));
-
-            if (!SettingFieldDrawer.DrawCurrentDropdown())
-                DrawTooltip(_windowRect);
-
-            _windowRect = Utilities.Utils.ResizeWindow(windowID, _windowRect, out bool sizeChanged);
-
-            if (sizeChanged)
-                SaveCurrentSizeAndPosition();
+            finally
+            {
+                Utilities.ComboBox.EndWindow();
+                Utilities.GUITooltips.EndWindow();
+            }
         }
 
         private float GetFileListWidth() => _windowRect.width * 0.3f;
@@ -305,7 +356,7 @@ namespace ConfigurationManager
                     GUILayout.Space(DirectoryOffset);
 
                     GUILayout.BeginVertical();
-                    DrawDirectory(directory); 
+                    DrawDirectory(directory);
                     GUILayout.EndVertical();
 
                     GUILayout.EndHorizontal();
@@ -318,12 +369,12 @@ namespace ConfigurationManager
             GUILayout.BeginVertical();
 
             GUILayout.BeginHorizontal(GUILayout.MaxWidth(GetFileListWidth() - DirectoryOffset * (_directoryDepth + 1) - 5));
-            
-            if (_fileNameState == FileEditState.CreatingFolder || _fileNameState == FileEditState.CreatingFile)
-                GUILayout.Label(_fileNameState == FileEditState.CreatingFolder ? _newFolderLabelTextEditor.Value: _newFileLabelTextEditor.Value, GetLabelStyle(), GUILayout.ExpandWidth(false));
 
-            _newItemName = GUILayout.TextField(_newItemName, GetFileNameFieldStyle(), GUILayout.ExpandWidth(true));
-            if (GUILayout.Button(_newEntryOKButtonTextEditor.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
+            if (_fileNameState == FileEditState.CreatingFolder || _fileNameState == FileEditState.CreatingFile)
+                GUILayout.Label(_fileNameState == FileEditState.CreatingFolder ? _newFolderLabelTextEditor.Value: _newFileLabelTextEditor.Value, GetLabelStyle(), Utilities.GUIHelper.FixedWidth);
+
+            _newItemName = GUILayout.TextField(_newItemName, GetFileNameFieldStyle(), Utilities.GUIHelper.ExpandWidth);
+            if (GUILayout.Button(_newEntryOKButtonTextEditor.Value, GetButtonStyle(), Utilities.GUIHelper.FixedWidth))
             {
                 if (_fileNameState == FileEditState.CreatingFolder || _fileNameState == FileEditState.CreatingFile)
                     CreateNewItem(_newItemName, _fileNameState == FileEditState.CreatingFolder);
@@ -334,7 +385,7 @@ namespace ConfigurationManager
             GUILayout.EndHorizontal();
 
             if (!_newItemErrorText.IsNullOrWhiteSpace())
-                GUILayout.Label(_newItemErrorText, GetFileNameErrorStyle(), GUILayout.ExpandWidth(true));
+                GUILayout.Label(_newItemErrorText, GetFileNameErrorStyle(), Utilities.GUIHelper.ExpandWidth);
 
             GUILayout.EndVertical();
         }
@@ -359,7 +410,7 @@ namespace ConfigurationManager
                 _newItemErrorText = _fileExistsTextEditor.Value;
                 return;
             }
-            
+
             try
             {
                 File.Move(_activeFile, newPath);
@@ -554,15 +605,15 @@ namespace ConfigurationManager
                 SetFileEditState(FileEditState.RenamingFile);
                 _newItemName = Path.GetFileName(_activeFile);
             }
-            if (GUILayout.Button(new GUIContent(_deleteFileButtonTextEditor.Value, _deleteFileTooltipTextEditor.Value), GetButtonStyle()))
+            if (Utilities.GUITooltips.Button(new GUIContent(_deleteFileButtonTextEditor.Value, _deleteFileTooltipTextEditor.Value), GetButtonStyle()))
                 MoveActiveFileToTrash();
 
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
-            _showEmptyFolders.Value = GUILayout.Toggle(_showEmptyFolders.Value, _showEmptyTextEditor.Value, GetToggleStyle(), GUILayout.ExpandWidth(true));
+            _showEmptyFolders.Value = GUILayout.Toggle(_showEmptyFolders.Value, _showEmptyTextEditor.Value, GetToggleStyle(), Utilities.GUIHelper.ExpandWidth);
             GUILayout.FlexibleSpace();
-            _showFullName.Value = GUILayout.Toggle(_showFullName.Value, new GUIContent(_showFullNameTextEditor.Value, _showFullNameTooltipTextEditor.Value), GetToggleStyle());
+            _showFullName.Value = Utilities.GUITooltips.Toggle(_showFullName.Value, new GUIContent(_showFullNameTextEditor.Value, _showFullNameTooltipTextEditor.Value), GetToggleStyle());
             _showTrashBin.Value = GUILayout.Toggle(_showTrashBin.Value, _showTrashBinTextEditor.Value, GetToggleStyle());
             GUILayout.EndHorizontal();
 
@@ -596,7 +647,7 @@ namespace ConfigurationManager
 
                 SetFileEditState(FileEditState.None);
             }
-            catch (Exception e) 
+            catch (Exception e)
             {
                 _newItemErrorText = e.Message;
             }

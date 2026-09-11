@@ -55,18 +55,93 @@ namespace ConfigurationManager
         private static GUIStyle synchronizationIndicatorStyle;
         private static GUIStyle settingRowStyle;
 
+        private static bool _stylesInitialized;
+        private static StyleInputs _styleInputs;
+        internal static int Revision { get; private set; }
+
+        private struct StyleInputs : IEquatable<StyleInputs>
+        {
+            internal GUISkin Skin;
+            internal Font SkinFont;
+            internal int FontSize;
+            internal bool Compact;
+            internal Color FontColor;
+            internal Color DefaultColor;
+            internal Color ChangedColor;
+            internal Color ReadOnlyColor;
+            internal bool EditorWordWrap;
+            internal bool EditorRichText;
+            internal TextAnchor EditorAlignment;
+            internal int EditorFontSize;
+            internal Color EditorFontColor;
+            internal Texture2D EntryBackground;
+            internal Texture2D TooltipBackground;
+            internal Texture2D HeaderBackground;
+            internal Texture2D HeaderBackgroundHover;
+            internal Texture2D SettingWindowBackground;
+
+            public bool Equals(StyleInputs other)
+            {
+                return ReferenceEquals(Skin, other.Skin)
+                    && ReferenceEquals(SkinFont, other.SkinFont)
+                    && FontSize.Equals(other.FontSize)
+                    && Compact.Equals(other.Compact)
+                    && FontColor.Equals(other.FontColor)
+                    && DefaultColor.Equals(other.DefaultColor)
+                    && ChangedColor.Equals(other.ChangedColor)
+                    && ReadOnlyColor.Equals(other.ReadOnlyColor)
+                    && EditorWordWrap.Equals(other.EditorWordWrap)
+                    && EditorRichText.Equals(other.EditorRichText)
+                    && (EditorAlignment == other.EditorAlignment)
+                    && EditorFontSize.Equals(other.EditorFontSize)
+                    && EditorFontColor.Equals(other.EditorFontColor)
+                    && ReferenceEquals(EntryBackground, other.EntryBackground)
+                    && ReferenceEquals(TooltipBackground, other.TooltipBackground)
+                    && ReferenceEquals(HeaderBackground, other.HeaderBackground)
+                    && ReferenceEquals(HeaderBackgroundHover, other.HeaderBackgroundHover)
+                    && ReferenceEquals(SettingWindowBackground, other.SettingWindowBackground);
+            }
+        }
+
         public static int fontSize = 14;
 
         public static void CreateStyles()
         {
-            bool compactConfigList = _compactConfigList.Value;
-
-            _textSize.Value = Mathf.Clamp(_textSize.Value, 10, 30);
-            if (fontSize != _textSize.Value)
+            var inputs = new StyleInputs
             {
-                fontSize = _textSize.Value;
+                Skin = GUI.skin,
+                SkinFont = GUI.skin.font,
+                FontSize = Mathf.Clamp(_textSize.Value, 10, 30),
+                Compact = _compactConfigList.Value,
+                FontColor = _fontColor.Value,
+                DefaultColor = _fontColorValueDefault.Value,
+                ChangedColor = _fontColorValueChanged.Value,
+                ReadOnlyColor = _readOnlyColor.Value,
+                EditorWordWrap = _textEditorWordWrap.Value,
+                EditorRichText = _textEditorRichText.Value,
+                EditorAlignment = _textEditorAlignment.Value,
+                EditorFontSize = _textEditorFontSize.Value,
+                EditorFontColor = _textEditorFontColor.Value,
+                EntryBackground = EntryBackground,
+                TooltipBackground = TooltipBackground,
+                HeaderBackground = HeaderBackground,
+                HeaderBackgroundHover = HeaderBackgroundHover,
+                SettingWindowBackground = SettingWindowBackground,
+            };
+            if (_stylesInitialized && fontSize == inputs.FontSize && _styleInputs.Equals(inputs))
+                return;
+            // Changing metrics between Layout and Repaint invalidates GUILayout's tree.
+            if (_stylesInitialized && Event.current.type != EventType.Layout)
+                return;
+
+            bool compactConfigList = inputs.Compact;
+            if (fontSize != inputs.FontSize)
+            {
+                fontSize = inputs.FontSize;
                 SettingFieldDrawer.ClearCache();
             }
+            if (_textSize.Value != inputs.FontSize)
+                _textSize.Value = inputs.FontSize;
 
             windowStyle = new GUIStyle(GUI.skin.window);
             windowStyle.normal.textColor = _fontColor.Value;
@@ -134,7 +209,7 @@ namespace ConfigurationManager
             categoryHeaderStyleChanged.onNormal.textColor = _fontColorValueChanged.Value;
 
             pluginHeaderStyle = new GUIStyle(categoryHeaderStyleDefault);
-            
+
             pluginHeaderStyleActive = new GUIStyle(pluginHeaderStyle);
             pluginHeaderStyleActive.normal.textColor = _fontColorValueChanged.Value;
 
@@ -343,6 +418,10 @@ namespace ConfigurationManager
                     _compactConfigList.Value ? 0 : 1,
                     1),
             };
+
+            _styleInputs = inputs;
+            _stylesInitialized = true;
+            ++Revision;
         }
 
         public static GUIStyle GetWindowStyle() => windowStyle;
@@ -398,12 +477,15 @@ namespace ConfigurationManager
         }
         internal static bool IsDefaultValue(SettingEntryBase setting)
         {
-            if (setting?.DefaultValue == null || setting.Get() == null)
+            if (setting?.DefaultValue == null)
+                return true;
+            object value = setting.Get();
+            if (value == null)
                 return true;
 
             try
             {
-                return IsEqualConfigValues(setting.SettingType, setting.Get(), setting.DefaultValue);
+                return IsEqualConfigValues(setting.SettingType, value, setting.DefaultValue);
             }
             catch
             {
@@ -419,7 +501,9 @@ namespace ConfigurationManager
                 Type t when t == typeof(Vector3) => (Vector3)value1 == (Vector3)value2,
                 Type t when t == typeof(Vector4) => (Vector4)value1 == (Vector4)value2,
                 Type t when t == typeof(Quaternion) => (Quaternion)value1 == (Quaternion)value2,
-                _ => value1.ToString().Equals(value2.ToString(), StringComparison.OrdinalIgnoreCase)
+                Type t when t == typeof(string) => string.Equals((string)value1, (string)value2, StringComparison.OrdinalIgnoreCase),
+                Type t when t.IsPrimitive || t.IsEnum || t == typeof(decimal) => Equals(value1, value2),
+                _ => string.Equals(value1?.ToString(), value2?.ToString(), StringComparison.OrdinalIgnoreCase)
             };
         }
     }

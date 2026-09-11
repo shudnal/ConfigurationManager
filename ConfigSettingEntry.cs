@@ -8,6 +8,7 @@ using System.Linq;
 using System.Reflection;
 using BepInEx;
 using BepInEx.Configuration;
+using UnityEngine;
 
 namespace ConfigurationManager
 {
@@ -16,6 +17,14 @@ namespace ConfigurationManager
         public ConfigEntryBase Entry { get; }
         private readonly ConfigSynchronizationInfo synchronizationInfo;
         private readonly List<DynamicAttributeSource> dynamicAttributeSources = new List<DynamicAttributeSource>();
+
+        private int synchronizationFrame = -1;
+        private ConfigSynchronizationState synchronizationState;
+        private readonly GUIContent synchronizationContent = new GUIContent();
+        private bool lastServerControlled;
+        private Color lastSymbolColor;
+
+        internal bool HasDynamicAttributes => dynamicAttributeSources.Count != 0;
 
         public ConfigSettingEntry(ConfigEntryBase entry, BaseUnityPlugin owner)
         {
@@ -113,7 +122,8 @@ namespace ConfigurationManager
                 }
             }
 
-            return previousReadOnly != ReadOnly || previousBrowsable != Browsable;
+            return previousBrowsable != Browsable ||
+                (previousReadOnly != ReadOnly && ConfigurationManager._readOnlyStyle?.Value == ConfigurationManager.ReadOnlyStyle.Hidden);
         }
 
         private sealed class DynamicAttributeSource
@@ -180,11 +190,31 @@ namespace ConfigurationManager
 
         internal ConfigSynchronizationState GetSynchronizationState()
         {
-            return synchronizationInfo.GetState();
+            if (synchronizationFrame != Time.frameCount)
+            {
+                synchronizationState = synchronizationInfo.GetState();
+                synchronizationFrame = Time.frameCount;
+            }
+            return synchronizationState;
+        }
+
+        internal GUIContent GetSynchronizationContent(ConfigSynchronizationState state, Color symbolColor)
+        {
+            if (string.IsNullOrEmpty(synchronizationContent.text) || lastServerControlled != state.IsServerControlled || !lastSymbolColor.Equals(symbolColor))
+            {
+                lastServerControlled = state.IsServerControlled;
+                lastSymbolColor = symbolColor;
+                synchronizationContent.text = $"<color=#{ColorUtility.ToHtmlStringRGBA(symbolColor)}>{(state.IsServerControlled ? "S" : "C")}</color>";
+            }
+            if (synchronizationContent.tooltip != state.Tooltip)
+                synchronizationContent.tooltip = state.Tooltip;
+            return synchronizationContent;
         }
 
         internal bool ToggleSynchronizationPolicy()
         {
+            // This is only a presentation cache, never an authorization cache.
+            synchronizationFrame = -1;
             return synchronizationInfo.TogglePolicy();
         }
 

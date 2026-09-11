@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
+using UnityEngine;
 
 namespace ConfigurationManager
 {
@@ -65,7 +66,7 @@ namespace ConfigurationManager
         public object DefaultValue { get; protected set; }
 
         /// <summary>
-        /// Force the "Reset" button to not be displayed, even if a valid DefaultValue is available. 
+        /// Force the "Reset" button to not be displayed, even if a valid DefaultValue is available.
         /// </summary>
         public bool HideDefaultButton { get; protected set; }
 
@@ -125,7 +126,8 @@ namespace ConfigurationManager
         /// </summary>
         public void Set(object newVal)
         {
-            RefreshDynamicAttributes();
+            if (RefreshDynamicAttributes())
+                ConfigurationManager.instance?.BuildFilteredSettingList();
             if (ReadOnly != true)
                 SetValue(newVal);
         }
@@ -155,10 +157,65 @@ namespace ConfigurationManager
         public Func<string, object> StrToObj { get; internal set; }
 
         private static readonly PropertyInfo[] MyProperties = typeof(SettingEntryBase).GetProperties(BindingFlags.Instance | BindingFlags.Public);
-        
+
         private static readonly FieldInfo[] MyFields = typeof(SettingEntryBase).GetFields(BindingFlags.Instance | BindingFlags.Public);
 
-        internal string SettingID => PluginInfo == null ? "" : $"{PluginInfo.GUID}-{Category}-{DispName}";
+        private string _idPluginGuid;
+        private string _idCategory;
+        private string _idName;
+        private string _settingId;
+        private int _displayAttributesFrame = -1;
+        private readonly GUIContent _nameContent = new GUIContent();
+        private readonly GUIContent _editContent = new GUIContent();
+        private string _displayNameSource;
+
+        internal string SettingID
+        {
+            get
+            {
+                if (PluginInfo == null)
+                    return string.Empty;
+                if (_settingId == null || _idPluginGuid != PluginInfo.GUID || _idCategory != Category || _idName != DispName)
+                {
+                    _idPluginGuid = PluginInfo.GUID;
+                    _idCategory = Category;
+                    _idName = DispName;
+                    _settingId = $"{_idPluginGuid}-{_idCategory}-{_idName}";
+                }
+                return _settingId;
+            }
+        }
+
+        internal GUIContent GetNameContent()
+        {
+            if (_displayNameSource != DispName)
+            {
+                _displayNameSource = DispName;
+                _nameContent.text = DispName?.TrimStart('!') ?? string.Empty;
+            }
+            string description = Description ?? string.Empty;
+            if (_nameContent.tooltip != description)
+                _nameContent.tooltip = description;
+            return _nameContent;
+        }
+
+        internal GUIContent GetEditContent(string buttonText)
+        {
+            if (_editContent.text != buttonText)
+                _editContent.text = buttonText;
+            string description = Description ?? string.Empty;
+            if (_editContent.tooltip != description)
+                _editContent.tooltip = description;
+            return _editContent;
+        }
+
+        internal bool RefreshDisplayAttributes()
+        {
+            if (_displayAttributesFrame == Time.frameCount)
+                return false;
+            _displayAttributesFrame = Time.frameCount;
+            return RefreshDynamicAttributes();
+        }
 
         internal void SetFromAttributes(object[] attribs, BaseUnityPlugin pluginInstance)
         {

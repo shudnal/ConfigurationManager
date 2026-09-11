@@ -17,7 +17,8 @@ Press hotkey button in game (default `F1`) to open mod window and change configu
 * Color drawer extended further
 * Window is draggable, resizable and remembers its size and position
 * Open and close window by hitting one hotkey. Close window with Escape.
-* Dropdown menu style refined
+* Dropdown menu style refined; open dropdowns suppress hover highlights and tooltips on other manager controls
+* Reuses UI styles, enum metadata, and tooltip measurements instead of rebuilding them on every IMGUI event
 * Lots of minor refinements and improvements
 * Readonly entries (locked from server) could be colored, disabled or completely hidden
 * Dynamic `ReadOnly` and `Browsable` attributes are refreshed while the window remains open and rechecked immediately before a setting write
@@ -28,7 +29,13 @@ Press hotkey button in game (default `F1`) to open mod window and change configu
 * Setting Edit Window for more detailed setting configuration
 
 ## Valheim specific
-The game does not take input while the window is open (only player input by default).
+Valheim 1.0.7 is the target game version. The manager uses `ZCursor` for cursor visibility and restores the current scene's cursor handling when it closes.
+
+`Prevent input` supports three modes: `Off` allows pass-through; `Player` blocks gameplay and background HUD/menu controls while preserving the console; `All` also blocks console input. The manager itself remains interactive. These modes cover vanilla ZInput/uGUI paths, not arbitrary other mods reading Unity input directly.
+
+Dropdown placement is derived from the actual button rectangle independently of background hover masking, including in scrolled and scaled windows.
+
+Tooltips are available on setting names and synchronization indicators even when an entry is read-only. Tooltip hit areas respect the owning window and scroll viewport. Both manager scaling and the optional Valheim GUI scale are supported.
 
 The game will be paused (if it can be paused) while the window is open (disabled by default).
 

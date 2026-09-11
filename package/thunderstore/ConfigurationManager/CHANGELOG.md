@@ -1,3 +1,18 @@
+﻿# 1.1.18
+* Stopped writing window geometry on every IMGUI pass while dragging or resizing; manager, file editor, and setting editor now keep geometry in memory during pointer movement and persist it once after release.
+* Batched Configuration Manager window geometry changes into a single physical `Config.Save()` instead of triggering one auto-save per config entry plus an additional explicit save.
+* Fixed dropdowns appearing at the window origin after hover isolation; popup anchoring no longer depends on the temporarily masked pointer.
+* Reduced repeated IMGUI work by reusing styles, enum metadata, labels, layout options, and tooltip measurements, and by refreshing dynamic display attributes incrementally without weakening write-time checks.
+* Reworked tooltip hover tracking for Unity 6, including disabled settings, synchronization indicators, scroll clipping, and scaled windows.
+* Switched cursor handling to ZCursor and the game's cursor-update methods, with current-scene restoration on close.
+* Updated input prevention for the new ZInput query paths, analog controls, touch gestures, and inventory drag/release handlers without blocking button-release processing.
+* Preserved console input in Player mode and blocked background uGUI text fields and controls in All mode.
+* Added transition input guards and safe cancellation of pending inventory drags when opening the window.
+* Fixed dropdown opening, option selection, and scrolling after the Valheim 1.0.7 adaptation; popup geometry now stays in its owning window's GUI coordinates.
+* Dropdowns open upward when needed and keep clicks, scrolling, and resize gestures from reaching the controls behind them.
+* Suppressed background hover highlights and tooltips while a dropdown is open; its options and scrollbar remain interactive.
+* Improved window-disable cleanup and preserved native menu and pause state.
+
 # 1.1.17
 * Updated for the Valheim 1.0.7 release.
 * Updated required dependencies to BepInExPack Valheim 5.4.2350 and ConditionalConfigSync 1.0.5.

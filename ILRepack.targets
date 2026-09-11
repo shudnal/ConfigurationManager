@@ -53,11 +53,6 @@
       DestinationFolder="$(ThunderstorePackageDir)"
       OverwriteReadOnlyFiles="true" />
 
-    <Copy
-      SourceFiles="$(ProjectDir)README.md;$(ProjectDir)CHANGELOG.md"
-      DestinationFolder="$(ThunderstorePackageDir)"
-      OverwriteReadOnlyFiles="true" />
-
     <Message Text="Thunderstore package directory updated: $(ThunderstorePackageDir)" Importance="High" />
   </Target>
 

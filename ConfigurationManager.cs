@@ -10,7 +10,6 @@ using ConditionalConfigSync;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
 using UnityEngine;
 
 namespace ConfigurationManager
@@ -22,7 +21,7 @@ namespace ConfigurationManager
     {
         public const string GUID = "_shudnal.ConfigurationManager";
         public const string pluginName = "Valheim Configuration Manager";
-        public const string Version = "1.1.17";
+        public const string Version = "1.1.18";
 
         internal static ConfigurationManager instance;
         private static SettingFieldDrawer _fieldDrawer;
@@ -44,7 +43,6 @@ namespace ConfigurationManager
         public bool OverrideHotkey;
 
         private bool _displayingWindow;
-        private bool _obsoleteCursor;
 
         private string _modsWithoutSettings;
 
@@ -52,7 +50,7 @@ namespace ConfigurationManager
         private List<PluginSettingsData> _filteredSetings = new List<PluginSettingsData>();
 
         public Rect DefaultWindowRect { get; private set; }
-        public Rect currentWindowRect; 
+        public Rect currentWindowRect;
         private Vector2 _settingWindowScrollPos;
         private readonly Dictionary<string, Vector2> _settingWindowCategoriesScrollPos = new Dictionary<string, Vector2>();
 
@@ -96,10 +94,6 @@ namespace ConfigurationManager
 
         #endregion
 
-        private PropertyInfo _curLockState;
-        private PropertyInfo _curVisible;
-        private int _previousCursorLockState;
-        private bool _previousCursorVisible;
 
         internal static Texture2D WindowBackground { get; private set; }
         internal static Texture2D EntryBackground { get; private set; }
@@ -224,7 +218,7 @@ namespace ConfigurationManager
         public static ConfigEntry<string> _resetSettingText;
         public static ConfigEntry<string> _clearText;
         public static ConfigEntry<string> _cancelText;
-        public static ConfigEntry<string> _enabledText; 
+        public static ConfigEntry<string> _enabledText;
         public static ConfigEntry<string> _disabledText;
         public static ConfigEntry<string> _shortcutKeyText;
         public static ConfigEntry<string> _shortcutKeysText;
@@ -376,7 +370,7 @@ namespace ConfigurationManager
             _fileIsNotValidJsonTextEditor = config("Text - File Editor", "File is not valid JSON", "File is not valid JSON", "Text for JSON validation result");
             _fileIsValidYamlTextEditor = config("Text - File Editor", "File is valid YAML", "File is valid YAML", "Text for YAML validation result");
             _fileIsNotValidYamlTextEditor = config("Text - File Editor", "File is not valid YAML", "File is not valid YAML", "Text for YAML validation result");
-            
+
             _wordWrapTextEditor = config("Text - File Editor", "Word wrap", "Word wrap", "Text for word wrap toggle");
             _richTextTextEditor = config("Text - File Editor", "Rich text", "Rich text", "Text for rich text toggle");
             _richTextFontSize = config("Text - File Editor", "Font size", "Font size: ", "Text for font size field");
@@ -469,6 +463,25 @@ namespace ConfigurationManager
         private Vector2 GetDefaultEditSettingWindowSize() => new Vector2(500f, 500f);
         private Vector2 GetDefaultEditSettingWindowPosition() => new Vector2(GetDefaultManagerWindowPosition().x + GetDefaultManagerWindowSize().x + 10f, GetDefaultManagerWindowPosition().y + (GetDefaultManagerWindowSize().y - GetDefaultEditSettingWindowSize().y) / 2);
 
+        internal void SaveOwnConfigChanges(Action applyChanges)
+        {
+            if (applyChanges == null)
+                throw new ArgumentNullException(nameof(applyChanges));
+
+            bool saveOnConfigSet = Config.SaveOnConfigSet;
+            try
+            {
+                Config.SaveOnConfigSet = false;
+                applyChanges();
+            }
+            finally
+            {
+                Config.SaveOnConfigSet = saveOnConfigSet;
+            }
+
+            Config.Save();
+        }
+
         void OnDestroy()
         {
             instance = null;
@@ -476,19 +489,6 @@ namespace ConfigurationManager
 
         void Start()
         {
-            // Use reflection to keep compatibility with unity 4.x since it doesn't have Cursor
-            var tCursor = typeof(Cursor);
-            _curLockState = tCursor.GetProperty("lockState", BindingFlags.Static | BindingFlags.Public);
-            _curVisible = tCursor.GetProperty("visible", BindingFlags.Static | BindingFlags.Public);
-
-            if (_curLockState == null && _curVisible == null)
-            {
-                _obsoleteCursor = true;
-
-                _curLockState = typeof(Screen).GetProperty("lockCursor", BindingFlags.Static | BindingFlags.Public);
-                _curVisible = typeof(Screen).GetProperty("showCursor", BindingFlags.Static | BindingFlags.Public);
-            }
-
             // Check if user has permissions to write config files to disk
             try { Config.Save(); }
             catch (IOException ex) { Logger.Log(LogLevel.Message | LogLevel.Warning, "WARNING: Failed to write to config directory, expect issues!\nError message:" + ex.Message); }
@@ -500,7 +500,7 @@ namespace ConfigurationManager
         void Update()
         {
             if (DisplayingWindow)
-                SetUnlockCursor(0, true);
+                RefreshDynamicSettingAttributes();
 
             if (OverrideHotkey)
                 return;
@@ -513,8 +513,10 @@ namespace ConfigurationManager
 
             if (!DisplayingWindow && _keybind.Value.IsDown())
                 DisplayingWindow = true;
-            else if (DisplayingWindow && (UnityInput.Current.GetKeyDown(KeyCode.Escape) || _keybind.Value.IsDown()))
-                if (_configSettingWindow.IsOpen)
+            else if (DisplayingWindow && ((UnityInput.Current.GetKeyDown(KeyCode.Escape) && !ConsoleHandlesEscape()) || _keybind.Value.IsDown()))
+                if (Utilities.ComboBox.IsShown())
+                    Utilities.ComboBox.CloseAll();
+                else if (_configSettingWindow.IsOpen)
                     _configSettingWindow.IsOpen = false;
                 else
                     DisplayingWindow = false;
@@ -523,7 +525,7 @@ namespace ConfigurationManager
         void LateUpdate()
         {
             if (DisplayingWindow)
-                SetUnlockCursor(0, true);
+                ApplyWindowCursor();
         }
 
         /// <summary>
@@ -537,6 +539,9 @@ namespace ConfigurationManager
                 if (_displayingWindow == value)
                     return;
 
+                if (_displayingWindow && !value && _windowGeometryDirty)
+                    SaveCurrentSizeAndPosition();
+
                 _displayingWindow = value;
 
                 SettingFieldDrawer.ClearCache();
@@ -548,21 +553,21 @@ namespace ConfigurationManager
                     BuildSettingList();
 
                     _focusSearchBox = false;
-
-                    // Do through reflection for unity 4 compat
-                    if (_curLockState != null)
-                    {
-                        _previousCursorLockState = _obsoleteCursor ? Convert.ToInt32((bool)_curLockState.GetValue(null, null)) : (int)_curLockState.GetValue(null, null);
-                        _previousCursorVisible = (bool)_curVisible.GetValue(null, null);
-                    }
                 }
-                else
+
+                HandleInputVisibilityChanged(value);
+
+                try
                 {
-                    if (!_previousCursorVisible || _previousCursorLockState != 0) // 0 = CursorLockMode.None
-                        SetUnlockCursor(_previousCursorLockState, _previousCursorVisible);
+                    DisplayingWindowChanged?.Invoke(this, new ValueChangedEventArgs<bool>(value));
                 }
-
-                DisplayingWindowChanged?.Invoke(this, new ValueChangedEventArgs<bool>(value));
+                finally
+                {
+                    if (value)
+                        AcquireWindowCursor();
+                    else
+                        ReleaseWindowCursor();
+                }
             }
         }
 
@@ -605,6 +610,8 @@ namespace ConfigurationManager
         {
             public BepInPlugin Info;
             public List<PluginSettingsGroupData> Categories;
+            public GUIContent HeaderContent;
+            public GUIContent HeaderWithGuidContent;
             private bool _collapsed;
 
             public bool Collapsed
@@ -612,8 +619,11 @@ namespace ConfigurationManager
                 get => _collapsed;
                 set
                 {
-                    _collapsed = value;
-                    Height = 0;
+                    if (_collapsed != value)
+                    {
+                        _collapsed = value;
+                        Height = 0;
+                    }
                 }
             }
 
@@ -641,6 +651,7 @@ namespace ConfigurationManager
             {
                 public string ID;
                 public string Name;
+                public GUIContent Content;
                 public List<SettingEntryBase> Settings;
                 public bool Collapsed;
                 public bool Selected

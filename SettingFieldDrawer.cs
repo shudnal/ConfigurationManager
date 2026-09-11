@@ -22,13 +22,115 @@ namespace ConfigurationManager
 
         public static Dictionary<Type, Action<SettingEntryBase>> SettingDrawHandlers { get; }
 
-        private static readonly Dictionary<SettingEntryBase, ComboBox> ComboBoxCache = new Dictionary<SettingEntryBase, ComboBox>();
+        private static readonly Dictionary<SettingEntryBase, ComboBoxCacheEntry> ComboBoxCache = new Dictionary<SettingEntryBase, ComboBoxCacheEntry>();
+        private static readonly Dictionary<Type, EnumCacheEntry> EnumCache = new Dictionary<Type, EnumCacheEntry>();
+
+        private sealed class EnumCacheEntry
+        {
+            internal readonly IList Values;
+            internal readonly bool IsFlags;
+            internal readonly FlagValue[] Flags;
+
+            internal EnumCacheEntry(Type type)
+            {
+                Values = Enum.GetValues(type);
+                IsFlags = type.IsDefined(typeof(FlagsAttribute), false);
+                if (IsFlags)
+                {
+                    Flags = new FlagValue[Values.Count];
+                    for (int index = 0; index < Values.Count; ++index)
+                        Flags[index] = new FlagValue(Values[index]);
+                }
+            }
+        }
+
+        private sealed class FlagValue
+        {
+            internal readonly GUIContent Content;
+            internal readonly long Value;
+            private int revision = -1;
+            private int width;
+
+            internal FlagValue(object value)
+            {
+                Content = new GUIContent(value.ToString());
+                Value = Convert.ToInt64(value);
+            }
+
+            internal int GetWidth(GUIStyle style)
+            {
+                if (revision != Revision)
+                {
+                    width = (int)style.CalcSize(Content).x;
+                    revision = Revision;
+                }
+                return width;
+            }
+        }
+
+        private sealed class ComboBoxCacheEntry
+        {
+            internal readonly IList Values;
+            internal readonly ComboBox Box;
+            internal readonly Action<int> OnSelected;
+            private readonly SettingEntryBase setting;
+            private readonly GUIContent[] contents;
+            private object buttonValue;
+            private bool hasButtonValue;
+
+            internal ComboBoxCacheEntry(SettingEntryBase setting, IList values, float windowYmax)
+            {
+                this.setting = setting;
+                Values = values;
+                contents = new GUIContent[values.Count];
+                for (int index = 0; index < values.Count; ++index)
+                    contents[index] = ObjectToGuiContent(values[index]);
+                Box = new ComboBox(Rect.zero, GUIContent.none, contents, ObjectToGuiContent(setting.DefaultValue),
+                    GetButtonStyle(), GetButtonStyle(isDefaultValue: false), GetBoxStyle(), GetComboBoxStyle(), windowYmax);
+                OnSelected = Select;
+            }
+
+            internal void UpdateButtonContent()
+            {
+                object value = setting.Get();
+                bool immutable = value == null || value is string || value.GetType().IsValueType;
+                if (immutable && hasButtonValue && Equals(buttonValue, value))
+                    return;
+                buttonValue = value;
+                hasButtonValue = true;
+                for (int index = 0; index < Values.Count; ++index)
+                {
+                    if (immutable && Equals(Values[index], value))
+                    {
+                        Box.ButtonContent = contents[index];
+                        return;
+                    }
+                }
+                Box.ButtonContent = ObjectToGuiContent(value);
+            }
+
+            private void Select(int index)
+            {
+                if (index >= 0 && index < Values.Count)
+                    setting.Set(Values[index]);
+            }
+        }
+
+        private static EnumCacheEntry GetEnumMetadata(Type type)
+        {
+            if (!EnumCache.TryGetValue(type, out EnumCacheEntry entry))
+            {
+                entry = new EnumCacheEntry(type);
+                EnumCache.Add(type, entry);
+            }
+            return entry;
+        }
         private static readonly Dictionary<SettingEntryBase, ColorCacheEntry> ColorCache = new Dictionary<SettingEntryBase, ColorCacheEntry>();
 
         private static ConfigurationManager _instance;
 
         private static SettingEntryBase _currentKeyboardShortcutToSet;
-        
+
         public static bool SettingKeyboardShortcut => _currentKeyboardShortcutToSet != null;
 
         public static readonly HashSet<string> CustomFieldDrawerFailed = new HashSet<string>();
@@ -55,29 +157,33 @@ namespace ConfigurationManager
 
         public void DrawSettingValue(SettingEntryBase setting)
         {
-            var color = GUI.backgroundColor;
-            GUI.backgroundColor = _widgetBackgroundColor.Value;
-            
-            if (DrawCustomField(setting))
-                return;
+            Color color = GUI.backgroundColor;
+            try
+            {
+                GUI.backgroundColor = _widgetBackgroundColor.Value;
+                if (DrawCustomField(setting))
+                    return;
 
-            if (setting.AcceptableValueRange.Key != null)
-                DrawRangeField(setting);
-            else if (setting.AcceptableValues != null)
-                DrawListField(setting);
-            else if (DrawFieldBasedOnValueType(setting))
-                return;
-            else if (setting.SettingType.IsEnum)
-                DrawEnumField(setting);
-            else
-                DrawUnknownField(setting, _instance.RightColumnWidth);
-                
-            GUI.backgroundColor = color;
+                if (setting.AcceptableValueRange.Key != null)
+                    DrawRangeField(setting);
+                else if (setting.AcceptableValues != null)
+                    DrawListField(setting);
+                else if (DrawFieldBasedOnValueType(setting))
+                    return;
+                else if (setting.SettingType.IsEnum)
+                    DrawEnumField(setting);
+                else
+                    DrawUnknownField(setting, _instance.RightColumnWidth);
+            }
+            finally
+            {
+                GUI.backgroundColor = color;
+            }
         }
 
         public bool DrawCustomField(SettingEntryBase setting)
         {
-            if (IsSettingFailedToCustomDraw(setting))
+            if ((setting.CustomDrawer == null && setting.CustomHotkeyDrawer == null) || IsSettingFailedToCustomDraw(setting))
                 return false;
 
             var color = GUI.contentColor;
@@ -109,7 +215,7 @@ namespace ConfigurationManager
                     if (isBeingSet != isBeingSetOriginal)
                         _currentKeyboardShortcutToSet = isBeingSet ? setting : null;
                 }
-                else 
+                else
                     result = false;
             }
             catch (Exception e)
@@ -118,11 +224,14 @@ namespace ConfigurationManager
                 result = false;
             }
 
-            GUI.contentColor = color;
-            GUI.skin.textField.fontSize = textFieldFontSize;
-            GUI.skin.textArea.fontSize = textAreaFontSize;
-            GUI.skin.label.fontSize = labelFontSize;
-            GUI.skin.button.fontSize = buttonFontSize;
+            finally
+            {
+                GUI.contentColor = color;
+                GUI.skin.textField.fontSize = textFieldFontSize;
+                GUI.skin.textArea.fontSize = textAreaFontSize;
+                GUI.skin.label.fontSize = labelFontSize;
+                GUI.skin.button.fontSize = buttonFontSize;
+            }
 
             return result;
         }
@@ -155,6 +264,7 @@ namespace ConfigurationManager
         public static void ClearComboboxCache()
         {
             ComboBoxCache.Clear();
+            ComboBox.CloseAll();
         }
 
         public static void DrawCenteredLabel(string text, GUIStyle labelStyle)
@@ -169,45 +279,36 @@ namespace ConfigurationManager
         public static bool DrawCategoryHeader(string text)
         {
             if (_categoriesCollapseable.Value)
-                return GUILayout.Button(text, GetCategoryStyle(), GUILayout.ExpandWidth(true));
+                return GUILayout.Button(text, GetCategoryStyle(), Utilities.GUIHelper.ExpandWidth);
 
-            GUILayout.Label(text, GetCategoryStyle(), GUILayout.ExpandWidth(true));
+            GUILayout.Label(text, GetCategoryStyle(), Utilities.GUIHelper.ExpandWidth);
             return false;
         }
 
         public static bool DrawCollapsedCategoryHeader(string text, bool isDefaultStyle)
         {
-            return GUILayout.Button($"> {text} <", GetCategoryStyle(isDefaultStyle), GUILayout.ExpandWidth(true));
+            return GUILayout.Button($"> {text} <", GetCategoryStyle(isDefaultStyle), Utilities.GUIHelper.ExpandWidth);
         }
 
         public static bool DrawPluginHeader(GUIContent content, bool isCollapsed, bool hasCollapsedCategories, bool withHover, out bool toggleCollapseAll)
         {
             GUILayout.BeginHorizontal(GetBackgroundStyle(withHover));
-            
+
             toggleCollapseAll = false;
-            bool state = GUILayout.Button(content, GetHeaderStyle(withHover && !isCollapsed), GUILayout.ExpandWidth(true));
+            bool state = GUILayout.Button(content, GetHeaderStyle(withHover && !isCollapsed), Utilities.GUIHelper.ExpandWidth);
 
             if (_categoriesCollapseable.Value)
-                toggleCollapseAll = !isCollapsed && GUILayout.Button(hasCollapsedCategories ? "v" : "<", GetButtonStyle(), GUILayout.ExpandWidth(false));
-            
+                toggleCollapseAll = !isCollapsed && GUILayout.Button(hasCollapsedCategories ? "v" : "<", GetButtonStyle(), Utilities.GUIHelper.FixedWidth);
+
             GUILayout.EndHorizontal();
 
             return state;
         }
-        
-        public static bool DrawPluginHeaderSplitViewList(GUIContent content, bool isActivePlugin) => GUILayout.Button(content, GetHeaderSplitViewStyle(isActivePlugin), GUILayout.ExpandWidth(true));
-        public static bool DrawPluginCategorySplitViewList(GUIContent content, bool isActiveCategory) => GUILayout.Button(content, GetCategorySplitViewStyle(isActiveCategory), GUILayout.ExpandWidth(true));
 
-        public static bool DrawCurrentDropdown()
-        {
-            if (ComboBox.CurrentDropdownDrawer != null)
-            {
-                ComboBox.CurrentDropdownDrawer.Invoke();
-                ComboBox.CurrentDropdownDrawer = null;
-                return true;
-            }
-            return false;
-        }
+        public static bool DrawPluginHeaderSplitViewList(GUIContent content, bool isActivePlugin) => GUILayout.Button(content, GetHeaderSplitViewStyle(isActivePlugin), Utilities.GUIHelper.ExpandWidth);
+        public static bool DrawPluginCategorySplitViewList(GUIContent content, bool isActiveCategory) => GUILayout.Button(content, GetCategorySplitViewStyle(isActiveCategory), Utilities.GUIHelper.ExpandWidth);
+
+        public static bool DrawCurrentDropdown() => ComboBox.DrawCurrentDropdown();
 
         private static void DrawListField(SettingEntryBase setting)
         {
@@ -243,7 +344,7 @@ namespace ConfigurationManager
             if (boolVal)
                 GUI.backgroundColor = _enabledBackgroundColor.Value;
 
-            bool result = GUILayout.Toggle(boolVal, boolVal ? _enabledText.Value : _disabledText.Value, GetToggleStyle(setting), GUILayout.ExpandWidth(true));
+            bool result = GUILayout.Toggle(boolVal, boolVal ? _enabledText.Value : _disabledText.Value, GetToggleStyle(setting), Utilities.GUIHelper.ExpandWidth);
             if (result != boolVal)
                 setting.Set(result);
 
@@ -253,18 +354,17 @@ namespace ConfigurationManager
 
         private static void DrawEnumField(SettingEntryBase setting)
         {
-            if (setting.SettingType.GetCustomAttributes(typeof(FlagsAttribute), false).Any())
-                DrawFlagsField(setting, Enum.GetValues(setting.SettingType), (int)(_instance.RightColumnWidth * 0.8f));
+            EnumCacheEntry metadata = GetEnumMetadata(setting.SettingType);
+            if (metadata.IsFlags)
+                DrawFlagsField(setting, metadata.Flags, (int)(_instance.RightColumnWidth * 0.8f));
             else
-                DrawComboboxField(setting, Enum.GetValues(setting.SettingType), _instance.currentWindowRect.yMax);
+                DrawComboboxField(setting, metadata.Values, _instance.currentWindowRect.yMax);
         }
 
-        private static void DrawFlagsField(SettingEntryBase setting, IList enumValues, int maxWidth)
+        private static void DrawFlagsField(SettingEntryBase setting, FlagValue[] allValues, int maxWidth)
         {
             var currentValue = Convert.ToInt64(setting.Get());
             var defaultValue = Convert.ToInt64(setting.DefaultValue);
-
-            var allValues = enumValues.Cast<Enum>().Select(x => new { name = x.ToString(), val = Convert.ToInt64(x) }).ToArray();
 
             // Vertically stack Horizontal groups of the options to deal with the options taking more width than is available in the window
             GUILayout.BeginVertical(GUILayout.MaxWidth(maxWidth));
@@ -280,15 +380,15 @@ namespace ConfigurationManager
                             var value = allValues[index];
 
                             // Skip the 0 / none enum value, just uncheck everything to get 0
-                            if (value.val != 0)
+                            if (value.Value != 0)
                             {
-                                bool curr = (currentValue & value.val) == value.val;
-                                bool defValue = (defaultValue & value.val) == value.val;
+                                bool curr = (currentValue & value.Value) == value.Value;
+                                bool defValue = (defaultValue & value.Value) == value.Value;
 
                                 GUIStyle style = GetToggleStyle(curr == defValue);
-                                
+
                                 // Make sure this horizontal group doesn't extend over window width, if it does then start a new horiz group below
-                                var textDimension = (int)style.CalcSize(new GUIContent(value.name)).x;
+                                var textDimension = (int)value.GetWidth(style);
                                 if (currentWidth + textDimension > maxWidth && drewAny)
                                     break;
 
@@ -296,10 +396,10 @@ namespace ConfigurationManager
                                 currentWidth += textDimension;
                                 GUI.changed = false;
 
-                                var newVal = GUILayout.Toggle(curr, value.name, style, GUILayout.ExpandWidth(false));
+                                var newVal = GUILayout.Toggle(curr, value.Content, style, Utilities.GUIHelper.FixedWidth);
                                 if (GUI.changed)
                                 {
-                                    var newValue = newVal ? currentValue | value.val : currentValue & ~value.val;
+                                    var newValue = newVal ? currentValue | value.Value : currentValue & ~value.Value;
                                     setting.Set(Enum.ToObject(setting.SettingType, newValue));
                                 }
                             }
@@ -321,31 +421,17 @@ namespace ConfigurationManager
 
         private static void DrawComboboxField(SettingEntryBase setting, IList list, float windowYmax)
         {
-            var buttonText = ObjectToGuiContent(setting.Get());
-            var dispRect = GUILayoutUtility.GetRect(buttonText, GetButtonStyle(), GUILayout.ExpandWidth(true));
-
-            if (!ComboBoxCache.TryGetValue(setting, out var box))
+            if (!ComboBoxCache.TryGetValue(setting, out ComboBoxCacheEntry entry) || !ReferenceEquals(entry.Values, list))
             {
-                box = new ComboBox(dispRect, buttonText, 
-                                list.Cast<object>().Select(ObjectToGuiContent).ToArray(), ObjectToGuiContent(setting.DefaultValue),
-                                GetButtonStyle(), GetButtonStyle(isDefaultValue:false),
-                                GetBoxStyle(),
-                                GetComboBoxStyle(), 
-                                windowYmax);
-
-                ComboBoxCache[setting] = box;
-            }
-            else
-            {
-                box.Rect = dispRect;
-                box.ButtonContent = buttonText;
+                if (entry != null && entry.Box.IsOpen)
+                    ComboBox.CloseAll();
+                entry = new ComboBoxCacheEntry(setting, list, windowYmax);
+                ComboBoxCache[setting] = entry;
             }
 
-            box.Show(id =>
-            {
-                if (id >= 0 && id < list.Count)
-                    setting.Set(list[id]);
-            });
+            entry.UpdateButtonContent();
+            entry.Box.Rect = GUILayoutUtility.GetRect(entry.Box.ButtonContent, GetButtonStyle(), Utilities.GUIHelper.ExpandWidth);
+            entry.Box.Show(entry.OnSelected);
         }
 
         internal static GUIContent ObjectToGuiContent(object x)
@@ -359,7 +445,7 @@ namespace ConfigurationManager
                     return new GUIContent(attr.Description);
                 return new GUIContent(x.ToString().ToProperCase());
             }
-            return new GUIContent(x.ToString());
+            return new GUIContent(x?.ToString() ?? "NULL");
         }
 
         private static void DrawRangeField(SettingEntryBase setting)
@@ -407,7 +493,7 @@ namespace ConfigurationManager
         {
             GUILayout.BeginVertical(GUILayout.Height(height));
             GUILayout.Space(height * (_compactConfigList.Value ? 0.3f : 0.45f));
-            var result = GUILayout.HorizontalSlider(converted, leftValue, rightValue, GetSliderStyle(), GetThumbStyle(), GUILayout.ExpandWidth(true));
+            var result = GUILayout.HorizontalSlider(converted, leftValue, rightValue, GetSliderStyle(), GetThumbStyle(), Utilities.GUIHelper.ExpandWidth);
             GUILayout.EndVertical();
             return result;
         }
@@ -425,7 +511,7 @@ namespace ConfigurationManager
                 if (text.IsNullOrWhiteSpace() && setting.DefaultValue.ToString() != "")
                     GUI.backgroundColor = _fontColorValueChanged.Value;
 
-                var result = GUILayout.TextArea(text, GetTextStyle(setting), GUILayout.MaxWidth(rightColumnWidth)).AppendZeroIfFloat(setting.SettingType);
+                var result = GUILayout.TextArea(text, GetTextStyle(setting), _instance.ValueLayoutOptions).AppendZeroIfFloat(setting.SettingType);
                 if (result != text)
                     setting.Set(setting.StrToObj(result));
             }
@@ -440,7 +526,7 @@ namespace ConfigurationManager
 
                 if (CanCovert(value, setting.SettingType))
                 {
-                    var result = GUILayout.TextField(value, GetTextStyle(setting), GUILayout.MaxWidth(rightColumnWidth)).AppendZeroIfFloat(setting.SettingType);
+                    var result = GUILayout.TextField(value, GetTextStyle(setting), _instance.ValueLayoutOptions).AppendZeroIfFloat(setting.SettingType);
                     if (result != value)
                         try
                         {
@@ -453,7 +539,7 @@ namespace ConfigurationManager
                 }
                 else
                 {
-                    GUILayout.TextArea(value, GetTextStyle(setting), GUILayout.MaxWidth(rightColumnWidth));
+                    GUILayout.TextArea(value, GetTextStyle(setting), _instance.ValueLayoutOptions);
                 }
             }
 
@@ -486,7 +572,7 @@ namespace ConfigurationManager
         {
             if (ReferenceEquals(_currentKeyboardShortcutToSet, setting))
             {
-                GUILayout.Label(_shortcutKeysText.Value, GetLabelStyle(), GUILayout.ExpandWidth(true));
+                GUILayout.Label(_shortcutKeysText.Value, GetLabelStyle(), Utilities.GUIHelper.ExpandWidth);
                 GUIUtility.keyboardControl = -1;
 
                 var input = UnityInput.Current;
@@ -501,7 +587,7 @@ namespace ConfigurationManager
                     }
                 }
 
-                if (GUILayout.Button(_cancelText.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
+                if (GUILayout.Button(_cancelText.Value, GetButtonStyle(), Utilities.GUIHelper.FixedWidth))
                     _currentKeyboardShortcutToSet = null;
             }
             else
@@ -509,7 +595,7 @@ namespace ConfigurationManager
                 var acceptableValues = setting.AcceptableValues?.Length > 1 ? setting.AcceptableValues : Enum.GetValues(setting.SettingType);
                 DrawComboboxField(setting, acceptableValues, _instance.currentWindowRect.yMax);
 
-                if (GUILayout.Button(new GUIContent(_shortcutKeyText.Value), GetButtonStyle(), GUILayout.ExpandWidth(false)))
+                if (GUILayout.Button(new GUIContent(_shortcutKeyText.Value), GetButtonStyle(), Utilities.GUIHelper.FixedWidth))
                     _currentKeyboardShortcutToSet = setting;
             }
         }
@@ -518,7 +604,7 @@ namespace ConfigurationManager
         {
             if (ReferenceEquals(_currentKeyboardShortcutToSet, setting))
             {
-                GUILayout.Label(_shortcutKeysText.Value, GetButtonStyle(), GUILayout.ExpandWidth(true));
+                GUILayout.Label(_shortcutKeysText.Value, GetButtonStyle(), Utilities.GUIHelper.ExpandWidth);
                 GUIUtility.keyboardControl = -1;
 
                 var input = UnityInput.Current;
@@ -533,15 +619,15 @@ namespace ConfigurationManager
                     }
                 }
 
-                if (GUILayout.Button(_cancelText.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
+                if (GUILayout.Button(_cancelText.Value, GetButtonStyle(), Utilities.GUIHelper.FixedWidth))
                     _currentKeyboardShortcutToSet = null;
             }
             else
             {
-                if (GUILayout.Button(setting.Get().ToString(), GetButtonStyle(setting), GUILayout.ExpandWidth(true)))
+                if (GUILayout.Button(setting.Get().ToString(), GetButtonStyle(setting), Utilities.GUIHelper.ExpandWidth))
                     _currentKeyboardShortcutToSet = setting;
 
-                if (GUILayout.Button(_clearText.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
+                if (GUILayout.Button(_clearText.Value, GetButtonStyle(), Utilities.GUIHelper.FixedWidth))
                 {
                     setting.Set(KeyboardShortcut.Empty);
                     _currentKeyboardShortcutToSet = null;
@@ -596,9 +682,9 @@ namespace ConfigurationManager
 
         private static float DrawSingleVectorSlider(float setting, string label, float defaultValue, bool integerValuesOnly)
         {
-            GUILayout.Label(label, GetLabelStyle(), GUILayout.ExpandWidth(false));
+            GUILayout.Label(label, GetLabelStyle(), Utilities.GUIHelper.FixedWidth);
             int precision = _vectorDynamicPrecision.Value && integerValuesOnly ? 0 : Math.Abs(_vectorPrecision.Value);
-            string value = GUILayout.TextField(setting.ToString("F" + precision, CultureInfo.InvariantCulture), GetTextStyle(setting, defaultValue), GUILayout.ExpandWidth(true));
+            string value = GUILayout.TextField(setting.ToString("F" + precision, CultureInfo.InvariantCulture), GetTextStyle(setting, defaultValue), Utilities.GUIHelper.ExpandWidth);
             if (precision == 0 && (value.EndsWith(".") || value.EndsWith(",")))
                 value = string.Concat(value, string.Empty.PadRight(Math.Abs(_vectorPrecision.Value - 1), '0'), 1);
 
@@ -621,7 +707,7 @@ namespace ConfigurationManager
             GUIHelper.BeginColor(setting);
             // Use the same layout metrics as the adjacent HEX field so the preview stays
             // vertically aligned when compact mode changes text field margins.
-            GUILayout.Label(string.Empty, GetTextStyle(isDefaultValue), GUILayout.ExpandWidth(true));
+            GUILayout.Label(string.Empty, GetTextStyle(isDefaultValue), Utilities.GUIHelper.ExpandWidth);
 
             if (!ColorCache.TryGetValue(obj, out var cacheEntry))
             {
@@ -677,7 +763,7 @@ namespace ConfigurationManager
         {
             GUIStyle style = GetTextStyle(value, defaultValue);
             string currentText = $"#{ColorUtility.ToHtmlStringRGBA(value)}";
-            Utilities.Utils.UpdateHexString(ref currentText, GUILayout.TextField(currentText, style, GUILayout.Width(style.CalcSize(new GUIContent("#CCCCCCCC.")).x), GUILayout.ExpandWidth(false)));
+            Utilities.Utils.UpdateHexString(ref currentText, GUILayout.TextField(currentText, style, GUILayout.Width(style.CalcSize(new GUIContent("#CCCCCCCC.")).x), Utilities.GUIHelper.FixedWidthOption));
             if (ColorUtility.TryParseHtmlString(currentText, out Color color))
                 value = color;
 
@@ -688,10 +774,10 @@ namespace ConfigurationManager
         {
             GUILayout.BeginVertical();
             GUILayout.BeginHorizontal();
-            GUILayout.Label(fieldLabel, GetLabelStyle(), GUILayout.ExpandWidth(true));
+            GUILayout.Label(fieldLabel, GetLabelStyle(), Utilities.GUIHelper.ExpandWidth);
 
             string currentText = Utilities.Utils.RoundWithPrecision(settingValue, 3).ToString("0.000");
-            string valueString = GUILayout.TextField(currentText, GetTextStyle(isDefaultValue), GUILayout.MaxWidth(45f), GUILayout.ExpandWidth(true));
+            string valueString = GUILayout.TextField(currentText, GetTextStyle(isDefaultValue), GUILayout.MaxWidth(45f), Utilities.GUIHelper.ExpandWidthOption);
             if (valueString.StartsWith('1'))
                 SetColorValue(ref settingColor, 1f);
             else if (valueString.StartsWith('0') && settingValue == 1f)
@@ -702,7 +788,7 @@ namespace ConfigurationManager
             GUILayout.EndHorizontal();
             GUILayout.Space(1f);
 
-            SetColorValue(ref settingColor, GUILayout.HorizontalSlider(settingValue, 0f, 1f, GUILayout.ExpandWidth(true)));
+            SetColorValue(ref settingColor, GUILayout.HorizontalSlider(settingValue, 0f, 1f, Utilities.GUIHelper.ExpandWidth));
 
             GUILayout.EndVertical();
 

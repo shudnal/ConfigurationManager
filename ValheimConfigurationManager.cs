@@ -31,7 +31,7 @@ namespace ConfigurationManager
         public static ConfigEntry<PreventInput> _preventInput;
         public static ConfigEntry<bool> _showMainMenuButton;
         public static ConfigEntry<string> _mainMenuButtonCaption;
-        public static ConfigEntry<bool> _useValheimGuiScaleFactor; 
+        public static ConfigEntry<bool> _useValheimGuiScaleFactor;
 
         private static readonly Harmony harmony = new Harmony(GUID);
 
@@ -44,9 +44,11 @@ namespace ConfigurationManager
         };
 
         internal static readonly CustomSyncedValue<List<string>> hiddenSettings = new CustomSyncedValue<List<string>>(configSync, "Hidden settings", new List<string>());
-        
+
         private static DirectoryInfo pluginDirectory;
         private static DirectoryInfo configDirectory;
+        private readonly List<FileSystemWatcher> _hiddenSettingsWatchers = new List<FileSystemWatcher>();
+        private readonly HashSet<Button> _menuButtons = new HashSet<Button>();
 
         void OnEnable()
         {
@@ -55,13 +57,14 @@ namespace ConfigurationManager
             _preventInput = config("Valheim", "Prevent input", PreventInput.Player, "Prevent input when window is open" +
                                                                                     "\n Off - everything goes through" +
                                                                                     "\n Player - prevent player controls and HUD buttons (console will still operate)" +
-                                                                                    "\n All - prevent all input events");
+                                                                                    "\n All - also prevent console input");
             _showMainMenuButton = config("Valheim", "Main menu button", true, "Add button in main menu to open/close configuration manager window");
             _mainMenuButtonCaption = config("Valheim", "Main menu button caption", "Mods settings", "Main menu button caption");
             _useValheimGuiScaleFactor = config("Valheim", "Use Valheim GUI scaling", true, "Use Valheim scale factor from Accessibility - Scale GUI");
 
-            _showMainMenuButton.SettingChanged += (sender, args) => SetupMenuButton();
-            _mainMenuButtonCaption.SettingChanged += (sender, args) => SetupMenuButton();
+            _showMainMenuButton.SettingChanged += MenuButtonSettingChanged;
+            _mainMenuButtonCaption.SettingChanged += MenuButtonSettingChanged;
+            _preventInput.SettingChanged += InputPreventionSettingChanged;
 
             _ = configSync.AddLockingConfigEntry(_configLocked);
 
@@ -73,13 +76,57 @@ namespace ConfigurationManager
             configDirectory = new DirectoryInfo(Paths.ConfigPath);
 
             SetupHiddenSettingsWatcher();
+            SetupMenuButton();
         }
 
         void OnDisable()
         {
-            harmony?.UnpatchSelf();
-            DisplayingWindowChanged -= ConfigurationManager_DisplayingWindowChanged;
+            try
+            {
+                DisplayingWindow = false;
+            }
+            finally
+            {
+                ReleaseWindowCursor();
+                ResetInputPrevention();
+                harmony.UnpatchSelf();
+                DisplayingWindowChanged -= ConfigurationManager_DisplayingWindowChanged;
+                _showMainMenuButton.SettingChanged -= MenuButtonSettingChanged;
+                _mainMenuButtonCaption.SettingChanged -= MenuButtonSettingChanged;
+                _preventInput.SettingChanged -= InputPreventionSettingChanged;
+                foreach (FileSystemWatcher watcher in _hiddenSettingsWatchers)
+                    watcher.Dispose();
+                _hiddenSettingsWatchers.Clear();
+                foreach (Button button in _menuButtons)
+                {
+                    if (!button)
+                        continue;
+                    button.onClick.RemoveListener(ToggleWindow);
+                    Navigation navigation = button.navigation;
+                    if (navigation.selectOnUp)
+                    {
+                        Navigation previous = navigation.selectOnUp.navigation;
+                        if (previous.selectOnDown == button)
+                        {
+                            previous.selectOnDown = navigation.selectOnDown;
+                            navigation.selectOnUp.navigation = previous;
+                        }
+                    }
+                    if (navigation.selectOnDown)
+                    {
+                        Navigation next = navigation.selectOnDown.navigation;
+                        if (next.selectOnUp == button)
+                        {
+                            next.selectOnUp = navigation.selectOnUp;
+                            navigation.selectOnDown.navigation = next;
+                        }
+                    }
+                    button.gameObject.SetActive(false);
+                }
+            }
         }
+
+        private void MenuButtonSettingChanged(object sender, EventArgs args) => SetupMenuButton();
 
         /// <summary>
         /// Toggle configuration manager window visibility
@@ -89,7 +136,7 @@ namespace ConfigurationManager
             DisplayingWindow = !DisplayingWindow;
         }
 
-        private static void SetupHiddenSettingsWatcher()
+        private void SetupHiddenSettingsWatcher()
         {
             foreach (string hiddenSettingsFileName in hiddenSettingsFileNames)
             {
@@ -100,6 +147,7 @@ namespace ConfigurationManager
                 fileSystemWatcherPlugin.Deleted += new FileSystemEventHandler(ReadConfigs);
                 fileSystemWatcherPlugin.IncludeSubdirectories = true;
                 fileSystemWatcherPlugin.SynchronizingObject = ThreadingHelper.SynchronizingObject;
+                _hiddenSettingsWatchers.Add(fileSystemWatcherPlugin);
                 fileSystemWatcherPlugin.EnableRaisingEvents = true;
 
                 FileSystemWatcher fileSystemWatcherConfig = new FileSystemWatcher(configDirectory.FullName, hiddenSettingsFileName);
@@ -109,6 +157,7 @@ namespace ConfigurationManager
                 fileSystemWatcherConfig.Deleted += new FileSystemEventHandler(ReadConfigs);
                 fileSystemWatcherConfig.IncludeSubdirectories = true;
                 fileSystemWatcherConfig.SynchronizingObject = ThreadingHelper.SynchronizingObject;
+                _hiddenSettingsWatchers.Add(fileSystemWatcherConfig);
                 fileSystemWatcherConfig.EnableRaisingEvents = true;
             }
 
@@ -151,37 +200,41 @@ namespace ConfigurationManager
             hiddenSettings.AssignLocalValue(hiddenSettingsList);
         }
 
-        private static bool PreventAllInput()
-        {
-            return _preventInput.Value == PreventInput.All;
-        }
-
-        private static bool PreventPlayerInput()
-        {
-            return PreventAllInput() || _preventInput.Value == PreventInput.Player;
-        }
+        private Menu _blockedMenu;
+        private Menu.CloseMenuState _previousMenuCloseState;
+        private Game _pausedGame;
 
         private void ConfigurationManager_DisplayingWindowChanged(object sender, ValueChangedEventArgs<bool> e)
         {
-            if (FejdStartup.instance && FejdStartup.instance.m_mainMenu && FejdStartup.instance.m_mainMenu.activeSelf)
+            if (DisplayingWindow)
             {
-                FejdStartup.instance.m_mainMenu.SetActive(value: false);
-                FejdStartup.instance.m_mainMenu.SetActive(value: true);
-            }
+                if (Menu.instance)
+                {
+                    _blockedMenu = Menu.instance;
+                    _previousMenuCloseState = _blockedMenu.m_closeMenuState;
+                    _blockedMenu.m_closeMenuState = Menu.CloseMenuState.SettingsOpen;
+                    _blockedMenu.m_rebuildLayout = true;
+                }
 
-            if (Menu.instance)
+                if (_pauseGame.Value && Game.instance && !Game.IsPaused() && Game.CanPause())
+                {
+                    _pausedGame = Game.instance;
+                    Game.Pause();
+                }
+            }
+            else
             {
-                Menu.instance.m_closeMenuState = DisplayingWindow ? Menu.CloseMenuState.SettingsOpen : Menu.CloseMenuState.CanBeClosed;
-                Menu.instance.m_rebuildLayout = true;
+                if (_blockedMenu && _blockedMenu.m_closeMenuState == Menu.CloseMenuState.SettingsOpen)
+                {
+                    _blockedMenu.m_closeMenuState = _previousMenuCloseState;
+                    _blockedMenu.m_rebuildLayout = true;
+                }
+                _blockedMenu = null;
+
+                if (_pausedGame && _pausedGame == Game.instance && !Menu.IsActive() && Game.IsPaused())
+                    Game.Unpause();
+                _pausedGame = null;
             }
-
-            if (!_pauseGame.Value || !Game.instance)
-                return;
-
-            if (DisplayingWindow && !Game.IsPaused() && Game.CanPause())
-                Game.Pause();
-            else if (!DisplayingWindow && !Menu.IsActive() && Game.IsPaused())
-                Game.Unpause();
         }
 
         private bool HideSettings()
@@ -207,6 +260,8 @@ namespace ConfigurationManager
                 return;
 
             Transform settings = menuEntries.Find("Settings");
+            if (!settings)
+                return;
 
             GameObject menuButton = menuEntries.Find(menuButtonName)?.gameObject;
             if (menuButton == null)
@@ -214,20 +269,20 @@ namespace ConfigurationManager
                 menuButton = Instantiate(settings.gameObject, menuEntries);
                 menuButton.transform.SetSiblingIndex(settings.GetSiblingIndex() + 1);
                 menuButton.name = menuButtonName;
-                
-                Button button = menuButton.GetComponent<Button>();
-                button.onClick.SetPersistentListenerState(0, UnityEngine.Events.UnityEventCallState.Off);
-                button.onClick.AddListener(delegate
-                {
-                    ToggleWindow();
-                });
 
+                Button button = menuButton.GetComponent<Button>();
+                for (int index = 0; index < button.onClick.GetPersistentEventCount(); index++)
+                    button.onClick.SetPersistentListenerState(index, UnityEngine.Events.UnityEventCallState.Off);
                 var navigation = button.navigation;
                 navigation.selectOnUp = settings.GetComponent<Button>();
                 button.navigation = navigation;
             }
 
             Button modButton = menuButton.GetComponent<Button>();
+            _menuButtons.RemoveWhere(button => !button);
+            _menuButtons.Add(modButton);
+            modButton.onClick.RemoveListener(ToggleWindow);
+            modButton.onClick.AddListener(ToggleWindow);
 
             menuButton.GetComponentInChildren<TMP_Text>().text = _mainMenuButtonCaption.Value;
             menuButton.SetActive(_showMainMenuButton.Value);
@@ -236,6 +291,8 @@ namespace ConfigurationManager
             var previousNavigation = previousButton.navigation;
 
             Button nextButton = modButton.navigation.selectOnDown as Button;
+            if (!nextButton)
+                return;
             var nextNavigation = nextButton.navigation;
 
             if (_showMainMenuButton.Value)
@@ -258,129 +315,6 @@ namespace ConfigurationManager
             float a = (float)ScreenSystemWidth / GuiScaler.m_minWidth;
             float b = (float)ScreenSystemHeight / GuiScaler.m_minHeight;
             return Mathf.Min(a, b) * GuiScaler.m_largeGuiScale;
-        }
-
-        [HarmonyPatch(typeof(PlayerController), nameof(PlayerController.TakeInput))]
-        [HarmonyPriority(Priority.Last)]
-        public static class PlayerController_TakeInput_PreventInput
-        {
-            public static void Postfix(ref bool __result)
-            {
-                if (PreventPlayerInput())
-                    __result = __result && !instance.DisplayingWindow;
-            }
-        }
-
-        [HarmonyPatch(typeof(TextInput), nameof(TextInput.IsVisible))]
-        [HarmonyPriority(Priority.Last)]
-        public static class TextInput_IsVisible_PreventInput
-        {
-            public static void Postfix(ref bool __result)
-            {
-                if (PreventPlayerInput())
-                    __result = __result || instance.DisplayingWindow;
-            }
-        }
-
-        [HarmonyPatch]
-        public static class Inventory_PreventAllInput
-        {
-            private static IEnumerable<MethodBase> TargetMethods()
-            {
-                yield return AccessTools.Method(typeof(InventoryGrid), nameof(InventoryGrid.OnLeftClick));
-                yield return AccessTools.Method(typeof(InventoryGrid), nameof(InventoryGrid.OnLeftDown));
-                yield return AccessTools.Method(typeof(InventoryGrid), nameof(InventoryGrid.OnRightDown));
-                yield return AccessTools.Method(typeof(InventoryGui), nameof(InventoryGui.OnSelectedItem));
-                yield return AccessTools.Method(typeof(InventoryGui), nameof(InventoryGui.OnRightClickItem));
-                yield return AccessTools.Method(typeof(Toggle), nameof(Toggle.OnSubmit));
-                yield return AccessTools.Method(typeof(Toggle), nameof(Toggle.OnPointerClick));
-                yield return AccessTools.Method(typeof(Player), nameof(Player.UseHotbarItem));
-                yield return AccessTools.Method(typeof(ScrollRect), nameof(ScrollRect.OnScroll));
-            }
-
-            [HarmonyPriority(Priority.First)]
-            private static bool Prefix() => !PreventPlayerInput() || !instance.DisplayingWindow;
-        }
-
-        [HarmonyPatch]
-        public static class Button_PreventAllInput
-        {
-            private static IEnumerable<MethodBase> TargetMethods()
-            {
-                yield return AccessTools.Method(typeof(Button), nameof(Button.OnPointerClick));
-                yield return AccessTools.Method(typeof(Button), nameof(Button.OnSubmit));
-                yield return AccessTools.Method(typeof(Button), "Press");
-            }
-
-            [HarmonyPriority(Priority.First)]
-            private static bool Prefix(Button __instance) => !PreventPlayerInput() || !instance.DisplayingWindow || __instance.name == menuButtonName;
-        }
-
-        [HarmonyPatch]
-        public static class ZInput_PreventAllInput
-        {
-            private static IEnumerable<MethodBase> TargetMethods()
-            {
-                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.ShouldAcceptInputFromSource));
-                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetKey));
-                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetKeyUp));
-                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetKeyDown));
-                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetButton));
-                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetButtonDown));
-                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetButtonUp));
-            }
-
-            [HarmonyPriority(Priority.First)]
-            private static bool Prefix(ref bool __result) => !PreventAllInput() || !instance.DisplayingWindow || (__result = false);
-        }
-
-        [HarmonyPatch]
-        public static class ZInput_PreventPlayerInput
-        {
-            private static IEnumerable<MethodBase> TargetMethods()
-            {
-                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetMouseButton));
-                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetMouseButtonDown));
-                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetMouseButtonUp));
-                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetRadialTap));
-                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetRadialMultiTap));
-            }
-
-            [HarmonyPriority(Priority.First)]
-            private static bool Prefix(ref bool __result) => !PreventPlayerInput() || !instance.DisplayingWindow || (__result = false);
-        }
-
-        [HarmonyPatch]
-        public static class ZInput_Float_PreventMouseInput
-        {
-            private static IEnumerable<MethodBase> TargetMethods()
-            {
-                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetJoyLeftStickX));
-                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetJoyLeftStickY));
-                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetJoyRTrigger));
-                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetJoyLTrigger));
-                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetJoyRightStickX));
-                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetJoyRightStickY));
-                yield return AccessTools.Method(typeof(ZInput), nameof(ZInput.GetMouseScrollWheel));
-            }
-
-            [HarmonyPriority(Priority.Last)]
-            private static void Postfix(ref float __result)
-            {
-                if (PreventPlayerInput() && instance.DisplayingWindow)
-                    __result = 0f;
-            }
-        }
-
-        [HarmonyPatch(typeof(ZInput), nameof(ZInput.GetMouseDelta))]
-        public static class ZInput_GetMouseDelta_PreventMouseInput
-        {
-            [HarmonyPriority(Priority.Last)]
-            public static void Postfix(ref Vector2 __result)
-            {
-                if (PreventPlayerInput() && instance.DisplayingWindow)
-                    __result = Vector2.zero;
-            }
         }
 
         [HarmonyPatch(typeof(FejdStartup), nameof(FejdStartup.Start))]

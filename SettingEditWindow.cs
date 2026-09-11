@@ -24,7 +24,7 @@ namespace ConfigurationManager
 
         private static SettingEntryBase _currentKeyboardShortcutToSet;
         public Dictionary<Type, Action> SettingDrawHandlers { get; }
-        
+
         private static IEnumerable<KeyCode> _keysToCheck;
 
         private static readonly Dictionary<SettingEntryBase, ColorCacheEntry> ColorCache = new Dictionary<SettingEntryBase, ColorCacheEntry>();
@@ -56,6 +56,8 @@ namespace ConfigurationManager
         private string newItem;
 
         private ConfigEntryBase dummyCustomDrawerConfigEntry;
+        private bool _windowGeometryDirty;
+        private Vector2? _pendingWindowSize;
 
         private bool IsStringList => setting != null && setting.SettingType != null && typeof(IList<string>).IsAssignableFrom(setting.SettingType);
 
@@ -83,20 +85,42 @@ namespace ConfigurationManager
             }
 
             this.setting = setting;
-            
+
             InitializeWindow();
 
             IsOpen = true;
         }
 
-        public bool IsOpen { get; set; }
+        private bool _isOpen;
+
+        public bool IsOpen
+        {
+            get => _isOpen;
+            set
+            {
+                if (_isOpen == value)
+                    return;
+
+                if (_isOpen && !value && _windowGeometryDirty)
+                    SaveCurrentSizeAndPosition();
+
+                _isOpen = value;
+                if (_isOpen)
+                {
+                    _windowRect = new Rect(_windowPositionEditSetting.Value, _windowSizeEditSetting.Value);
+                    _windowGeometryDirty = false;
+                    _pendingWindowSize = null;
+                }
+            }
+        }
 
         public void OnGUI()
         {
             if (!IsOpen)
                 return;
 
-            setting.RefreshDynamicAttributes();
+            if (setting.RefreshDisplayAttributes())
+                instance.BuildFilteredSettingList();
             if (setting.Browsable == false)
             {
                 IsOpen = false;
@@ -109,16 +133,27 @@ namespace ConfigurationManager
                 errorOnSetting = string.Empty;
             }
 
-            _windowRect.size = _windowSizeEditSetting.Value;
-            _windowRect.position = _windowPositionEditSetting.Value;
+            if (!_windowGeometryDirty)
+            {
+                _windowRect.size = _windowSizeEditSetting.Value;
+                _windowRect.position = _windowPositionEditSetting.Value;
+            }
 
             Color color = GUI.backgroundColor;
             GUI.backgroundColor = _windowBackgroundColor.Value;
 
-            _windowRect = GUI.Window(WindowId, _windowRect, DrawWindow, $"{setting.PluginInfo.Name} {setting.PluginInfo.Version}", GetWindowStyle());
+            Rect drawnWindowRect = GUI.Window(WindowId, _windowRect, DrawWindow, $"{setting.PluginInfo.Name} {setting.PluginInfo.Version}", GetWindowStyle());
+            if (_pendingWindowSize.HasValue)
+            {
+                drawnWindowRect.size = _pendingWindowSize.Value;
+                _pendingWindowSize = null;
+            }
+            _windowRect = drawnWindowRect;
 
-            if (!UnityInput.Current.GetKeyDown(KeyCode.Mouse0) &&
-                (_windowRect.position != _windowPositionEditSetting.Value))
+            if (_windowRect.position != _windowPositionEditSetting.Value)
+                _windowGeometryDirty = true;
+
+            if (_windowGeometryDirty && !UnityInput.Current.GetMouseButton(0))
                 SaveCurrentSizeAndPosition();
 
             GUI.backgroundColor = color;
@@ -163,6 +198,7 @@ namespace ConfigurationManager
         private void InitializeWindow()
         {
             listEnum = null;
+            _enumListContent = null;
             listIndex = -1;
             drawerFunction = null;
             valueToSet = setting.SettingType == typeof(Color) ? Utilities.Utils.RoundColorToHEX((Color)setting.Get()) : setting.Get();
@@ -211,11 +247,11 @@ namespace ConfigurationManager
             }
             else
                 SettingDrawHandlers.TryGetValue(setting.SettingType, out drawerFunction);
-            
+
             InitListIndex();
 
             InitVectorParts();
-            
+
             UpdateStringList();
         }
 
@@ -270,76 +306,102 @@ namespace ConfigurationManager
 
         internal void SaveCurrentSizeAndPosition()
         {
-            _windowSizeEditSetting.Value = new Vector2(Mathf.Clamp(_windowRect.size.x, 200f, instance.ScreenWidth / 2), Mathf.Clamp(_windowRect.size.y, 200f, instance.ScreenHeight * 0.9f));
-            _windowPositionEditSetting.Value = new Vector2(Mathf.Clamp(_windowRect.position.x, 0f, instance.ScreenWidth - _windowSize.Value.x / 4f), Mathf.Clamp(_windowRect.position.y, 0f, instance.ScreenHeight - HeaderSize * 2));
-            instance.Config.Save();
+            Vector2 windowSize = new Vector2(
+                Mathf.Clamp(_windowRect.size.x, 200f, instance.ScreenWidth / 2),
+                Mathf.Clamp(_windowRect.size.y, 200f, instance.ScreenHeight * 0.9f));
+            Vector2 windowPosition = new Vector2(
+                Mathf.Clamp(_windowRect.position.x, 0f, instance.ScreenWidth - windowSize.x / 4f),
+                Mathf.Clamp(_windowRect.position.y, 0f, instance.ScreenHeight - HeaderSize * 2));
+
+            instance.SaveOwnConfigChanges(() =>
+            {
+                _windowSizeEditSetting.Value = windowSize;
+                _windowPositionEditSetting.Value = windowPosition;
+            });
+
+            _windowRect = new Rect(windowPosition, windowSize);
+            _windowGeometryDirty = false;
+            _pendingWindowSize = null;
         }
 
-       private void DrawWindow(int windowID)
+        private void DrawWindow(int windowID)
         {
-            var backgroundColor = GUI.backgroundColor;
-            GUI.backgroundColor = _entryBackgroundColor.Value;
-
-            GUILayout.BeginVertical(GetSettingWindowBackgroundStyle());
-
-            GUILayout.Space(1f);
-
-            GUILayout.Label($"<b>{setting.Category}</b>", GetLabelStyle(), GUILayout.ExpandWidth(true));
-            
-            DrawDelimiterLine();
-
-            GUILayout.Space(1f);
-
-            GUILayout.BeginHorizontal(GUILayout.ExpandHeight(false));
-            GUILayout.Label($"{setting.DispName} ", GetLabelStyle(), GUILayout.ExpandWidth(false));
-            GUILayout.Label($"({GetTypeRepresentation(setting.SettingType)})", GetLabelStyleInfo(), GUILayout.ExpandWidth(true));
-            GUILayout.EndHorizontal();
-
-            GUILayout.Label(setting.Description, GetLabelStyle(isDefaultValue: false), GUILayout.ExpandWidth(true));
-
-            if (setting.DefaultValue != null)
+            Utilities.GUITooltips.BeginWindow(_windowRect);
+            Utilities.ComboBox.BeginWindow(windowID, _windowRect);
+            try
             {
-                var style = GetLabelStyle();
-                var content = new GUIContent(_defaultValueDescriptionEditWindow.Value);
-                float width = style.CalcSize(content).x + 3f;
+                var backgroundColor = GUI.backgroundColor;
+                GUI.backgroundColor = _entryBackgroundColor.Value;
 
-                GUILayout.BeginHorizontal(GUILayout.ExpandHeight(false));
-                GUILayout.Label(_defaultValueDescriptionEditWindow.Value, style, GUILayout.Width(width));
-                GUILayout.Label($"{GetValueRepresentation(setting.DefaultValue, setting.SettingType)}", GetLabelStyleInfo(), GUILayout.ExpandWidth(true));
+                GUILayout.BeginVertical(GetSettingWindowBackgroundStyle());
+
+                GUILayout.Space(1f);
+
+                GUILayout.Label($"<b>{setting.Category}</b>", GetLabelStyle(), Utilities.GUIHelper.ExpandWidth);
+
+                DrawDelimiterLine();
+
+                GUILayout.Space(1f);
+
+                GUILayout.BeginHorizontal(Utilities.GUIHelper.FixedHeight);
+                GUILayout.Label($"{setting.DispName} ", GetLabelStyle(), Utilities.GUIHelper.FixedWidth);
+                GUILayout.Label($"({GetTypeRepresentation(setting.SettingType)})", GetLabelStyleInfo(), Utilities.GUIHelper.ExpandWidth);
                 GUILayout.EndHorizontal();
+
+                GUILayout.Label(setting.Description, GetLabelStyle(isDefaultValue: false), Utilities.GUIHelper.ExpandWidth);
+
+                if (setting.DefaultValue != null)
+                {
+                    var style = GetLabelStyle();
+                    var content = new GUIContent(_defaultValueDescriptionEditWindow.Value);
+                    float width = style.CalcSize(content).x + 3f;
+
+                    GUILayout.BeginHorizontal(Utilities.GUIHelper.FixedHeight);
+                    GUILayout.Label(_defaultValueDescriptionEditWindow.Value, style, GUILayout.Width(width));
+                    GUILayout.Label($"{GetValueRepresentation(setting.DefaultValue, setting.SettingType)}", GetLabelStyleInfo(), Utilities.GUIHelper.ExpandWidth);
+                    GUILayout.EndHorizontal();
+                }
+
+                DrawDelimiterLine();
+
+                GUILayout.Space(5f);
+
+                bool settingControlsEnabled = GUI.enabled;
+                GUI.enabled = settingControlsEnabled && setting.ReadOnly != true;
+                DrawSettingValue();
+                GUI.enabled = settingControlsEnabled;
+
+                if (!errorOnSetting.IsNullOrWhiteSpace())
+                    GUILayout.Label(errorOnSetting, GetLabelStyle());
+
+                DrawDelimiterLine();
+
+                GUILayout.Space(1f);
+
+                DrawMenuButtons();
+
+                GUILayout.EndVertical();
+
+                GUI.backgroundColor = backgroundColor;
+
+                GUI.DragWindow(new Rect(0, 0, _windowRect.width, HeaderSize));
+
+                if (!SettingFieldDrawer.DrawCurrentDropdown())
+                    DrawTooltip(_windowRect);
+
+                Rect resizedWindowRect = Utilities.Utils.ResizeWindow(windowID, _windowRect, out bool sizeChanged);
+                if (sizeChanged)
+                {
+                    _windowRect = resizedWindowRect;
+                    _pendingWindowSize = resizedWindowRect.size;
+                    _windowGeometryDirty = true;
+                }
             }
-
-            DrawDelimiterLine();
-
-            GUILayout.Space(5f);
-
-            bool settingControlsEnabled = GUI.enabled;
-            GUI.enabled = settingControlsEnabled && setting.ReadOnly != true;
-            DrawSettingValue();
-            GUI.enabled = settingControlsEnabled;
-
-            if (!errorOnSetting.IsNullOrWhiteSpace())
-                GUILayout.Label(errorOnSetting, GetLabelStyle());
-
-            DrawDelimiterLine();
-
-            GUILayout.Space(1f);
-
-            DrawMenuButtons();
-
-            GUILayout.EndVertical();
-
-            GUI.backgroundColor = backgroundColor;
-
-            GUI.DragWindow(new Rect(0, 0, _windowRect.width, HeaderSize));
-
-            if (!SettingFieldDrawer.DrawCurrentDropdown())
-                DrawTooltip(_windowRect);
-
-            _windowRect = Utilities.Utils.ResizeWindow(windowID, _windowRect, out bool sizeChanged);
-
-            if (sizeChanged)
-                SaveCurrentSizeAndPosition();
+            finally
+            {
+                Utilities.ComboBox.EndWindow();
+                Utilities.GUITooltips.EndWindow();
+            }
         }
 
         private void DrawLabel(string label, string value)
@@ -349,10 +411,10 @@ namespace ConfigurationManager
                 GUILayout.BeginHorizontal();
 
             if (!label.IsNullOrWhiteSpace())
-                GUILayout.Label(value.IsNullOrWhiteSpace() ? label : label + ":", GetLabelStyle(), GUILayout.ExpandWidth(false));
+                GUILayout.Label(value.IsNullOrWhiteSpace() ? label : label + ":", GetLabelStyle(), Utilities.GUIHelper.FixedWidth);
 
             if (!value.IsNullOrWhiteSpace())
-                GUILayout.Label(value, GetLabelStyleInfo(), GUILayout.ExpandWidth(true));
+                GUILayout.Label(value, GetLabelStyleInfo(), Utilities.GUIHelper.ExpandWidth);
 
             if (drawAsBlock)
                 GUILayout.EndHorizontal();
@@ -405,7 +467,8 @@ namespace ConfigurationManager
 
         private void DrawMenuButtons()
         {
-            setting.RefreshDynamicAttributes();
+            if (setting.RefreshDynamicAttributes())
+                instance.BuildFilteredSettingList();
             bool readOnly = setting.ReadOnly == true;
 
             GUILayout.BeginHorizontal();
@@ -415,16 +478,16 @@ namespace ConfigurationManager
                 DrawDefaultButton();
                 GUI.enabled = enabled;
 
-                GUILayout.Label(_pressEscapeHintEditWindow.Value, GetLabelStyleInfo(), GUILayout.ExpandWidth(true));
+                GUILayout.Label(_pressEscapeHintEditWindow.Value, GetLabelStyleInfo(), Utilities.GUIHelper.ExpandWidth);
 
                 enabled = GUI.enabled;
                 GUI.enabled = enabled && !readOnly && !IsEqualConfigValues(setting.SettingType, valueToSet, setting.Get());
-                if (GUILayout.Button(_applyButtonEditWindow.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
+                if (GUILayout.Button(_applyButtonEditWindow.Value, GetButtonStyle(), Utilities.GUIHelper.FixedWidth))
                     ApplySettingValue();
 
                 GUI.enabled = enabled;
 
-                if (GUILayout.Button(_closeText.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
+                if (GUILayout.Button(_closeText.Value, GetButtonStyle(), Utilities.GUIHelper.FixedWidth))
                     IsOpen = false;
             }
             GUILayout.EndHorizontal();
@@ -452,34 +515,34 @@ namespace ConfigurationManager
             GUI.backgroundColor = _widgetBackgroundColor.Value;
 
             bool drawStringMenu = false;
-            _scrollPosition = GUILayout.BeginScrollView(_scrollPosition);
+            _scrollPosition = Utilities.GUITooltips.BeginScrollView(_scrollPosition);
             {
                 if (!DrawCustomField() && !DrawKnownDrawer())
                 {
                     if (errorText.Length > 0)
                         GUILayout.Label($"Error:\n{errorText}", GetLabelStyle());
-                    
+
                     DrawUnknownField(out drawStringMenu);
                 }
             }
-            GUILayout.EndScrollView();
+            Utilities.GUITooltips.EndScrollView();
 
             if (drawStringMenu)
             {
                 GUILayout.BeginHorizontal();
-                GUILayout.Label(_editAsLabelEditWindow.Value, GetLabelStyle(), GUILayout.ExpandWidth(false));
-                if (editStringView != (editStringView = GUILayout.SelectionGrid(editStringView, new[] { _editAsTextEditWindow.Value, _editAsListEditWindow.Value }, 2, GetButtonStyle(), GUILayout.ExpandWidth(false))))
+                GUILayout.Label(_editAsLabelEditWindow.Value, GetLabelStyle(), Utilities.GUIHelper.FixedWidth);
+                if (editStringView != (editStringView = GUILayout.SelectionGrid(editStringView, new[] { _editAsTextEditWindow.Value, _editAsListEditWindow.Value }, 2, GetButtonStyle(), Utilities.GUIHelper.FixedWidthOption)))
                 {
                     // On view mode change?
                 }
 
                 if (editStringView > 0)
                 {
-                    GUILayout.Label(_separatorLabelEditWindow.Value, GetLabelStyle(), GUILayout.ExpandWidth(false));
+                    GUILayout.Label(_separatorLabelEditWindow.Value, GetLabelStyle(), Utilities.GUIHelper.FixedWidth);
                     if (separator != (separator = GUILayout.TextField(separator)))
                         UpdateStringList();
 
-                    if (GUILayout.Button(_trimWhitespaceButtonEditWindow.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
+                    if (GUILayout.Button(_trimWhitespaceButtonEditWindow.Value, GetButtonStyle(), Utilities.GUIHelper.FixedWidth))
                     {
                         separatedString = separatedString.Select(s => s.Trim()).ToList();
                         valueToSet = setting.StrToObj(string.Join(separator, separatedString));
@@ -495,7 +558,7 @@ namespace ConfigurationManager
         {
             var color = GUI.backgroundColor;
             GUI.backgroundColor = _widgetBackgroundColor.Value;
-            GUILayout.Label("", GetDelimiterLine(), GUILayout.ExpandWidth(true), GUILayout.Height(2));
+            GUILayout.Label("", GetDelimiterLine(), Utilities.GUIHelper.ExpandWidthOption, GUILayout.Height(2));
             GUI.backgroundColor = color;
         }
 
@@ -519,6 +582,9 @@ namespace ConfigurationManager
 
         public bool DrawCustomField()
         {
+            if (setting.CustomDrawer == null && setting.CustomHotkeyDrawer == null)
+                return false;
+
             if (SettingFieldDrawer.IsSettingFailedToCustomDraw(setting))
             {
                 GUILayout.Label("Error when calling custom drawer function.");
@@ -597,8 +663,8 @@ namespace ConfigurationManager
             float height = GetTextStyle(setting).CalcHeight(new GUIContent(value.ToString()), 100f);
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label(_rangeLabelEditWindow.Value, GetLabelStyle(), GUILayout.ExpandWidth(false));
-            GUILayout.Label($"{leftValue} - {rightValue}", GetLabelStyleInfo(), GUILayout.ExpandWidth(true));
+            GUILayout.Label(_rangeLabelEditWindow.Value, GetLabelStyle(), Utilities.GUIHelper.FixedWidth);
+            GUILayout.Label($"{leftValue} - {rightValue}", GetLabelStyleInfo(), Utilities.GUIHelper.ExpandWidth);
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal(GUILayout.Height(height));
@@ -637,7 +703,7 @@ namespace ConfigurationManager
         {
             GUILayout.BeginVertical(GUILayout.Height(height));
             GUILayout.Space(height * 0.35f);
-            var result = GUILayout.HorizontalSlider(converted, leftValue, rightValue, GetSliderStyle(), GetThumbStyle(), GUILayout.ExpandWidth(true), GUILayout.Height(height));
+            var result = GUILayout.HorizontalSlider(converted, leftValue, rightValue, GetSliderStyle(), GetThumbStyle(), Utilities.GUIHelper.ExpandWidthOption, GUILayout.Height(height));
             GUILayout.EndVertical();
             return result;
         }
@@ -655,13 +721,13 @@ namespace ConfigurationManager
                 {
                     if (editStringView > 0)
                     {
-                        DrawEditableList(); 
+                        DrawEditableList();
                         valueToSet = setting.StrToObj(string.Join(separator, separatedString));
                         GUILayout.FlexibleSpace();
                     }
                     else
                     {
-                        string result = GUILayout.TextArea(text, GetTextStyle(IsValueToSetDefaultValue()), GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true)).AppendZeroIfFloat(setting.SettingType);
+                        string result = GUILayout.TextArea(text, GetTextStyle(IsValueToSetDefaultValue()), Utilities.GUIHelper.ExpandWidthOption, GUILayout.ExpandHeight(true)).AppendZeroIfFloat(setting.SettingType);
                         if (result != text)
                             valueToSet = setting.StrToObj(result);
                     }
@@ -669,7 +735,7 @@ namespace ConfigurationManager
                 }
                 else
                 {
-                    string result = GUILayout.TextArea(text, GetTextStyle(IsValueToSetDefaultValue()), GUILayout.ExpandWidth(true)).AppendZeroIfFloat(setting.SettingType);
+                    string result = GUILayout.TextArea(text, GetTextStyle(IsValueToSetDefaultValue()), Utilities.GUIHelper.ExpandWidthOption).AppendZeroIfFloat(setting.SettingType);
                     if (result != text)
                         valueToSet = setting.StrToObj(result);
                 }
@@ -681,7 +747,7 @@ namespace ConfigurationManager
 
                 if (CanCovert(value, setting.SettingType))
                 {
-                    var result = GUILayout.TextArea(value, GetTextStyle(IsValueToSetDefaultValue()), GUILayout.ExpandWidth(true)).AppendZeroIfFloat(setting.SettingType);
+                    var result = GUILayout.TextArea(value, GetTextStyle(IsValueToSetDefaultValue()), Utilities.GUIHelper.ExpandWidthOption).AppendZeroIfFloat(setting.SettingType);
                     if (result != value)
                         try
                         {
@@ -694,7 +760,7 @@ namespace ConfigurationManager
                 }
                 else
                 {
-                    valueToSet = GUILayout.TextArea(value, GetTextStyle(IsValueToSetDefaultValue()), GUILayout.ExpandWidth(true)).AppendZeroIfFloat(setting.SettingType);
+                    valueToSet = GUILayout.TextArea(value, GetTextStyle(IsValueToSetDefaultValue()), Utilities.GUIHelper.ExpandWidthOption).AppendZeroIfFloat(setting.SettingType);
                 }
             }
         }
@@ -714,7 +780,7 @@ namespace ConfigurationManager
                     break;
                 }
 
-                separatedString[i] = GUILayout.TextArea(separatedString[i], GetTextStyle(separatedStringDefault.IndexOf(separatedString[i].Trim()) == i), GUILayout.ExpandWidth(true));
+                separatedString[i] = GUILayout.TextArea(separatedString[i], GetTextStyle(separatedStringDefault.IndexOf(separatedString[i].Trim()) == i), Utilities.GUIHelper.ExpandWidth);
 
                 var enabled = GUI.enabled;
                 GUI.enabled = i > 0;
@@ -733,12 +799,12 @@ namespace ConfigurationManager
             GUILayout.BeginHorizontal();
 
             GUI.SetNextControlName(NewItemFieldControlName);
-            newItem = GUILayout.TextField(newItem, GetTextStyle(isDefaultValue:false), GUILayout.ExpandWidth(true));
+            newItem = GUILayout.TextField(newItem, GetTextStyle(isDefaultValue:false), Utilities.GUIHelper.ExpandWidth);
 
             if (string.IsNullOrEmpty(newItem) && Event.current.type == EventType.Repaint)
                 GUI.Label(GUILayoutUtility.GetLastRect(), _newValuePlaceholderEditWindow.Value, GetPlaceholderTextStyle());
 
-            if (GUILayout.Button(_addButtonEditWindow.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)) && !string.IsNullOrWhiteSpace(newItem))
+            if (GUILayout.Button(_addButtonEditWindow.Value, GetButtonStyle(), Utilities.GUIHelper.FixedWidthOption) && !string.IsNullOrWhiteSpace(newItem))
             {
                 separatedString.Add(newItem);
                 newItem = "";
@@ -788,7 +854,7 @@ namespace ConfigurationManager
             bool DrawResetButton()
             {
                 GUILayout.Space(5);
-                return GUILayout.Button(_resetSettingText.Value, GetButtonStyle(), GUILayout.ExpandWidth(false));
+                return GUILayout.Button(_resetSettingText.Value, GetButtonStyle(), Utilities.GUIHelper.FixedWidth);
             }
 
             if (setting.DefaultValue != null)
@@ -839,7 +905,7 @@ namespace ConfigurationManager
             if (boolVal)
                 GUI.backgroundColor = _enabledBackgroundColor.Value;
 
-            bool result = GUILayout.SelectionGrid(boolVal ? 0 : 1, new [] {_enabledText.Value, _disabledText.Value }, 2, GetButtonStyle(), GUILayout.ExpandWidth(false)) == 0;
+            bool result = GUILayout.SelectionGrid(boolVal ? 0 : 1, new [] {_enabledText.Value, _disabledText.Value }, 2, GetButtonStyle(), Utilities.GUIHelper.FixedWidthOption) == 0;
             if (result != boolVal)
                 valueToSet = result;
 
@@ -884,7 +950,7 @@ namespace ConfigurationManager
 
                                 GUI.changed = false;
 
-                                if (GUILayout.Button(value.name, style, GUILayout.ExpandWidth(false)))
+                                if (GUILayout.Button(value.name, style, Utilities.GUIHelper.FixedWidth))
                                     curr = !curr;
 
                                 if (GUI.changed)
@@ -904,21 +970,24 @@ namespace ConfigurationManager
             GUILayout.FlexibleSpace();
         }
 
+        private GUIContent[] _enumListContent;
+
         private void DrawEnumListField()
         {
-            var listContent = listEnum.Cast<object>().Select(SettingFieldDrawer.ObjectToGuiContent).ToArray();
+            if (_enumListContent == null)
+                _enumListContent = listEnum.Cast<object>().Select(SettingFieldDrawer.ObjectToGuiContent).ToArray();
 
-            _scrollPositionEnum = GUILayout.BeginScrollView(_scrollPositionEnum, false, false);
-            
+            _scrollPositionEnum = Utilities.GUITooltips.BeginScrollView(_scrollPositionEnum, false, false);
+
             try
             {
-                listIndex = GUILayout.SelectionGrid(listIndex, listContent, 1, GetComboBoxStyle());
+                listIndex = GUILayout.SelectionGrid(listIndex, _enumListContent, 1, GetComboBoxStyle());
                 if (listEnum != null && listIndex >= 0 && listIndex < listEnum.Count)
                     valueToSet = listEnum[listIndex];
             }
             finally
             {
-                GUILayout.EndScrollView();
+                Utilities.GUITooltips.EndScrollView();
             }
 
             GUILayout.FlexibleSpace();
@@ -928,7 +997,7 @@ namespace ConfigurationManager
         {
             if (ReferenceEquals(_currentKeyboardShortcutToSet, setting))
             {
-                GUILayout.Label(_shortcutKeysText.Value, GetLabelStyle(), GUILayout.ExpandWidth(true));
+                GUILayout.Label(_shortcutKeysText.Value, GetLabelStyle(), Utilities.GUIHelper.ExpandWidth);
                 GUIUtility.keyboardControl = -1;
 
                 _keysToCheck ??= UnityInput.Current.SupportedKeyCodes.Except(new[] { KeyCode.Mouse0, KeyCode.None }).ToArray();
@@ -942,7 +1011,7 @@ namespace ConfigurationManager
                     }
                 }
 
-                if (GUILayout.Button(_cancelText.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
+                if (GUILayout.Button(_cancelText.Value, GetButtonStyle(), Utilities.GUIHelper.FixedWidth))
                     _currentKeyboardShortcutToSet = null;
             }
             else
@@ -951,7 +1020,7 @@ namespace ConfigurationManager
 
                 DrawEnumListField();
 
-                if (GUILayout.Button(new GUIContent(_shortcutKeyText.Value), GetButtonStyle(), GUILayout.ExpandWidth(false)))
+                if (Utilities.GUITooltips.Button(new GUIContent(_shortcutKeyText.Value), GetButtonStyle(), Utilities.GUIHelper.FixedWidth))
                     _currentKeyboardShortcutToSet = setting;
             }
         }
@@ -960,7 +1029,7 @@ namespace ConfigurationManager
         {
             if (ReferenceEquals(_currentKeyboardShortcutToSet, setting))
             {
-                GUILayout.Label(_shortcutKeysText.Value, GetButtonStyle(), GUILayout.ExpandWidth(true));
+                GUILayout.Label(_shortcutKeysText.Value, GetButtonStyle(), Utilities.GUIHelper.ExpandWidth);
                 GUIUtility.keyboardControl = -1;
 
                 var input = UnityInput.Current;
@@ -975,15 +1044,15 @@ namespace ConfigurationManager
                     }
                 }
 
-                if (GUILayout.Button(_cancelText.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
+                if (GUILayout.Button(_cancelText.Value, GetButtonStyle(), Utilities.GUIHelper.FixedWidth))
                     _currentKeyboardShortcutToSet = null;
             }
             else
             {
-                if (GUILayout.Button(valueToSet.ToString(), GetButtonStyle(setting), GUILayout.ExpandWidth(true)))
+                if (GUILayout.Button(valueToSet.ToString(), GetButtonStyle(setting), Utilities.GUIHelper.ExpandWidth))
                     _currentKeyboardShortcutToSet = setting;
 
-                if (GUILayout.Button(_clearText.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)))
+                if (GUILayout.Button(_clearText.Value, GetButtonStyle(), Utilities.GUIHelper.FixedWidth))
                 {
                     valueToSet = KeyboardShortcut.Empty;
                     _currentKeyboardShortcutToSet = null;
@@ -1005,8 +1074,8 @@ namespace ConfigurationManager
             bool isDefaultValue = Utilities.Utils.TryParseFloat(vectorParts[position], out var x) && vectorDefault[position] == x;
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"{label} ", GetLabelStyle(), GUILayout.ExpandWidth(false));
-            vectorParts[position] = GUILayout.TextField(vectorParts[position], GetTextStyle(isDefaultValue), GUILayout.ExpandWidth(true)).KeepDigitsAndFirstDot();
+            GUILayout.Label($"{label} ", GetLabelStyle(), Utilities.GUIHelper.FixedWidth);
+            vectorParts[position] = GUILayout.TextField(vectorParts[position], GetTextStyle(isDefaultValue), Utilities.GUIHelper.ExpandWidthOption).KeepDigitsAndFirstDot();
             GUILayout.EndHorizontal();
         }
 
@@ -1031,7 +1100,7 @@ namespace ConfigurationManager
             GUILayout.FlexibleSpace();
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"{_precisionLabelEditWindow.Value}: {_vectorPrecision.Value} ", GetLabelStyle(), GUILayout.ExpandWidth(false));
+            GUILayout.Label($"{_precisionLabelEditWindow.Value}: {_vectorPrecision.Value} ", GetLabelStyle(), Utilities.GUIHelper.FixedWidth);
             float height = GetTextStyle(setting).CalcHeight(new GUIContent(_vectorPrecision.Value.ToString()), 100f);
             _vectorPrecision.Value = Mathf.RoundToInt(DrawCenteredHorizontalSlider(_vectorPrecision.Value, 0f, 5f, height));
             GUILayout.EndHorizontal();
@@ -1048,7 +1117,7 @@ namespace ConfigurationManager
 
             GUILayout.Space(3f);
             GUIHelper.BeginColor(value);
-            GUILayout.Label(string.Empty, GUILayout.ExpandWidth(true));
+            GUILayout.Label(string.Empty, Utilities.GUIHelper.ExpandWidth);
 
             if (!ColorCache.TryGetValue(setting, out var cacheEntry))
             {
@@ -1097,12 +1166,12 @@ namespace ConfigurationManager
         private bool DrawHexField(ref Color value, Color defaultValue)
         {
             GUIStyle style = GetTextStyle(value, defaultValue);
-            Utilities.Utils.UpdateHexString(ref colorAsHEX, GUILayout.TextField(colorAsHEX, style, GUILayout.Width(style.CalcSize(new GUIContent("#CCCCCCCC.")).x), GUILayout.ExpandWidth(false)));
+            Utilities.Utils.UpdateHexString(ref colorAsHEX, GUILayout.TextField(colorAsHEX, style, GUILayout.Width(style.CalcSize(new GUIContent("#CCCCCCCC.")).x), Utilities.GUIHelper.FixedWidthOption));
 
             bool enabled = GUI.enabled;
             GUI.enabled = !colorAsHEX.Replace("#", "").Equals(ColorUtility.ToHtmlStringRGBA(value), StringComparison.OrdinalIgnoreCase);
 
-            if (GUILayout.Button(_shortcutKeyText.Value, GetButtonStyle(), GUILayout.ExpandWidth(false)) && ColorUtility.TryParseHtmlString(colorAsHEX, out Color color))
+            if (GUILayout.Button(_shortcutKeyText.Value, GetButtonStyle(), Utilities.GUIHelper.FixedWidthOption) && ColorUtility.TryParseHtmlString(colorAsHEX, out Color color))
                 value = color;
 
             GUI.enabled = enabled;
@@ -1113,14 +1182,14 @@ namespace ConfigurationManager
         private void DrawColorField(string fieldLabel, ref Color settingColor, ref float settingValue, bool isDefaultValue)
         {
             GUILayout.BeginHorizontal();
-            GUILayout.Label(fieldLabel, GetLabelStyle(), GUILayout.Width(GetLabelStyle().CalcSize(new GUIContent("Green.")).x), GUILayout.ExpandWidth(false));
+            GUILayout.Label(fieldLabel, GetLabelStyle(), GUILayout.Width(GetLabelStyle().CalcSize(new GUIContent("Green.")).x), Utilities.GUIHelper.FixedWidthOption);
 
             GUIStyle style = GetTextStyle(isDefaultValue);
             Vector2 size = style.CalcSize(new GUIContent("0,000."));
 
             string currentText = Utilities.Utils.RoundWithPrecision(settingValue, 3).ToString("0.000");
 
-            string valueString = GUILayout.TextField(currentText, style, GUILayout.Width(size.x), GUILayout.ExpandWidth(false));
+            string valueString = GUILayout.TextField(currentText, style, GUILayout.Width(size.x), Utilities.GUIHelper.FixedWidthOption);
             if (valueString.StartsWith('1'))
                 SetColorValue(ref settingColor, 1f);
             else if (valueString.StartsWith('0') && settingValue == 1f)
@@ -1128,7 +1197,7 @@ namespace ConfigurationManager
             else if (Utilities.Utils.TryParseFloat(valueString, out float value))
                 SetColorValue(ref settingColor, value);
 
-            if (byte.TryParse(GUILayout.TextField((Utilities.Utils.RoundWithPrecision(settingValue, 3) * 255).ToString("F0"), style, GUILayout.Width(style.CalcSize(new GUIContent("000.")).x), GUILayout.ExpandWidth(false)), out byte valueByte))
+            if (byte.TryParse(GUILayout.TextField((Utilities.Utils.RoundWithPrecision(settingValue, 3) * 255).ToString("F0"), style, GUILayout.Width(style.CalcSize(new GUIContent("000.")).x), Utilities.GUIHelper.FixedWidthOption), out byte valueByte))
                 SetColorValue(ref settingColor, valueByte / 255f);
 
             SetColorValue(ref settingColor, DrawCenteredHorizontalSlider(settingValue, 0f, 1f, size.y));
@@ -1151,14 +1220,14 @@ namespace ConfigurationManager
         private void DrawHSLField(string fieldLabel, ref HSLColor settingColor, ref float settingValue, bool isDefaultValue)
         {
             GUILayout.BeginHorizontal();
-            GUILayout.Label(fieldLabel, GetLabelStyle(), GUILayout.Width(GetLabelStyle().CalcSize(new GUIContent("Saturation..")).x), GUILayout.ExpandWidth(false));
+            GUILayout.Label(fieldLabel, GetLabelStyle(), GUILayout.Width(GetLabelStyle().CalcSize(new GUIContent("Saturation..")).x), Utilities.GUIHelper.FixedWidthOption);
 
             GUIStyle style = GetTextStyle(isDefaultValue);
             Vector2 size = style.CalcSize(new GUIContent("000,00."));
 
             string currentText = Utilities.Utils.RoundWithPrecision(settingValue, fieldLabel == "Hue" ? 2 : 4).ToString(fieldLabel == "Hue" ? "000.00" : "0.0000");
 
-            if (Utilities.Utils.TryParseFloat(GUILayout.TextField(currentText, style, GUILayout.Width(size.x), GUILayout.ExpandWidth(false)), out float value))
+            if (Utilities.Utils.TryParseFloat(GUILayout.TextField(currentText, style, GUILayout.Width(size.x), Utilities.GUIHelper.FixedWidthOption), out float value))
                 SetColorValue(ref settingColor, value);
 
             SetColorValue(ref settingColor, DrawCenteredHorizontalSlider(settingValue, 0f, fieldLabel == "Hue" ? 360f : 1f, size.y));

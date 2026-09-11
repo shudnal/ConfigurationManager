@@ -315,6 +315,13 @@ namespace ConfigurationManager.Utilities
             float visibleAreaSize = 10f;
             GUI.Box(new Rect(rect.width - visibleAreaSize - 2, rect.height - visibleAreaSize - 2, visibleAreaSize, visibleAreaSize), GUIContent.none, ConfigurationManagerStyles.GetButtonStyle());
 
+            if (ComboBox.BlockWindowInput)
+            {
+                _handleClicked = false;
+                _currentWindowId = 0;
+                return rect;
+            }
+
             if (_currentWindowId != 0 && _currentWindowId != id)
                 return rect;
 
