@@ -22,7 +22,7 @@ Press hotkey button in game (default `F1`) to open mod window and change configu
 * Lots of minor refinements and improvements
 * Readonly entries (locked from server) could be colored, disabled or completely hidden
 * Dynamic `ReadOnly` and `Browsable` attributes are refreshed while the window remains open and rechecked immediately before a setting write
-* Synchronization state buttons with hover details for Jotunn and Conditional Config Sync settings; `S` means server-controlled and `C` means client-controlled. Conditional settings use the normal font color while their mod default is active and blue after server policy changes the ownership. Authorized administrators can toggle CCS Conditional ownership directly.
+* Synchronization state buttons with hover details for Jotunn and Conditional Config Sync (CCS) settings; `S` means server-controlled and `C` means client-controlled. Conditional settings use the normal font color while their mod default is active and blue after server policy changes the ownership. Authorized administrators can toggle CCS Conditional ownership directly.
 * Optional compact config list layout applies uniform reduced vertical spacing to every setting row, is enabled by default and is switchable from the window header
 * default view is Split View where plugins and categories are showed as a tree in left column
 * File Editor for configuration files
