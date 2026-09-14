@@ -220,7 +220,7 @@ namespace ConfigurationManager
         internal void SetFromAttributes(object[] attribs, BaseUnityPlugin pluginInstance)
         {
             PluginInstance = pluginInstance;
-            PluginInfo = pluginInstance?.Info.Metadata;
+            PluginInfo = pluginInstance?.Info?.Metadata;
 
             if (attribs == null || attribs.Length == 0) return;
 

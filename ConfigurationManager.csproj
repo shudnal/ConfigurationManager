@@ -139,10 +139,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />
-    <None Include="docs\VALHEIM_1.0.7_COMPATIBILITY.md" />
-    <None Include="docs\COMBOBOX_REGRESSION_FIX.md" />
-    <None Include="docs\IMGUI_PERFORMANCE_AND_DROPDOWN_FIX.md" />
-    <None Include="docs\WINDOW_GEOMETRY_SAVE_OPTIMIZATION.md" />
     <None Include="ILRepack.targets" />
     <None Include="UpdateThunderstoreManifest.ps1" />
   </ItemGroup>
