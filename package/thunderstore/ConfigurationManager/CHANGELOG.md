@@ -1,3 +1,6 @@
+# 1.1.20
+* Dropdown fixed
+
 # 1.1.19
 * Configuration manager will not break if any other mod fails to load
 

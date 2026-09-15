@@ -70,7 +70,6 @@ namespace ConfigurationManager
 
         void OnGUI()
         {
-            Utilities.ComboBox.ReleasePendingHotControl();
             if (!DisplayingWindow)
                 return;
 
@@ -233,7 +232,7 @@ namespace ConfigurationManager
 
         private void HandleHeaderDblClick(Rect titleBarRect)
         {
-            if (Utilities.ComboBox.BlockWindowInput)
+            if (Utilities.ComboBox.IsShown())
                 return;
 
             if (UnityInput.Current.GetMouseButtonDown(0) && titleBarRect.Contains(Event.current.mousePosition))
@@ -257,7 +256,7 @@ namespace ConfigurationManager
         private void SettingsWindow(int id)
         {
             Utilities.GUITooltips.BeginWindow(currentWindowRect);
-            Utilities.ComboBox.BeginWindow(id, currentWindowRect);
+            Utilities.ComboBox.BeginWindow(id);
             try
             {
                 var headerRect = new Rect(0, 0, currentWindowRect.width, HeaderSize);

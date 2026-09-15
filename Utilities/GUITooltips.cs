@@ -54,8 +54,7 @@ namespace ConfigurationManager.Utilities
 
         private static void RegisterLastRect(GUIContent content)
         {
-            if (ComboBox.BlockWindowInput || ComboBox.IsShown() ||
-                Event.current.type != EventType.Repaint || string.IsNullOrEmpty(content?.tooltip))
+            if (Event.current.type != EventType.Repaint || string.IsNullOrEmpty(content?.tooltip))
                 return;
             if (!GUILayoutUtility.GetLastRect().Contains(Event.current.mousePosition))
                 return;
@@ -96,8 +95,7 @@ namespace ConfigurationManager.Utilities
 
         public static string GetTooltip()
         {
-            if (ComboBox.BlockWindowInput || ComboBox.IsShown() ||
-                Event.current.type != EventType.Repaint || !Application.isFocused ||
+            if (Event.current.type != EventType.Repaint || !Application.isFocused ||
                 !WindowRect.Contains(Event.current.mousePosition))
                 return null;
             if (HoveredTooltips.Count > 0)

@@ -239,7 +239,7 @@ namespace ConfigurationManager
         private void DrawWindow(int windowID)
         {
             Utilities.GUITooltips.BeginWindow(_windowRect);
-            Utilities.ComboBox.BeginWindow(windowID, _windowRect);
+            Utilities.ComboBox.BeginWindow(windowID);
             try
             {
                 GUILayout.BeginHorizontal();
