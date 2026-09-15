@@ -592,7 +592,9 @@ namespace ConfigurationManager
             }
             else
             {
-                var acceptableValues = setting.AcceptableValues?.Length > 1 ? setting.AcceptableValues : Enum.GetValues(setting.SettingType);
+                IList acceptableValues = setting.AcceptableValues?.Length > 1
+                    ? setting.AcceptableValues
+                    : GetEnumMetadata(setting.SettingType).Values;
                 DrawComboboxField(setting, acceptableValues, _instance.currentWindowRect.yMax);
 
                 if (GUILayout.Button(new GUIContent(_shortcutKeyText.Value), GetButtonStyle(), Utilities.GUIHelper.FixedWidth))
