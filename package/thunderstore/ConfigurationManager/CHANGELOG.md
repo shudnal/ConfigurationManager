@@ -1,4 +1,7 @@
-# 1.1.22\n* Fixed `KeyboardShortcut` combinations containing Mouse1-Mouse4 when BepInEx uses the new Unity input system\n\n# 1.1.21
+# 1.1.22
+* Fixed `KeyboardShortcut` combinations containing Mouse1-Mouse4 when BepInEx uses the new Unity input system
+
+# 1.1.21
 * Fixed `KeyCode` dropdowns
 
 # 1.1.20
