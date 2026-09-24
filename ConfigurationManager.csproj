@@ -57,7 +57,7 @@
     <Compile Include="ConfigurationManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ValheimConfigurationManager.cs" />
-    <Compile Include="ValheimInput.cs" />
+    <Compile Include="BepInExInputCompatibility.cs" />\n    <Compile Include="ValheimInput.cs" />
     <Compile Include="ValueChangedEventArgs.cs" />
   </ItemGroup>
   <ItemGroup>
