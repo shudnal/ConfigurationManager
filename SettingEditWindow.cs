@@ -1000,7 +1000,7 @@ namespace ConfigurationManager
                 GUILayout.Label(_shortcutKeysText.Value, GetLabelStyle(), Utilities.GUIHelper.ExpandWidth);
                 GUIUtility.keyboardControl = -1;
 
-                _keysToCheck ??= UnityInput.Current.SupportedKeyCodes.Except(new[] { KeyCode.Mouse0, KeyCode.None }).ToArray();
+                _keysToCheck ??= BepInExInputCompatibility.GetSupportedShortcutKeys(UnityInput.Current);
                 foreach (var key in _keysToCheck)
                 {
                     if (UnityInput.Current.GetKeyUp(key))
@@ -1033,7 +1033,7 @@ namespace ConfigurationManager
                 GUIUtility.keyboardControl = -1;
 
                 var input = UnityInput.Current;
-                _keysToCheck ??= input.SupportedKeyCodes.Except(new[] { KeyCode.Mouse0, KeyCode.None }).ToArray();
+                _keysToCheck ??= BepInExInputCompatibility.GetSupportedShortcutKeys(input);
                 foreach (var key in _keysToCheck)
                 {
                     if (input.GetKeyUp(key))
