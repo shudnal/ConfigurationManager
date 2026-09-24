@@ -576,7 +576,7 @@ namespace ConfigurationManager
                 GUIUtility.keyboardControl = -1;
 
                 var input = UnityInput.Current;
-                if (_keysToCheck == null) _keysToCheck = input.SupportedKeyCodes.Except(new[] { KeyCode.Mouse0, KeyCode.None }).ToArray();
+                if (_keysToCheck == null) _keysToCheck = BepInExInputCompatibility.GetSupportedShortcutKeys(input);
                 foreach (var key in _keysToCheck)
                 {
                     if (input.GetKeyUp(key))
@@ -610,7 +610,7 @@ namespace ConfigurationManager
                 GUIUtility.keyboardControl = -1;
 
                 var input = UnityInput.Current;
-                if (_keysToCheck == null) _keysToCheck = input.SupportedKeyCodes.Except(new[] { KeyCode.Mouse0, KeyCode.None }).ToArray();
+                if (_keysToCheck == null) _keysToCheck = BepInExInputCompatibility.GetSupportedShortcutKeys(input);
                 foreach (var key in _keysToCheck)
                 {
                     if (input.GetKeyUp(key))
