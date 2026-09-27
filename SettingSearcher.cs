@@ -88,21 +88,21 @@ namespace ConfigurationManager
                         continue;
                     }
 
-                    if (type.GetCustomAttributes(typeof(BrowsableAttribute), false).Cast<BrowsableAttribute>()
-                            .Any(attribute => !attribute.Browsable))
-                    {
-                        modsWithoutSettings.Add(pluginName);
-                        continue;
-                    }
+                    bool pluginUnbrowsable = type.GetCustomAttributes(typeof(BrowsableAttribute), false)
+                        .Cast<BrowsableAttribute>()
+                        .Any(attribute => !attribute.Browsable);
 
                     var detected = new List<SettingEntryBase>();
                     detected.AddRange(GetPluginConfig(plugin));
-                    detected.RemoveAll(setting => setting == null || setting.Browsable == false || setting.PluginInfo == null);
+                    detected.RemoveAll(setting => setting == null || setting.PluginInfo == null);
 
-                    if (detected.Count == 0)
+                    foreach (SettingEntryBase setting in detected)
+                        setting.PluginUnbrowsable = pluginUnbrowsable;
+
+                    if (!detected.Any(ConfigurationManager.PassesAuthorVisibilityFilters))
                         modsWithoutSettings.Add(pluginName);
-                    else
-                        collectedSettings.AddRange(detected);
+
+                    collectedSettings.AddRange(detected);
                 }
                 catch (Exception ex)
                 {

@@ -97,6 +97,16 @@ namespace ConfigurationManager
         public bool? ReadOnly { get; protected set; }
 
         /// <summary>
+        /// True when the owning plugin class is explicitly marked as unbrowsable.
+        /// </summary>
+        internal bool PluginUnbrowsable { get; set; }
+
+        /// <summary>
+        /// True for reflected legacy/property settings that have a getter but no setter.
+        /// </summary>
+        internal bool IsGetterOnly { get; set; }
+
+        /// <summary>
         /// Type of the variable
         /// </summary>
         public abstract Type SettingType { get; }

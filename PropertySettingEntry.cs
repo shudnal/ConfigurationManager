@@ -14,8 +14,13 @@ namespace ConfigurationManager
         public PropertySettingEntry(object instance, PropertyInfo settingProp, BaseUnityPlugin pluginInstance)
         {
             SetFromAttributes(settingProp.GetCustomAttributes(false), pluginInstance);
-            if (Browsable == null) Browsable = settingProp.CanRead && settingProp.CanWrite;
-            ReadOnly = settingProp.CanWrite;
+            IsGetterOnly = settingProp.CanRead && !settingProp.CanWrite;
+            if (Browsable == null)
+                Browsable = settingProp.CanRead;
+            else if (!settingProp.CanRead)
+                Browsable = false;
+            if (!settingProp.CanWrite)
+                ReadOnly = true;
             Property = settingProp;
             Instance = instance;
         }

@@ -1,3 +1,7 @@
+# 1.1.22
+* Added a Filtering option to show settings explicitly marked as unbrowsable by other mods
+* Added a Filtering option to show getter-only legacy/property settings while keeping them strictly read-only
+
 # 1.1.21
 * Fixed `KeyCode` dropdowns
 

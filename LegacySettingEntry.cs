@@ -60,7 +60,10 @@ namespace ConfigurationManager
                     return null;
                 }
 
-                entry.Browsable = innerProp.CanRead && innerProp.CanWrite && entry.Browsable != false;
+                entry.IsGetterOnly = innerProp.CanRead && !innerProp.CanWrite;
+                entry.Browsable = innerProp.CanRead && entry.Browsable != false;
+                if (!innerProp.CanWrite)
+                    entry.ReadOnly = true;
 
                 entry.Property = innerProp;
                 entry.Instance = wrapper;
@@ -116,9 +119,13 @@ namespace ConfigurationManager
             var entry = new LegacySettingEntry();
             entry.SetFromAttributes(settingProp.GetCustomAttributes(false), pluginInstance);
 
+            entry.IsGetterOnly = settingProp.CanRead && !settingProp.CanWrite;
             if (entry.Browsable == null)
-                entry.Browsable = settingProp.CanRead && settingProp.CanWrite;
-            entry.ReadOnly = settingProp.CanWrite;
+                entry.Browsable = settingProp.CanRead;
+            else if (!settingProp.CanRead)
+                entry.Browsable = false;
+            if (!settingProp.CanWrite)
+                entry.ReadOnly = true;
 
             entry.Property = settingProp;
             entry.Instance = instance;

@@ -21,7 +21,7 @@ namespace ConfigurationManager
     {
         public const string GUID = "_shudnal.ConfigurationManager";
         public const string pluginName = "Valheim Configuration Manager";
-        public const string Version = "1.1.21";
+        public const string Version = "1.1.22";
 
         internal static ConfigurationManager instance;
         private static SettingFieldDrawer _fieldDrawer;
@@ -119,6 +119,8 @@ namespace ConfigurationManager
 
         public static ConfigEntry<bool> _showAdvanced;
         public static ConfigEntry<bool> _showKeybinds;
+        public static ConfigEntry<bool> _showUnbrowsable;
+        public static ConfigEntry<bool> _showGetterOnlySettings;
         public static ConfigEntry<bool> _loggingEnabled;
         public static ConfigEntry<ReadOnlyStyle> _readOnlyStyle;
 
@@ -320,8 +322,12 @@ namespace ConfigurationManager
 
             _showAdvanced = config("Filtering", "Show advanced", false, "Show only configs with Advanced tag");
             _showKeybinds = config("Filtering", "Show only keybinds", false, "Show only KeyboardShortcut configs");
+            _showUnbrowsable = config("Filtering", "Show unbrowsable settings", false, "Show settings and plugins explicitly marked as unbrowsable by other mods. These entries are normally hidden by the mod author and may be unsupported to edit.");
+            _showGetterOnlySettings = config("Filtering", "Show getter-only settings", false, "Show legacy/property settings that can be read but have no setter. These entries always remain read-only.");
             _readOnlyStyle = config("Filtering", "Style readonly entries", ReadOnlyStyle.Colored, "Entries marked as readonly are not available for change.");
 
+            _showUnbrowsable.SettingChanged += (sender, args) => BuildSettingList();
+            _showGetterOnlySettings.SettingChanged += (sender, args) => BuildSettingList();
             _readOnlyStyle.SettingChanged += (sender, args) => BuildSettingList();
 
             _textEditorFontSize = config("File editor - Text style", "Font size", 14, "Font size of text editor");

@@ -121,7 +121,7 @@ namespace ConfigurationManager
 
             if (setting.RefreshDisplayAttributes())
                 instance.BuildFilteredSettingList();
-            if (setting.Browsable == false)
+            if (!ConfigurationManager.PassesAuthorVisibilityFilters(setting))
             {
                 IsOpen = false;
                 return;
