@@ -877,7 +877,7 @@ namespace ConfigurationManager
                 .ToList();
         }
 
-        private static bool IsKeyboardShortcut(SettingEntryBase x) => x.SettingType == typeof(KeyboardShortcut);
+        private static bool IsKeyboardShortcut(SettingEntryBase x) => x.SettingType == typeof(KeyboardShortcut) || x.SettingType == typeof(KeyCode);
 
         private static bool ContainsSearchString(SettingEntryBase setting, string[] searchStrings)
         {

@@ -1,3 +1,6 @@
+# 1.1.23
+* KeyCode type included in Keybinds filtering toggle
+
 # 1.1.22
 * Added a Filtering option to show settings explicitly marked as unbrowsable by other mods
 * Added a Filtering option to show getter-only legacy/property settings while keeping them strictly read-only
