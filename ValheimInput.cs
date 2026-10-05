@@ -13,7 +13,8 @@ namespace ConfigurationManager
         private static int _consoleInputScope;
         private static int _consoleVisibleFrame = -1;
         private static int _inputReleaseFrame = -1;
-        private static PreventInput _releasedInputMode;
+        private static PreventInput _currentInputPrevention;
+        private static bool _blockGameInput;
         private PreventInput _activeInputMode;
         private bool _cursorAcquired;
         private CursorLockMode _savedCursorLock;
@@ -24,23 +25,29 @@ namespace ConfigurationManager
 
         private static bool ManagerWindowOpen => instance && instance.isActiveAndEnabled && instance.DisplayingWindow;
 
-        private static PreventInput CurrentInputPrevention
+        private static void SetCurrentInputPrevention(PreventInput mode)
         {
-            get
-            {
-                if (!instance || !instance.isActiveAndEnabled)
-                    return PreventInput.Off;
-                if (ManagerWindowOpen)
-                    return _preventInput?.Value ?? PreventInput.Off;
-                return Time.frameCount <= _inputReleaseFrame ? _releasedInputMode : PreventInput.Off;
-            }
+            _currentInputPrevention = mode;
+            _blockGameInput = mode != PreventInput.Off && _consoleInputScope == 0;
         }
 
-        private static bool BlockGameInput => CurrentInputPrevention != PreventInput.Off && _consoleInputScope == 0;
+        private static void RefreshBlockGameInput()
+        {
+            _blockGameInput = _currentInputPrevention != PreventInput.Off && _consoleInputScope == 0;
+        }
+
+        private static void ExpireReleasedInputPrevention()
+        {
+            if (_inputReleaseFrame < 0 || Time.frameCount <= _inputReleaseFrame)
+                return;
+
+            _inputReleaseFrame = -1;
+            SetCurrentInputPrevention(PreventInput.Off);
+        }
 
         private static bool ConsoleHandlesEscape()
         {
-            return CurrentInputPrevention == PreventInput.Player &&
+            return _currentInputPrevention == PreventInput.Player &&
                    (Console.IsVisible() || _consoleVisibleFrame == Time.frameCount);
         }
 
@@ -50,14 +57,22 @@ namespace ConfigurationManager
             if (visible)
             {
                 _activeInputMode = _preventInput?.Value ?? PreventInput.Off;
+                SetCurrentInputPrevention(_activeInputMode);
                 if (_activeInputMode != PreventInput.Off)
                     CancelInventoryDrag();
             }
             else
             {
-                // The closing mouse/key event must not reach a later Update or the next FixedUpdate.
-                _releasedInputMode = _activeInputMode;
-                _inputReleaseFrame = Time.frameCount + 1;
+                // Keep the closing mouse/key event blocked through the next FixedUpdate.
+                if (_activeInputMode != PreventInput.Off)
+                {
+                    _inputReleaseFrame = Time.frameCount + 1;
+                    SetCurrentInputPrevention(_activeInputMode);
+                }
+                else
+                {
+                    SetCurrentInputPrevention(PreventInput.Off);
+                }
             }
 
             if (_activeInputMode != PreventInput.Off)
@@ -77,6 +92,7 @@ namespace ConfigurationManager
             if (_activeInputMode == PreventInput.Off && _preventInput.Value != PreventInput.Off)
                 CancelInventoryDrag();
             _activeInputMode = _preventInput.Value;
+            SetCurrentInputPrevention(_activeInputMode);
         }
 
         private static void CancelInventoryDrag()
@@ -96,9 +112,9 @@ namespace ConfigurationManager
         private static void ResetInputPrevention()
         {
             _inputReleaseFrame = -1;
-            _releasedInputMode = PreventInput.Off;
             _consoleInputScope = 0;
             _consoleVisibleFrame = -1;
+            SetCurrentInputPrevention(PreventInput.Off);
         }
 
         private void AcquireWindowCursor()
@@ -171,7 +187,9 @@ namespace ConfigurationManager
 
         private static bool AllowUIInput(Component component)
         {
-            if (CurrentInputPrevention == PreventInput.Off)
+            if (_inputReleaseFrame >= 0)
+                ExpireReleasedInputPrevention();
+            if (_currentInputPrevention == PreventInput.Off)
                 return true;
             if (!component)
                 return false;
@@ -181,7 +199,7 @@ namespace ConfigurationManager
             if (button && instance._menuButtons.Contains(button))
                 return true;
 
-            return CurrentInputPrevention == PreventInput.Player && Console.instance &&
+            return _currentInputPrevention == PreventInput.Player && Console.instance &&
                    component.transform.IsChildOf(Console.instance.transform);
         }
 
@@ -222,7 +240,9 @@ namespace ConfigurationManager
             private static void Postfix(ref bool __result)
             {
                 // Let FixedUpdate and LateUpdate run their native zero-controls/zero-look paths.
-                if (CurrentInputPrevention != PreventInput.Off)
+                if (_inputReleaseFrame >= 0)
+                    ExpireReleasedInputPrevention();
+                if (_currentInputPrevention != PreventInput.Off)
                     __result = false;
             }
         }
@@ -233,7 +253,9 @@ namespace ConfigurationManager
             [HarmonyPriority(Priority.Last)]
             private static void Postfix(ref bool __result)
             {
-                if (ManagerWindowOpen && CurrentInputPrevention != PreventInput.Off)
+                if (_inputReleaseFrame >= 0)
+                    ExpireReleasedInputPrevention();
+                if (ManagerWindowOpen && _currentInputPrevention != PreventInput.Off)
                     __result = true;
             }
         }
@@ -244,11 +266,16 @@ namespace ConfigurationManager
             [HarmonyPriority(Priority.First)]
             private static void Prefix(out int __state)
             {
+                if (_inputReleaseFrame >= 0)
+                    ExpireReleasedInputPrevention();
                 __state = _consoleInputScope;
                 if (Console.IsVisible())
                     _consoleVisibleFrame = Time.frameCount;
-                if (CurrentInputPrevention == PreventInput.Player)
+                if (_currentInputPrevention == PreventInput.Player)
+                {
                     _consoleInputScope++;
+                    RefreshBlockGameInput();
+                }
             }
 
             [HarmonyFinalizer]
@@ -257,6 +284,7 @@ namespace ConfigurationManager
                 if (Console.IsVisible())
                     _consoleVisibleFrame = Time.frameCount;
                 _consoleInputScope = __state;
+                RefreshBlockGameInput();
             }
         }
 
@@ -277,7 +305,9 @@ namespace ConfigurationManager
             {
                 // Do not block ShouldAcceptInputFromSource/OnActionCanceled: releases and device
                 // switching must keep updating while gameplay consumers see neutral input.
-                if (!BlockGameInput)
+                if (_inputReleaseFrame >= 0)
+                    ExpireReleasedInputPrevention();
+                if (!_blockGameInput)
                     return true;
                 __result = false;
                 return false;
@@ -299,7 +329,9 @@ namespace ConfigurationManager
             [HarmonyPriority(Priority.Last)]
             private static void Postfix(ref float __result)
             {
-                if (BlockGameInput)
+                if (_inputReleaseFrame >= 0)
+                    ExpireReleasedInputPrevention();
+                if (_blockGameInput)
                     __result = 0f;
             }
         }
@@ -317,7 +349,9 @@ namespace ConfigurationManager
             [HarmonyPriority(Priority.Last)]
             private static void Postfix(ref Vector2 __result)
             {
-                if (BlockGameInput)
+                if (_inputReleaseFrame >= 0)
+                    ExpireReleasedInputPrevention();
+                if (_blockGameInput)
                     __result = Vector2.zero;
             }
         }
@@ -328,7 +362,9 @@ namespace ConfigurationManager
             [HarmonyPriority(Priority.Last)]
             private static void Postfix(ref List<Vector2> __result)
             {
-                if (BlockGameInput)
+                if (_inputReleaseFrame >= 0)
+                    ExpireReleasedInputPrevention();
+                if (_blockGameInput)
                 {
                     NoTouchPoints.Clear();
                     __result = NoTouchPoints;
@@ -355,7 +391,12 @@ namespace ConfigurationManager
             }
 
             [HarmonyPriority(Priority.First)]
-            private static bool Prefix() => CurrentInputPrevention == PreventInput.Off;
+            private static bool Prefix()
+            {
+                if (_inputReleaseFrame >= 0)
+                    ExpireReleasedInputPrevention();
+                return _currentInputPrevention == PreventInput.Off;
+            }
         }
 
         [HarmonyPatch(typeof(UIInputHandler), nameof(UIInputHandler.OnPointerUp))]

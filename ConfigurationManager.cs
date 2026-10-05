@@ -1,4 +1,4 @@
-﻿// Based on code made by MarC0 / ManlyMarco https://github.com/BepInEx/BepInEx.ConfigurationManager on BepInEx version 5
+// Based on code made by MarC0 / ManlyMarco https://github.com/BepInEx/BepInEx.ConfigurationManager on BepInEx version 5
 // Copyright 2018 GNU General Public License v3.0
 // Coloring and localization are based on aedenthorn's https://github.com/aedenthorn/BepInEx.ConfigurationManager
 // Colors drawer is based on Azumatt https://github.com/AzumattDev/BepInEx.ConfigurationManager
@@ -21,7 +21,7 @@ namespace ConfigurationManager
     {
         public const string GUID = "_shudnal.ConfigurationManager";
         public const string pluginName = "Valheim Configuration Manager";
-        public const string Version = "1.1.23";
+        public const string Version = "1.1.24";
 
         internal static ConfigurationManager instance;
         private static SettingFieldDrawer _fieldDrawer;
