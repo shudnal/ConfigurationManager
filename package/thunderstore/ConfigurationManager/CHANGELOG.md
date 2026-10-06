@@ -1,3 +1,7 @@
+# 1.1.25
+* Fixed cached input prevention remaining active after closing Configuration Manager and blocking other mods' UI
+* Release-guard expiration now runs once from the manager update loop instead of from patched input consumers
+
 # 1.1.24
 * Cached input-prevention state so closed Configuration Manager windows no longer recompute visibility and config state on every hot ZInput query
 * Preserved the post-close input guard while reducing normal gameplay checks to direct cached field reads

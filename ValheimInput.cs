@@ -187,8 +187,6 @@ namespace ConfigurationManager
 
         private static bool AllowUIInput(Component component)
         {
-            if (_inputReleaseFrame >= 0)
-                ExpireReleasedInputPrevention();
             if (_currentInputPrevention == PreventInput.Off)
                 return true;
             if (!component)
@@ -240,8 +238,6 @@ namespace ConfigurationManager
             private static void Postfix(ref bool __result)
             {
                 // Let FixedUpdate and LateUpdate run their native zero-controls/zero-look paths.
-                if (_inputReleaseFrame >= 0)
-                    ExpireReleasedInputPrevention();
                 if (_currentInputPrevention != PreventInput.Off)
                     __result = false;
             }
@@ -253,8 +249,6 @@ namespace ConfigurationManager
             [HarmonyPriority(Priority.Last)]
             private static void Postfix(ref bool __result)
             {
-                if (_inputReleaseFrame >= 0)
-                    ExpireReleasedInputPrevention();
                 if (ManagerWindowOpen && _currentInputPrevention != PreventInput.Off)
                     __result = true;
             }
@@ -266,8 +260,6 @@ namespace ConfigurationManager
             [HarmonyPriority(Priority.First)]
             private static void Prefix(out int __state)
             {
-                if (_inputReleaseFrame >= 0)
-                    ExpireReleasedInputPrevention();
                 __state = _consoleInputScope;
                 if (Console.IsVisible())
                     _consoleVisibleFrame = Time.frameCount;
@@ -305,8 +297,6 @@ namespace ConfigurationManager
             {
                 // Do not block ShouldAcceptInputFromSource/OnActionCanceled: releases and device
                 // switching must keep updating while gameplay consumers see neutral input.
-                if (_inputReleaseFrame >= 0)
-                    ExpireReleasedInputPrevention();
                 if (!_blockGameInput)
                     return true;
                 __result = false;
@@ -329,8 +319,6 @@ namespace ConfigurationManager
             [HarmonyPriority(Priority.Last)]
             private static void Postfix(ref float __result)
             {
-                if (_inputReleaseFrame >= 0)
-                    ExpireReleasedInputPrevention();
                 if (_blockGameInput)
                     __result = 0f;
             }
@@ -349,8 +337,6 @@ namespace ConfigurationManager
             [HarmonyPriority(Priority.Last)]
             private static void Postfix(ref Vector2 __result)
             {
-                if (_inputReleaseFrame >= 0)
-                    ExpireReleasedInputPrevention();
                 if (_blockGameInput)
                     __result = Vector2.zero;
             }
@@ -362,8 +348,6 @@ namespace ConfigurationManager
             [HarmonyPriority(Priority.Last)]
             private static void Postfix(ref List<Vector2> __result)
             {
-                if (_inputReleaseFrame >= 0)
-                    ExpireReleasedInputPrevention();
                 if (_blockGameInput)
                 {
                     NoTouchPoints.Clear();
@@ -393,8 +377,6 @@ namespace ConfigurationManager
             [HarmonyPriority(Priority.First)]
             private static bool Prefix()
             {
-                if (_inputReleaseFrame >= 0)
-                    ExpireReleasedInputPrevention();
                 return _currentInputPrevention == PreventInput.Off;
             }
         }
