@@ -1,3 +1,9 @@
+# 1.1.26
+* Made slider numeric and percentage fields adapt to their values and configured ranges in both the settings list and Edit window
+* Accounted for toggle margins when wrapping flag options into rows
+* Reserved space for the current Reset button caption without changing existing text or styles
+* Kept the optional system display resolution override and the scale-1 GUIUtility diagnostic safeguard
+
 # 1.1.25
 * Fixed cached input prevention remaining active after closing Configuration Manager and blocking other mods' UI
 * Release-guard expiration now runs once from the manager update loop instead of from patched input consumers

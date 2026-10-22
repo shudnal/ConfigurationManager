@@ -34,6 +34,11 @@ namespace ConfigurationManager
         private int _layoutNameWidth;
         private int _layoutPluginWidth;
         private int _layoutValueWidth;
+        private float _resetButtonReserve = 90f;
+        private GUIStyle _resetMeasureStyle;
+        private string _resetMeasureText;
+        private int _resetMeasureRevision = -1;
+        private static readonly GUIContent ResetMeasureContent = new GUIContent();
         private GUILayoutOption[] _rowLayoutOptions;
         private GUILayoutOption[] _nameLayoutOptions;
         private GUILayoutOption[] _pluginLayoutOptions;
@@ -145,11 +150,29 @@ namespace ConfigurationManager
 
         private void CalculateSettingsColumnsWidth(float width)
         {
+            // The configured Reset caption may exceed the historical 90-pixel reserve.
+            // Update only on Layout so repaint/interaction passes use the same column sizes.
+            if (Event.current != null && Event.current.type == EventType.Layout && _resetSettingText != null)
+            {
+                GUIStyle buttonStyle = GetButtonStyle();
+                string caption = _resetSettingText.Value ?? string.Empty;
+                if (buttonStyle != null && (_resetMeasureRevision != Revision
+                    || !ReferenceEquals(_resetMeasureStyle, buttonStyle) || _resetMeasureText != caption))
+                {
+                    _resetMeasureRevision = Revision;
+                    _resetMeasureStyle = buttonStyle;
+                    _resetMeasureText = caption;
+                    ResetMeasureContent.text = caption;
+                    _resetButtonReserve = Mathf.Max(90f,
+                        Mathf.CeilToInt(buttonStyle.CalcSize(ResetMeasureContent).x + buttonStyle.margin.horizontal + 5f));
+                }
+            }
+
             PluginListColumnWidth = Mathf.RoundToInt(width * _splitViewListSize.Value);
             SettingsListColumnWidth = Mathf.RoundToInt(SplitView ? width - PluginListColumnWidth : width);
 
             LeftColumnWidth = Mathf.Max(200, Mathf.RoundToInt(Mathf.Clamp(SettingsListColumnWidth * _columnSeparatorPosition.Value, width * 0.1f, width * 0.6f)) - fontSize / 2);
-            RightColumnWidth = Mathf.Max(200, Mathf.RoundToInt(Mathf.Clamp(SettingsListColumnWidth - LeftColumnWidth - fontSize - 90 - fontSize, width * 0.3f, width * 0.8f)));
+            RightColumnWidth = Mathf.Max(200, Mathf.RoundToInt(Mathf.Clamp(SettingsListColumnWidth - LeftColumnWidth - fontSize - _resetButtonReserve - fontSize, width * 0.3f, width * 0.8f)));
 
             if (_rowLayoutOptions == null || _layoutSettingsWidth != SettingsListColumnWidth)
             {

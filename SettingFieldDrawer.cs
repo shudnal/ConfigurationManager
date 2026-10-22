@@ -24,6 +24,56 @@ namespace ConfigurationManager
 
         private static readonly Dictionary<SettingEntryBase, ComboBoxCacheEntry> ComboBoxCache = new Dictionary<SettingEntryBase, ComboBoxCacheEntry>();
         private static readonly Dictionary<Type, EnumCacheEntry> EnumCache = new Dictionary<Type, EnumCacheEntry>();
+        private static readonly Dictionary<SettingEntryBase, RangeValueLayout> RangeValueLayouts = new Dictionary<SettingEntryBase, RangeValueLayout>();
+        private static readonly GUIContent RangeValueSample = new GUIContent();
+        private const int MaxRangeValueCharacters = 10;
+        private const float MinRangeValueWidth = 50f;
+
+        private sealed class RangeValueLayout
+        {
+            internal int Revision = -1;
+            internal GUIStyle Style;
+            internal int Length;
+            internal bool Negative;
+            internal float Width = MinRangeValueWidth;
+        }
+
+        // Reserve enough room for the value and its configured range without letting a single
+        // long number squeeze every other slider. Keep the width stable while the value changes.
+        internal static float GetRangeValueWidth(SettingEntryBase setting, GUIStyle style, string value, string minimum, string maximum)
+        {
+            if (!RangeValueLayouts.TryGetValue(setting, out RangeValueLayout layout))
+            {
+                layout = new RangeValueLayout();
+                RangeValueLayouts.Add(setting, layout);
+            }
+
+            int length = Math.Min(MaxRangeValueCharacters, Math.Max(value?.Length ?? 0,
+                Math.Max(minimum?.Length ?? 0, maximum?.Length ?? 0)));
+            bool negative = (value?.StartsWith("-", StringComparison.Ordinal) ?? false)
+                || (minimum?.StartsWith("-", StringComparison.Ordinal) ?? false)
+                || (maximum?.StartsWith("-", StringComparison.Ordinal) ?? false);
+
+            if (layout.Revision != Revision || !ReferenceEquals(layout.Style, style))
+            {
+                layout.Revision = Revision;
+                layout.Style = style;
+                layout.Length = 0;
+                layout.Negative = false;
+                layout.Width = MinRangeValueWidth;
+            }
+
+            if (length > layout.Length || negative && !layout.Negative)
+            {
+                layout.Length = Math.Max(length, layout.Length);
+                layout.Negative |= negative;
+                int digits = Math.Max(1, layout.Length - (layout.Negative ? 1 : 0));
+                RangeValueSample.text = (layout.Negative ? "-" : "") + new string('0', digits);
+                layout.Width = Mathf.Max(layout.Width, Mathf.CeilToInt(style.CalcSize(RangeValueSample).x + style.margin.horizontal));
+            }
+
+            return layout.Width;
+        }
 
         private sealed class EnumCacheEntry
         {
@@ -61,7 +111,7 @@ namespace ConfigurationManager
             {
                 if (revision != Revision)
                 {
-                    width = (int)style.CalcSize(Content).x;
+                    width = Mathf.CeilToInt(style.CalcSize(Content).x);
                     revision = Revision;
                 }
                 return width;
@@ -255,6 +305,7 @@ namespace ConfigurationManager
         public static void ClearCache()
         {
             ClearComboboxCache();
+            RangeValueLayouts.Clear();
 
             foreach (var tex in ColorCache)
                 UnityEngine.Object.Destroy(tex.Value.Tex);
@@ -267,9 +318,9 @@ namespace ConfigurationManager
             ComboBox.CloseAll();
         }
 
-        public static void DrawCenteredLabel(string text, GUIStyle labelStyle)
+        public static void DrawCenteredLabel(string text, GUIStyle labelStyle, float width = 60f)
         {
-            GUILayout.BeginVertical(GUILayout.Width(60));
+            GUILayout.BeginVertical(GUILayout.Width(Mathf.Max(60f, width)));
             GUILayout.FlexibleSpace();
             GUILayout.Label(text, labelStyle);
             GUILayout.FlexibleSpace();
@@ -388,7 +439,8 @@ namespace ConfigurationManager
                                 GUIStyle style = GetToggleStyle(curr == defValue);
 
                                 // Make sure this horizontal group doesn't extend over window width, if it does then start a new horiz group below
-                                var textDimension = (int)value.GetWidth(style);
+                                // GUILayout also needs horizontal margins; measuring only the label can overflow the row.
+                                var textDimension = value.GetWidth(style) + style.margin.horizontal;
                                 if (currentWidth + textDimension > maxWidth && drewAny)
                                     break;
 
@@ -470,12 +522,18 @@ namespace ConfigurationManager
 
                 if (setting.ShowRangeAsPercent == true)
                 {
-                    DrawCenteredLabel($"{Mathf.Abs(result - leftValue) / Mathf.Abs(rightValue - leftValue):P0}", GetLabelStyle(setting));
+                    string percent = $"{Mathf.Abs(result - leftValue) / Mathf.Abs(rightValue - leftValue):P0}";
+                    GUIStyle labelStyle = GetLabelStyle(setting);
+                    DrawCenteredLabel(percent, labelStyle, GetRangeValueWidth(setting, labelStyle, percent, "100%", null));
                 }
                 else
                 {
                     var strVal = Convert.ToString(value, CultureInfo.InvariantCulture).AppendZeroIfFloat(setting.SettingType);
-                    var strResult = GUILayout.TextField(strVal, GetTextStyle(setting), GUILayout.Width(50));
+                    var strMin = Convert.ToString(setting.AcceptableValueRange.Key, CultureInfo.InvariantCulture).AppendZeroIfFloat(setting.SettingType);
+                    var strMax = Convert.ToString(setting.AcceptableValueRange.Value, CultureInfo.InvariantCulture).AppendZeroIfFloat(setting.SettingType);
+                    GUIStyle textStyle = GetTextStyle(setting);
+                    var strResult = GUILayout.TextField(strVal, textStyle,
+                        GUILayout.Width(GetRangeValueWidth(setting, textStyle, strVal, strMin, strMax)));
                     if (strResult != strVal && Utilities.Utils.TryParseFloat(strResult, out float resultVal))
                     {
                         var clampedResultVal = Mathf.Clamp(resultVal, leftValue, rightValue);

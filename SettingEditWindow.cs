@@ -680,12 +680,19 @@ namespace ConfigurationManager
 
                 if (setting.ShowRangeAsPercent == true)
                 {
-                    SettingFieldDrawer.DrawCenteredLabel($"{Mathf.Abs(result - leftValue) / Mathf.Abs(rightValue - leftValue):P0}", GetLabelStyle(setting));
+                    string percent = $"{Mathf.Abs(result - leftValue) / Mathf.Abs(rightValue - leftValue):P0}";
+                    GUIStyle labelStyle = GetLabelStyle(setting);
+                    SettingFieldDrawer.DrawCenteredLabel(percent, labelStyle,
+                        SettingFieldDrawer.GetRangeValueWidth(setting, labelStyle, percent, "100% ", null));
                 }
                 else
                 {
                     var strVal = value.ToString().AppendZeroIfFloat(setting.SettingType);
-                    var strResult = GUILayout.TextField(strVal, GetTextStyle(setting), GUILayout.Width(50));
+                    var strMin = Convert.ToString(setting.AcceptableValueRange.Key, CultureInfo.InvariantCulture).AppendZeroIfFloat(setting.SettingType);
+                    var strMax = Convert.ToString(setting.AcceptableValueRange.Value, CultureInfo.InvariantCulture).AppendZeroIfFloat(setting.SettingType);
+                    GUIStyle textStyle = GetTextStyle(setting);
+                    var strResult = GUILayout.TextField(strVal, textStyle,
+                        GUILayout.Width(SettingFieldDrawer.GetRangeValueWidth(setting, textStyle, strVal, strMin, strMax)));
                     if (strResult != strVal && Utilities.Utils.TryParseFloat(strResult, out float resultVal))
                     {
                         var clampedResultVal = Mathf.Clamp(resultVal, leftValue, rightValue);
