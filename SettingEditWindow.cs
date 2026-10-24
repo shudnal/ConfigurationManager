@@ -40,6 +40,7 @@ namespace ConfigurationManager
         private string errorText;
 
         private object valueToSet;
+        private readonly SettingFieldDrawer.RangeTextEditor rangeTextEditor = new SettingFieldDrawer.RangeTextEditor("CM_Range_Edit");
 
         private string errorOnSetting;
 
@@ -105,6 +106,8 @@ namespace ConfigurationManager
                     SaveCurrentSizeAndPosition();
 
                 _isOpen = value;
+                if (!_isOpen)
+                    rangeTextEditor.Reset();
                 if (_isOpen)
                 {
                     _windowRect = new Rect(_windowPositionEditSetting.Value, _windowSizeEditSetting.Value);
@@ -202,6 +205,7 @@ namespace ConfigurationManager
             listIndex = -1;
             drawerFunction = null;
             valueToSet = setting.SettingType == typeof(Color) ? Utilities.Utils.RoundColorToHEX((Color)setting.Get()) : setting.Get();
+            rangeTextEditor.Reset();
             errorText = string.Empty;
             errorOnSetting = string.Empty;
             colorAsHEX = setting.SettingType == typeof(Color) ? $"#{ColorUtility.ToHtmlStringRGBA((Color)valueToSet)}" : string.Empty;
@@ -327,6 +331,7 @@ namespace ConfigurationManager
         private void DrawWindow(int windowID)
         {
             Utilities.GUITooltips.BeginWindow(_windowRect);
+            SettingFieldDrawer.RangeTextEditor.BeginWindowEvent();
             Utilities.ComboBox.BeginWindow(windowID);
             try
             {
@@ -400,6 +405,15 @@ namespace ConfigurationManager
             finally
             {
                 Utilities.ComboBox.EndWindow();
+                if (rangeTextEditor.FinishIfUndrawn(out string pendingText) &&
+                    setting.AcceptableValueRange.Key != null)
+                {
+                    float min = (float)Convert.ToDouble(setting.AcceptableValueRange.Key, CultureInfo.InvariantCulture);
+                    float max = (float)Convert.ToDouble(setting.AcceptableValueRange.Value, CultureInfo.InvariantCulture);
+                    if (SettingFieldDrawer.TryParseRangeText(pendingText, min, max, setting.SettingType, out object parsed))
+                        valueToSet = parsed;
+                }
+                SettingFieldDrawer.RangeTextEditor.EndWindowEvent();
                 Utilities.GUITooltips.EndWindow();
             }
         }
@@ -461,6 +475,8 @@ namespace ConfigurationManager
                 return $"#{ColorUtility.ToHtmlStringRGBA((Color)value)}";
             else if (type == typeof(bool))
                 return (bool)value ? _enabledText.Value : _disabledText.Value;
+            else if (type == typeof(KeyboardShortcut))
+                return FormatKeyboardShortcut((KeyboardShortcut)value);
 
             return value.ToString();
         }
@@ -676,6 +692,7 @@ namespace ConfigurationManager
                 if (Math.Abs(result - converted) >= Mathf.Abs(rightValue - leftValue) / Math.Pow(10, _rangePrecision.Value + 2))
                 {
                     valueToSet = Convert.ChangeType(Utilities.Utils.RoundWithPrecision(result, _rangePrecision.Value), setting.SettingType, CultureInfo.InvariantCulture);
+                    rangeTextEditor.Reset(releaseFocus: true);
                 }
 
                 if (setting.ShowRangeAsPercent == true)
@@ -691,13 +708,10 @@ namespace ConfigurationManager
                     var strMin = Convert.ToString(setting.AcceptableValueRange.Key, CultureInfo.InvariantCulture).AppendZeroIfFloat(setting.SettingType);
                     var strMax = Convert.ToString(setting.AcceptableValueRange.Value, CultureInfo.InvariantCulture).AppendZeroIfFloat(setting.SettingType);
                     GUIStyle textStyle = GetTextStyle(setting);
-                    var strResult = GUILayout.TextField(strVal, textStyle,
-                        GUILayout.Width(SettingFieldDrawer.GetRangeValueWidth(setting, textStyle, strVal, strMin, strMax)));
-                    if (strResult != strVal && Utilities.Utils.TryParseFloat(strResult, out float resultVal))
-                    {
-                        var clampedResultVal = Mathf.Clamp(resultVal, leftValue, rightValue);
-                        valueToSet = Convert.ChangeType(Utilities.Utils.RoundWithPrecision(clampedResultVal, _rangePrecision.Value), setting.SettingType);
-                    }
+                    if (rangeTextEditor.Draw(strVal, textStyle,
+                        SettingFieldDrawer.GetRangeValueWidth(setting, textStyle, rangeTextEditor.DisplayText(strVal), strMin, strMax), out string text) &&
+                        SettingFieldDrawer.TryParseRangeText(text, leftValue, rightValue, setting.SettingType, out object parsed))
+                        valueToSet = parsed;
                 }
             }
             finally
@@ -1056,7 +1070,7 @@ namespace ConfigurationManager
             }
             else
             {
-                if (GUILayout.Button(valueToSet.ToString(), GetButtonStyle(setting), Utilities.GUIHelper.ExpandWidth))
+                if (GUILayout.Button(FormatKeyboardShortcut((KeyboardShortcut)valueToSet), GetButtonStyle(setting), Utilities.GUIHelper.ExpandWidth))
                     _currentKeyboardShortcutToSet = setting;
 
                 if (GUILayout.Button(_clearText.Value, GetButtonStyle(), Utilities.GUIHelper.FixedWidth))

@@ -10,6 +10,7 @@ using ConditionalConfigSync;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using UnityEngine;
 
 namespace ConfigurationManager
@@ -21,7 +22,7 @@ namespace ConfigurationManager
     {
         public const string GUID = "_shudnal.ConfigurationManager";
         public const string pluginName = "Valheim Configuration Manager";
-        public const string Version = "1.1.26";
+        public const string Version = "1.1.27";
 
         internal static ConfigurationManager instance;
         private static SettingFieldDrawer _fieldDrawer;
@@ -114,6 +115,30 @@ namespace ConfigurationManager
 
         internal void SetRightColumnWidth(int value) => RightColumnWidth = value;
 
+        public enum HotkeyDisplayFormat
+        {
+            BepInEx,
+            ModifiersFirst,
+            Descriptive
+        }
+
+        // Display-only formatting. Never change KeyboardShortcut values or their BepInEx serialization.
+        internal static string FormatKeyboardShortcut(KeyboardShortcut shortcut)
+        {
+            HotkeyDisplayFormat format = _hotkeyDisplayFormat?.Value ?? HotkeyDisplayFormat.BepInEx;
+            if (format == HotkeyDisplayFormat.BepInEx || shortcut.MainKey == KeyCode.None)
+                return shortcut.ToString();
+
+            string[] modifiers = shortcut.Modifiers.Select(key => key.ToString()).ToArray();
+            if (modifiers.Length == 0)
+                return shortcut.ToString();
+
+            string held = string.Join(" + ", modifiers);
+            return format == HotkeyDisplayFormat.ModifiersFirst
+                ? held + " + " + shortcut.MainKey
+                : "Hold " + held + ", press " + shortcut.MainKey;
+        }
+
         public enum ReadOnlyStyle
         {
             Ignored,
@@ -132,6 +157,7 @@ namespace ConfigurationManager
         public static ConfigEntry<KeyboardShortcut> _keybind;
         public static ConfigEntry<KeyboardShortcut> _keybindResetPosition;
         public static ConfigEntry<KeyboardShortcut> _keybindResetScale;
+        public static ConfigEntry<HotkeyDisplayFormat> _hotkeyDisplayFormat;
         public static ConfigEntry<bool> _hideSingleSection;
         public static ConfigEntry<bool> _pluginConfigCollapsedDefault;
         public static ConfigEntry<int> _textSize;
@@ -289,6 +315,8 @@ namespace ConfigurationManager
             _vectorDynamicPrecision = config("General", "Vector field dynamic precision", true, "If every value in vector is integer .0 part will be omitted. Type \",\" or \".\" in vector field to enable precision back.");
             _keybindResetPosition = config("General", "Reset position and size", new KeyboardShortcut(KeyCode.F1, KeyCode.LeftControl), "Set configuration manager window size and position to default values.");
             _keybindResetScale = config("General", "Reset scale", new KeyboardShortcut(KeyCode.F1, KeyCode.LeftShift), "Set configuration manager window scale to default value.");
+            _hotkeyDisplayFormat = config("General", "Hotkey display format", HotkeyDisplayFormat.BepInEx,
+                "How keyboard shortcuts are displayed in Configuration Manager. BepInEx: main key first; ModifiersFirst: held keys first; Descriptive: Hold ..., press ... . Does not affect bindings or saved values.");
 
             _orderPluginByGuid.SettingChanged += (sender, args) => BuildSettingList();
 
@@ -554,8 +582,12 @@ namespace ConfigurationManager
                 if (_displayingWindow == value)
                     return;
 
-                if (_displayingWindow && !value && _windowGeometryDirty)
-                    SaveCurrentSizeAndPosition();
+                if (_displayingWindow && !value)
+                {
+                    SettingFieldDrawer.FinishPendingRangeTextEditors();
+                    if (_windowGeometryDirty)
+                        SaveCurrentSizeAndPosition();
+                }
 
                 _displayingWindow = value;
 

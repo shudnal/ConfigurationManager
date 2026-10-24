@@ -279,6 +279,7 @@ namespace ConfigurationManager
         private void SettingsWindow(int id)
         {
             Utilities.GUITooltips.BeginWindow(currentWindowRect);
+            SettingFieldDrawer.RangeTextEditor.BeginWindowEvent();
             Utilities.ComboBox.BeginWindow(id);
             try
             {
@@ -312,6 +313,8 @@ namespace ConfigurationManager
             finally
             {
                 Utilities.ComboBox.EndWindow();
+                SettingFieldDrawer.FinishUndrawnRangeTextEditors();
+                SettingFieldDrawer.RangeTextEditor.EndWindowEvent();
                 Utilities.GUITooltips.EndWindow();
             }
         }

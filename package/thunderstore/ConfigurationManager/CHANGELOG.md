@@ -1,3 +1,8 @@
+# 1.1.27
+* Added display-only keyboard shortcut formats: original BepInEx, modifiers first, and descriptive text
+* Reworked numeric range inputs to select existing values on focus and apply completed numbers on Enter or when focus leaves the field
+* Kept slider editing consistent between the settings list and the separate Edit window, without changing saved keyboard shortcuts
+
 # 1.1.26
 * Made slider numeric and percentage fields adapt to their values and configured ranges in both the settings list and Edit window
 * Accounted for toggle margins when wrapping flag options into rows
