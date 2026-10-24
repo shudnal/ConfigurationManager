@@ -329,6 +329,7 @@ namespace ConfigurationManager
         private void DrawWindow(int windowID)
         {
             Utilities.GUITooltips.BeginWindow(_windowRect);
+            SettingFieldDrawer.RangeTextEditor.BeginWindowEvent();
             Utilities.ComboBox.BeginWindow(windowID);
             try
             {
@@ -402,6 +403,7 @@ namespace ConfigurationManager
             finally
             {
                 Utilities.ComboBox.EndWindow();
+                SettingFieldDrawer.RangeTextEditor.EndWindowEvent();
                 Utilities.GUITooltips.EndWindow();
             }
         }
@@ -680,7 +682,7 @@ namespace ConfigurationManager
                 if (Math.Abs(result - converted) >= Mathf.Abs(rightValue - leftValue) / Math.Pow(10, _rangePrecision.Value + 2))
                 {
                     valueToSet = Convert.ChangeType(Utilities.Utils.RoundWithPrecision(result, _rangePrecision.Value), setting.SettingType, CultureInfo.InvariantCulture);
-                    rangeTextEditor.Reset();
+                    rangeTextEditor.Reset(releaseFocus: true);
                 }
 
                 if (setting.ShowRangeAsPercent == true)

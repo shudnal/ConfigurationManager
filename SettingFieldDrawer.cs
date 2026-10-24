@@ -33,16 +33,40 @@ namespace ConfigurationManager
         // Selecting the complete value on focus makes normal typing replace the old number.
         internal sealed class RangeTextEditor
         {
+            // Keep the original mouse event even if a button consumes it or ComboBox
+            // temporarily changes its type to Ignore while drawing its popup.
+            private static bool windowMouseDown;
+
+            internal static void BeginWindowEvent()
+            {
+                Event current = Event.current;
+                windowMouseDown = current.type != EventType.Layout &&
+                    (current.rawType == EventType.MouseDown || current.type == EventType.MouseDown);
+            }
+
+            internal static void EndWindowEvent() => windowMouseDown = false;
+
             private readonly string controlName;
             private bool editing;
             private bool selectAllPending;
+            private bool hasFieldRect;
+            private Rect fieldRect;
             private string text;
 
             internal RangeTextEditor(string name) => controlName = name;
             internal string DisplayText(string fallback) => editing ? text : fallback;
 
-            internal void Reset()
+            private void ReleaseFocusIfOwned()
             {
+                // A click may already have focused a different input; never steal it back.
+                if (GUI.GetNameOfFocusedControl() == controlName)
+                    GUI.FocusControl(null);
+            }
+
+            internal void Reset(bool releaseFocus = false)
+            {
+                if (releaseFocus)
+                    ReleaseFocusIfOwned();
                 editing = false;
                 selectAllPending = false;
                 text = null;
@@ -54,9 +78,20 @@ namespace ConfigurationManager
                     Event.current.type == EventType.KeyDown &&
                     (Event.current.keyCode == KeyCode.Return || Event.current.keyCode == KeyCode.KeypadEnter);
 
+                // GUILayoutUtility.GetLastRect() is reliable on Repaint only. Both the
+                // cached rect and mousePosition here use the current GUIClip coordinates.
+                bool clickedOutside = editing && hasFieldRect && windowMouseDown &&
+                    !fieldRect.Contains(Event.current.mousePosition);
+
                 GUI.SetNextControlName(controlName);
                 string typed = GUILayout.TextField(DisplayText(actual), style, GUILayout.Width(width));
                 bool focused = GUI.GetNameOfFocusedControl() == controlName;
+
+                if (Event.current.type == EventType.Repaint)
+                {
+                    fieldRect = GUILayoutUtility.GetLastRect();
+                    hasFieldRect = true;
+                }
 
                 if (focused && !editing)
                 {
@@ -73,15 +108,12 @@ namespace ConfigurationManager
                     selectAllPending = false;
                 }
 
-                // Clicking a button/slider does not always clear IMGUI keyboard focus.
-                bool clickedOutside = Event.current.type == EventType.MouseDown &&
-                    !GUILayoutUtility.GetLastRect().Contains(Event.current.mousePosition);
                 if (editing && (enter || !focused || clickedOutside))
                 {
                     committed = text;
+                    ReleaseFocusIfOwned();
                     Reset();
-                    if (enter)
-                        GUI.FocusControl(null);
+                    // Let the original mouse event reach the clicked control.
                     return true;
                 }
 
@@ -607,7 +639,7 @@ namespace ConfigurationManager
                 {
                     var newValue = Convert.ChangeType(Utilities.Utils.RoundWithPrecision(result, _rangePrecision.Value), setting.SettingType, CultureInfo.InvariantCulture);
                     setting.Set(newValue);
-                    GetRangeTextEditor(setting).Reset();
+                    GetRangeTextEditor(setting).Reset(releaseFocus: true);
                 }
 
                 if (setting.ShowRangeAsPercent == true)
