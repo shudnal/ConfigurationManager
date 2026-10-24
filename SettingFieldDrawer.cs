@@ -33,13 +33,14 @@ namespace ConfigurationManager
         // Selecting the complete value on focus makes normal typing replace the old number.
         internal sealed class RangeTextEditor
         {
-            // Keep the original mouse event even if a button consumes it or ComboBox
-            // temporarily changes its type to Ignore while drawing its popup.
+            // Snapshot mouse input before ComboBox can mask or other controls can consume it.
             private static bool windowMouseDown;
+            private static int windowEventRevision;
 
             internal static void BeginWindowEvent()
             {
                 Event current = Event.current;
+                ++windowEventRevision;
                 windowMouseDown = current.type != EventType.Layout &&
                     (current.rawType == EventType.MouseDown || current.type == EventType.MouseDown);
             }
@@ -50,16 +51,20 @@ namespace ConfigurationManager
             private bool editing;
             private bool selectAllPending;
             private bool hasFieldRect;
+            private int lastDrawnWindowEvent = -1;
             private Rect fieldRect;
             private string text;
+            private string originalText;
 
             internal RangeTextEditor(string name) => controlName = name;
             internal string DisplayText(string fallback) => editing ? text : fallback;
+            internal bool IsEditing => editing;
+            internal bool WasDrawnInCurrentWindowEvent => lastDrawnWindowEvent == windowEventRevision;
 
             private void ReleaseFocusIfOwned()
             {
-                // A click may already have focused a different input; never steal it back.
-                if (GUI.GetNameOfFocusedControl() == controlName)
+                // Do not clear the focus of another control which may already have received it.
+                if (Event.current != null && GUI.GetNameOfFocusedControl() == controlName)
                     GUI.FocusControl(null);
             }
 
@@ -69,17 +74,42 @@ namespace ConfigurationManager
                     ReleaseFocusIfOwned();
                 editing = false;
                 selectAllPending = false;
+                hasFieldRect = false;
                 text = null;
+                originalText = null;
             }
+
+            private bool Finish(out string committed, bool releaseFocus)
+            {
+                // Focusing a field without modifying its text must not round or rewrite a value.
+                bool changed = editing && !string.Equals(text, originalText, StringComparison.Ordinal);
+                committed = changed ? text : null;
+                Reset(releaseFocus);
+                return changed;
+            }
+
+            internal bool FinishIfUndrawn(out string committed)
+            {
+                if (!editing || WasDrawnInCurrentWindowEvent)
+                {
+                    committed = null;
+                    return false;
+                }
+                return Finish(out committed, releaseFocus: true);
+            }
+
+            internal bool FinishOnWindowClose(out string committed) =>
+                Finish(out committed, releaseFocus: false);
 
             internal bool Draw(string actual, GUIStyle style, float width, out string committed)
             {
+                lastDrawnWindowEvent = windowEventRevision;
+
                 bool enter = editing && GUI.GetNameOfFocusedControl() == controlName &&
                     Event.current.type == EventType.KeyDown &&
                     (Event.current.keyCode == KeyCode.Return || Event.current.keyCode == KeyCode.KeypadEnter);
 
-                // GUILayoutUtility.GetLastRect() is reliable on Repaint only. Both the
-                // cached rect and mousePosition here use the current GUIClip coordinates.
+                // The cached rect is captured on Repaint, in the same GUIClip as mousePosition.
                 bool clickedOutside = editing && hasFieldRect && windowMouseDown &&
                     !fieldRect.Contains(Event.current.mousePosition);
 
@@ -96,8 +126,10 @@ namespace ConfigurationManager
                 if (focused && !editing)
                 {
                     editing = true;
+                    originalText = actual;
                     selectAllPending = true;
                 }
+
                 if (editing)
                     text = typed;
 
@@ -110,11 +142,8 @@ namespace ConfigurationManager
 
                 if (editing && (enter || !focused || clickedOutside))
                 {
-                    committed = text;
-                    ReleaseFocusIfOwned();
-                    Reset();
-                    // Let the original mouse event reach the clicked control.
-                    return true;
+                    // Preserve the original click; the target control must still receive it.
+                    return Finish(out committed, releaseFocus: true);
                 }
 
                 committed = null;
@@ -123,6 +152,9 @@ namespace ConfigurationManager
         }
 
         private static readonly Dictionary<SettingEntryBase, RangeTextEditor> RangeTextEditors = new Dictionary<SettingEntryBase, RangeTextEditor>();
+        // Only track editors actively being used, not every range setting in the window.
+        private static readonly HashSet<SettingEntryBase> ActiveRangeTextEditors = new HashSet<SettingEntryBase>();
+        private static readonly List<SettingEntryBase> RangeEditorsToFinish = new List<SettingEntryBase>();
         private static int nextRangeTextId;
 
         private static RangeTextEditor GetRangeTextEditor(SettingEntryBase setting)
@@ -130,6 +162,69 @@ namespace ConfigurationManager
             if (!RangeTextEditors.TryGetValue(setting, out RangeTextEditor editor))
                 RangeTextEditors.Add(setting, editor = new RangeTextEditor("CM_Range_" + ++nextRangeTextId));
             return editor;
+        }
+
+        private static void ApplyPendingRangeText(SettingEntryBase setting, string text)
+        {
+            if (text == null || setting.ReadOnly == true || setting.AcceptableValueRange.Key == null)
+                return;
+
+            try
+            {
+                float min = (float)Convert.ToDouble(setting.AcceptableValueRange.Key, CultureInfo.InvariantCulture);
+                float max = (float)Convert.ToDouble(setting.AcceptableValueRange.Value, CultureInfo.InvariantCulture);
+                if (TryParseRangeText(text, min, max, setting.SettingType, out object parsed) &&
+                    !Equals(parsed, setting.Get()))
+                    setting.Set(parsed);
+            }
+            catch (Exception ex)
+            {
+                LogWarning("Could not apply pending range value for " + setting.SettingID + ": " + ex);
+            }
+        }
+
+        // An offscreen plugin/category is not drawn by the virtualized list. Finish its
+        // pending range edit rather than retaining the buffer until the user scrolls back.
+        internal static void FinishUndrawnRangeTextEditors()
+        {
+            if (ActiveRangeTextEditors.Count == 0)
+                return;
+
+            RangeEditorsToFinish.Clear();
+            foreach (SettingEntryBase setting in ActiveRangeTextEditors)
+            {
+                if (!RangeTextEditors.TryGetValue(setting, out RangeTextEditor editor) ||
+                    !editor.IsEditing || !editor.WasDrawnInCurrentWindowEvent)
+                    RangeEditorsToFinish.Add(setting);
+            }
+
+            foreach (SettingEntryBase setting in RangeEditorsToFinish)
+            {
+                if (RangeTextEditors.TryGetValue(setting, out RangeTextEditor editor) &&
+                    editor.FinishIfUndrawn(out string text))
+                    ApplyPendingRangeText(setting, text);
+                ActiveRangeTextEditors.Remove(setting);
+            }
+            RangeEditorsToFinish.Clear();
+        }
+
+        // Closing the manager must not silently discard a partially typed valid value.
+        // The close hotkey may run outside OnGUI, so avoid GUI focus calls here.
+        internal static void FinishPendingRangeTextEditors()
+        {
+            if (ActiveRangeTextEditors.Count == 0)
+                return;
+
+            RangeEditorsToFinish.Clear();
+            RangeEditorsToFinish.AddRange(ActiveRangeTextEditors);
+            foreach (SettingEntryBase setting in RangeEditorsToFinish)
+            {
+                if (RangeTextEditors.TryGetValue(setting, out RangeTextEditor editor) &&
+                    editor.FinishOnWindowClose(out string text))
+                    ApplyPendingRangeText(setting, text);
+            }
+            ActiveRangeTextEditors.Clear();
+            RangeEditorsToFinish.Clear();
         }
 
         internal static bool TryParseRangeText(string text, float minimum, float maximum, Type settingType, out object value)
@@ -427,6 +522,8 @@ namespace ConfigurationManager
             ClearComboboxCache();
             RangeValueLayouts.Clear();
             RangeTextEditors.Clear();
+            ActiveRangeTextEditors.Clear();
+            RangeEditorsToFinish.Clear();
 
             foreach (var tex in ColorCache)
                 UnityEngine.Object.Destroy(tex.Value.Tex);
@@ -640,6 +737,7 @@ namespace ConfigurationManager
                     var newValue = Convert.ChangeType(Utilities.Utils.RoundWithPrecision(result, _rangePrecision.Value), setting.SettingType, CultureInfo.InvariantCulture);
                     setting.Set(newValue);
                     GetRangeTextEditor(setting).Reset(releaseFocus: true);
+                    ActiveRangeTextEditors.Remove(setting);
                 }
 
                 if (setting.ShowRangeAsPercent == true)
@@ -655,10 +753,14 @@ namespace ConfigurationManager
                     var strMax = Convert.ToString(setting.AcceptableValueRange.Value, CultureInfo.InvariantCulture).AppendZeroIfFloat(setting.SettingType);
                     GUIStyle textStyle = GetTextStyle(setting);
                     RangeTextEditor editor = GetRangeTextEditor(setting);
-                    if (editor.Draw(strVal, textStyle,
-                        GetRangeValueWidth(setting, textStyle, editor.DisplayText(strVal), strMin, strMax), out string text) &&
-                        TryParseRangeText(text, leftValue, rightValue, setting.SettingType, out object parsed))
-                        setting.Set(parsed);
+                    bool textChanged = editor.Draw(strVal, textStyle,
+                        GetRangeValueWidth(setting, textStyle, editor.DisplayText(strVal), strMin, strMax), out string text);
+                    if (editor.IsEditing)
+                        ActiveRangeTextEditors.Add(setting);
+                    else
+                        ActiveRangeTextEditors.Remove(setting);
+                    if (textChanged)
+                        ApplyPendingRangeText(setting, text);
                 }
             }
             finally

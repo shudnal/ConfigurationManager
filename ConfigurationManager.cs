@@ -582,8 +582,12 @@ namespace ConfigurationManager
                 if (_displayingWindow == value)
                     return;
 
-                if (_displayingWindow && !value && _windowGeometryDirty)
-                    SaveCurrentSizeAndPosition();
+                if (_displayingWindow && !value)
+                {
+                    SettingFieldDrawer.FinishPendingRangeTextEditors();
+                    if (_windowGeometryDirty)
+                        SaveCurrentSizeAndPosition();
+                }
 
                 _displayingWindow = value;
 

@@ -106,6 +106,8 @@ namespace ConfigurationManager
                     SaveCurrentSizeAndPosition();
 
                 _isOpen = value;
+                if (!_isOpen)
+                    rangeTextEditor.Reset();
                 if (_isOpen)
                 {
                     _windowRect = new Rect(_windowPositionEditSetting.Value, _windowSizeEditSetting.Value);
@@ -403,6 +405,14 @@ namespace ConfigurationManager
             finally
             {
                 Utilities.ComboBox.EndWindow();
+                if (rangeTextEditor.FinishIfUndrawn(out string pendingText) &&
+                    setting.AcceptableValueRange.Key != null)
+                {
+                    float min = (float)Convert.ToDouble(setting.AcceptableValueRange.Key, CultureInfo.InvariantCulture);
+                    float max = (float)Convert.ToDouble(setting.AcceptableValueRange.Value, CultureInfo.InvariantCulture);
+                    if (SettingFieldDrawer.TryParseRangeText(pendingText, min, max, setting.SettingType, out object parsed))
+                        valueToSet = parsed;
+                }
                 SettingFieldDrawer.RangeTextEditor.EndWindowEvent();
                 Utilities.GUITooltips.EndWindow();
             }

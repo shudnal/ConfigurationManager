@@ -313,6 +313,7 @@ namespace ConfigurationManager
             finally
             {
                 Utilities.ComboBox.EndWindow();
+                SettingFieldDrawer.FinishUndrawnRangeTextEditors();
                 SettingFieldDrawer.RangeTextEditor.EndWindowEvent();
                 Utilities.GUITooltips.EndWindow();
             }
