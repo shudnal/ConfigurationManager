@@ -29,6 +29,94 @@ namespace ConfigurationManager
         private const int MaxRangeValueCharacters = 10;
         private const float MinRangeValueWidth = 50f;
 
+        // Keep incomplete input such as "1" for a 10-60 range until the user finishes editing.
+        // Selecting the complete value on focus makes normal typing replace the old number.
+        internal sealed class RangeTextEditor
+        {
+            private readonly string controlName;
+            private bool editing;
+            private bool selectAllPending;
+            private string text;
+
+            internal RangeTextEditor(string name) => controlName = name;
+            internal string DisplayText(string fallback) => editing ? text : fallback;
+
+            internal void Reset()
+            {
+                editing = false;
+                selectAllPending = false;
+                text = null;
+            }
+
+            internal bool Draw(string actual, GUIStyle style, float width, out string committed)
+            {
+                bool enter = editing && GUI.GetNameOfFocusedControl() == controlName &&
+                    Event.current.type == EventType.KeyDown &&
+                    (Event.current.keyCode == KeyCode.Return || Event.current.keyCode == KeyCode.KeypadEnter);
+
+                GUI.SetNextControlName(controlName);
+                string typed = GUILayout.TextField(DisplayText(actual), style, GUILayout.Width(width));
+                bool focused = GUI.GetNameOfFocusedControl() == controlName;
+
+                if (focused && !editing)
+                {
+                    editing = true;
+                    selectAllPending = true;
+                }
+                if (editing)
+                    text = typed;
+
+                if (selectAllPending && focused && Event.current.type == EventType.Repaint)
+                {
+                    TextEditor editor = (TextEditor)GUIUtility.GetStateObject(typeof(TextEditor), GUIUtility.keyboardControl);
+                    editor.SelectAll();
+                    selectAllPending = false;
+                }
+
+                // Clicking a button/slider does not always clear IMGUI keyboard focus.
+                bool clickedOutside = Event.current.type == EventType.MouseDown &&
+                    !GUILayoutUtility.GetLastRect().Contains(Event.current.mousePosition);
+                if (editing && (enter || !focused || clickedOutside))
+                {
+                    committed = text;
+                    Reset();
+                    if (enter)
+                        GUI.FocusControl(null);
+                    return true;
+                }
+
+                committed = null;
+                return false;
+            }
+        }
+
+        private static readonly Dictionary<SettingEntryBase, RangeTextEditor> RangeTextEditors = new Dictionary<SettingEntryBase, RangeTextEditor>();
+        private static int nextRangeTextId;
+
+        private static RangeTextEditor GetRangeTextEditor(SettingEntryBase setting)
+        {
+            if (!RangeTextEditors.TryGetValue(setting, out RangeTextEditor editor))
+                RangeTextEditors.Add(setting, editor = new RangeTextEditor("CM_Range_" + ++nextRangeTextId));
+            return editor;
+        }
+
+        internal static bool TryParseRangeText(string text, float minimum, float maximum, Type settingType, out object value)
+        {
+            value = null;
+            if (!float.TryParse(text?.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out float number) ||
+                float.IsNaN(number) || float.IsInfinity(number))
+                return false;
+
+            try
+            {
+                value = Convert.ChangeType(Utilities.Utils.RoundWithPrecision(Mathf.Clamp(number, minimum, maximum), _rangePrecision.Value),
+                    settingType, CultureInfo.InvariantCulture);
+                return true;
+            }
+            catch (FormatException) { return false; }
+            catch (OverflowException) { return false; }
+        }
+
         private sealed class RangeValueLayout
         {
             internal int Revision = -1;
@@ -306,6 +394,7 @@ namespace ConfigurationManager
         {
             ClearComboboxCache();
             RangeValueLayouts.Clear();
+            RangeTextEditors.Clear();
 
             foreach (var tex in ColorCache)
                 UnityEngine.Object.Destroy(tex.Value.Tex);
@@ -518,6 +607,7 @@ namespace ConfigurationManager
                 {
                     var newValue = Convert.ChangeType(Utilities.Utils.RoundWithPrecision(result, _rangePrecision.Value), setting.SettingType, CultureInfo.InvariantCulture);
                     setting.Set(newValue);
+                    GetRangeTextEditor(setting).Reset();
                 }
 
                 if (setting.ShowRangeAsPercent == true)
@@ -532,13 +622,11 @@ namespace ConfigurationManager
                     var strMin = Convert.ToString(setting.AcceptableValueRange.Key, CultureInfo.InvariantCulture).AppendZeroIfFloat(setting.SettingType);
                     var strMax = Convert.ToString(setting.AcceptableValueRange.Value, CultureInfo.InvariantCulture).AppendZeroIfFloat(setting.SettingType);
                     GUIStyle textStyle = GetTextStyle(setting);
-                    var strResult = GUILayout.TextField(strVal, textStyle,
-                        GUILayout.Width(GetRangeValueWidth(setting, textStyle, strVal, strMin, strMax)));
-                    if (strResult != strVal && Utilities.Utils.TryParseFloat(strResult, out float resultVal))
-                    {
-                        var clampedResultVal = Mathf.Clamp(resultVal, leftValue, rightValue);
-                        setting.Set(Convert.ChangeType(Utilities.Utils.RoundWithPrecision(clampedResultVal, _rangePrecision.Value), setting.SettingType));
-                    }
+                    RangeTextEditor editor = GetRangeTextEditor(setting);
+                    if (editor.Draw(strVal, textStyle,
+                        GetRangeValueWidth(setting, textStyle, editor.DisplayText(strVal), strMin, strMax), out string text) &&
+                        TryParseRangeText(text, leftValue, rightValue, setting.SettingType, out object parsed))
+                        setting.Set(parsed);
                 }
             }
             finally
@@ -684,7 +772,7 @@ namespace ConfigurationManager
             }
             else
             {
-                if (GUILayout.Button(setting.Get().ToString(), GetButtonStyle(setting), Utilities.GUIHelper.ExpandWidth))
+                if (GUILayout.Button(FormatKeyboardShortcut((KeyboardShortcut)setting.Get()), GetButtonStyle(setting), Utilities.GUIHelper.ExpandWidth))
                     _currentKeyboardShortcutToSet = setting;
 
                 if (GUILayout.Button(_clearText.Value, GetButtonStyle(), Utilities.GUIHelper.FixedWidth))
